@@ -838,7 +838,4 @@ using detail::fg361c::VIEW_ORDER_SPRITES;
 using detail::fg361c::VIEW_SHADOW_IMAGES;
 using detail::fg361c::VIEW_TYPE_MASKS;
 using detail::fg361c::VIEW_TYPE_SPRITES;
-
-// The old name, for the callers outside data/ that still use it.
-inline constexpr auto& opeu_view_type_masks{ VIEW_TYPE_MASKS };
 } // namespace opeu::game

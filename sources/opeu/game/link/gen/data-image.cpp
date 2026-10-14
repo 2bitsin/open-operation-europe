@@ -1,827 +1,845 @@
-// The segment:offset of every object the data modules (game/data) define. Only their addresses and sizes are taken
-// here; their types and contents stay in the data modules. The objects of the data segment's modules are written as
-// typed fields instead (data/image.cpp).
-#include "port.hpp"
+// The far data objects of the data modules (game/data) at their segment:offset. Only their addresses, sizes and bytes
+// are taken here; their types and contents stay in the data headers. The data segment's own fields are written as typed
+// fields instead (data/image.cpp); its map state starts zeroed with the segment.
+#include "link/image-block.hpp"
 
-#include <iterator>
+#include "data/fadvice.hpp"
+#include "data/fbattle.hpp"
+#include "data/fg349b.hpp"
+#include "data/fg352d.hpp"
+#include "data/fg3546.hpp"
+#include "data/fg35c0.hpp"
+#include "data/fg35e4.hpp"
+#include "data/fg361c.hpp"
+#include "data/fg3873.hpp"
+#include "data/fg3885.hpp"
+#include "data/fg3a64.hpp"
+#include "data/fg3a99.hpp"
+#include "data/fg3ab9.hpp"
+#include "data/fg4582.hpp"
+#include "data/fmusic.hpp"
+#include "data/fnews.hpp"
+#include "data/freply.hpp"
 
-extern unsigned char opeu_view_cell_tiles[];
-extern unsigned char opeu_turn_frame_short_tiles[];
-extern unsigned char opeu_turn_frame_tall_tiles[];
-extern unsigned char opeu_element_type_icons[];
-extern unsigned char opeu_battle_hex_masks[];
-extern unsigned char opeu_yes_no_pointer_save[];
-extern unsigned char opeu_text_cursor_tile[];
-extern unsigned char opeu_yes_no_pointer_image[];
-extern unsigned char opeu_yes_no_pointer_shape[];
-extern unsigned char opeu_menu_button_tiles[];
-extern unsigned char opeu_setup_marker_save[];
-extern unsigned char opeu_setup_marker_image[];
-extern unsigned char opeu_overview_type_masks[];
-extern unsigned char opeu_overview_type_sprites[];
-extern unsigned char opeu_overview_order_masks[];
-extern unsigned char opeu_overview_order_sprites[];
-extern unsigned char opeu_overview_blast_frames[];
-extern unsigned char opeu_view_type_sprites[];
-extern unsigned char opeu_view_type_masks[];
-extern unsigned char opeu_view_shadow_images[];
-extern unsigned char opeu_view_order_sprites[];
-extern unsigned char opeu_view_order_masks[];
-extern unsigned char opeu_view_blast_sprites[];
-extern unsigned char opeu_view_blast_masks[];
-extern unsigned char opeu_battle_report_0[];
-extern unsigned char opeu_battle_report_1[];
-extern unsigned char opeu_battle_report_2[];
-extern unsigned char opeu_battle_report_3[];
-extern unsigned char opeu_battle_report_4[];
-extern unsigned char opeu_battle_report_5[];
-extern unsigned char opeu_battle_report_6[];
-extern unsigned char opeu_context_frame_tiles[];
-extern unsigned char opeu_list_arrow_tiles[];
-extern unsigned char opeu_war_news_000[];
-extern unsigned char opeu_war_news_001[];
-extern unsigned char opeu_war_news_002[];
-extern unsigned char opeu_war_news_003[];
-extern unsigned char opeu_war_news_004[];
-extern unsigned char opeu_war_news_005[];
-extern unsigned char opeu_war_news_006[];
-extern unsigned char opeu_war_news_007[];
-extern unsigned char opeu_war_news_008[];
-extern unsigned char opeu_war_news_009[];
-extern unsigned char opeu_war_news_010[];
-extern unsigned char opeu_war_news_011[];
-extern unsigned char opeu_war_news_012[];
-extern unsigned char opeu_war_news_013[];
-extern unsigned char opeu_war_news_014[];
-extern unsigned char opeu_war_news_015[];
-extern unsigned char opeu_war_news_016[];
-extern unsigned char opeu_war_news_017[];
-extern unsigned char opeu_war_news_018[];
-extern unsigned char opeu_war_news_019[];
-extern unsigned char opeu_war_news_020[];
-extern unsigned char opeu_war_news_021[];
-extern unsigned char opeu_war_news_022[];
-extern unsigned char opeu_war_news_023[];
-extern unsigned char opeu_war_news_024[];
-extern unsigned char opeu_war_news_025[];
-extern unsigned char opeu_war_news_026[];
-extern unsigned char opeu_war_news_027[];
-extern unsigned char opeu_war_news_028[];
-extern unsigned char opeu_war_news_029[];
-extern unsigned char opeu_war_news_030[];
-extern unsigned char opeu_war_news_031[];
-extern unsigned char opeu_war_news_032[];
-extern unsigned char opeu_war_news_033[];
-extern unsigned char opeu_war_news_034[];
-extern unsigned char opeu_war_news_035[];
-extern unsigned char opeu_war_news_036[];
-extern unsigned char opeu_war_news_037[];
-extern unsigned char opeu_war_news_038[];
-extern unsigned char opeu_war_news_039[];
-extern unsigned char opeu_war_news_040[];
-extern unsigned char opeu_war_news_041[];
-extern unsigned char opeu_war_news_042[];
-extern unsigned char opeu_war_news_043[];
-extern unsigned char opeu_war_news_044[];
-extern unsigned char opeu_war_news_045[];
-extern unsigned char opeu_war_news_046[];
-extern unsigned char opeu_war_news_047[];
-extern unsigned char opeu_war_news_048[];
-extern unsigned char opeu_war_news_049[];
-extern unsigned char opeu_war_news_050[];
-extern unsigned char opeu_war_news_051[];
-extern unsigned char opeu_war_news_052[];
-extern unsigned char opeu_war_news_053[];
-extern unsigned char opeu_war_news_054[];
-extern unsigned char opeu_war_news_055[];
-extern unsigned char opeu_war_news_056[];
-extern unsigned char opeu_war_news_057[];
-extern unsigned char opeu_war_news_058[];
-extern unsigned char opeu_war_news_059[];
-extern unsigned char opeu_war_news_060[];
-extern unsigned char opeu_war_news_061[];
-extern unsigned char opeu_war_news_062[];
-extern unsigned char opeu_war_news_063[];
-extern unsigned char opeu_war_news_064[];
-extern unsigned char opeu_war_news_065[];
-extern unsigned char opeu_war_news_066[];
-extern unsigned char opeu_war_news_067[];
-extern unsigned char opeu_war_news_068[];
-extern unsigned char opeu_war_news_069[];
-extern unsigned char opeu_war_news_070[];
-extern unsigned char opeu_war_news_071[];
-extern unsigned char opeu_war_news_072[];
-extern unsigned char opeu_war_news_073[];
-extern unsigned char opeu_war_news_074[];
-extern unsigned char opeu_war_news_075[];
-extern unsigned char opeu_war_news_076[];
-extern unsigned char opeu_war_news_077[];
-extern unsigned char opeu_war_news_078[];
-extern unsigned char opeu_war_news_079[];
-extern unsigned char opeu_war_news_080[];
-extern unsigned char opeu_war_news_081[];
-extern unsigned char opeu_war_news_082[];
-extern unsigned char opeu_war_news_083[];
-extern unsigned char opeu_war_news_084[];
-extern unsigned char opeu_war_news_085[];
-extern unsigned char opeu_war_news_086[];
-extern unsigned char opeu_war_news_087[];
-extern unsigned char opeu_war_news_088[];
-extern unsigned char opeu_war_news_089[];
-extern unsigned char opeu_war_news_090[];
-extern unsigned char opeu_war_news_091[];
-extern unsigned char opeu_war_news_092[];
-extern unsigned char opeu_war_news_093[];
-extern unsigned char opeu_war_news_094[];
-extern unsigned char opeu_war_news_095[];
-extern unsigned char opeu_war_news_096[];
-extern unsigned char opeu_war_news_097[];
-extern unsigned char opeu_war_news_098[];
-extern unsigned char opeu_war_news_099[];
-extern unsigned char opeu_war_news_100[];
-extern unsigned char opeu_war_news_101[];
-extern unsigned char opeu_war_news_102[];
-extern unsigned char opeu_war_news_103[];
-extern unsigned char opeu_war_news_104[];
-extern unsigned char opeu_war_news_105[];
-extern unsigned char opeu_war_news_106[];
-extern unsigned char opeu_war_news_107[];
-extern unsigned char opeu_war_news_108[];
-extern unsigned char opeu_war_news_109[];
-extern unsigned char opeu_war_news_110[];
-extern unsigned char opeu_war_news_111[];
-extern unsigned char opeu_war_news_112[];
-extern unsigned char opeu_war_news_113[];
-extern unsigned char opeu_war_news_114[];
-extern unsigned char opeu_war_news_115[];
-extern unsigned char opeu_war_news_116[];
-extern unsigned char opeu_war_news_117[];
-extern unsigned char opeu_war_news_118[];
-extern unsigned char opeu_war_news_119[];
-extern unsigned char opeu_war_news_120[];
-extern unsigned char opeu_war_news_121[];
-extern unsigned char opeu_war_news_122[];
-extern unsigned char opeu_war_news_123[];
-extern unsigned char opeu_war_news_124[];
-extern unsigned char opeu_war_news_125[];
-extern unsigned char opeu_war_news_126[];
-extern unsigned char opeu_war_news_127[];
-extern unsigned char opeu_war_news_128[];
-extern unsigned char opeu_war_news_129[];
-extern unsigned char opeu_war_news_130[];
-extern unsigned char opeu_war_news_131[];
-extern unsigned char opeu_war_news_132[];
-extern unsigned char opeu_war_news_133[];
-extern unsigned char opeu_war_news_134[];
-extern unsigned char opeu_war_news_135[];
-extern unsigned char opeu_war_news_136[];
-extern unsigned char opeu_war_news_137[];
-extern unsigned char opeu_war_news_138[];
-extern unsigned char opeu_war_news_139[];
-extern unsigned char opeu_war_news_140[];
-extern unsigned char opeu_war_news_141[];
-extern unsigned char opeu_weather_terrain_ratings[];
-extern unsigned char opeu_air_sprite_save[];
-extern unsigned char opeu_bomb_sprite_save[];
-extern unsigned char opeu_panel_border_tiles[];
-extern unsigned char opeu_advice_00[];
-extern unsigned char opeu_advice_01[];
-extern unsigned char opeu_advice_02[];
-extern unsigned char opeu_advice_03[];
-extern unsigned char opeu_advice_04[];
-extern unsigned char opeu_advice_05[];
-extern unsigned char opeu_advice_06[];
-extern unsigned char opeu_advice_07[];
-extern unsigned char opeu_advice_08[];
-extern unsigned char opeu_advice_09[];
-extern unsigned char opeu_advice_10[];
-extern unsigned char opeu_advice_11[];
-extern unsigned char opeu_advice_12[];
-extern unsigned char opeu_advice_13[];
-extern unsigned char opeu_advice_14[];
-extern unsigned char opeu_advice_15[];
-extern unsigned char opeu_advice_16[];
-extern unsigned char opeu_advice_17[];
-extern unsigned char opeu_advice_18[];
-extern unsigned char opeu_advice_19[];
-extern unsigned char opeu_advice_20[];
-extern unsigned char opeu_advice_21[];
-extern unsigned char opeu_advice_22[];
-extern unsigned char opeu_advice_23[];
-extern unsigned char opeu_advice_24[];
-extern unsigned char opeu_advice_25[];
-extern unsigned char opeu_advice_26[];
-extern unsigned char opeu_advice_27[];
-extern unsigned char opeu_advice_28[];
-extern unsigned char opeu_advice_29[];
-extern unsigned char opeu_advice_30[];
-extern unsigned char opeu_advice_31[];
-extern unsigned char opeu_advice_32[];
-extern unsigned char opeu_advice_33[];
-extern unsigned char opeu_advice_34[];
-extern unsigned char opeu_advice_35[];
-extern unsigned char opeu_advice_36[];
-extern unsigned char opeu_advice_37[];
-extern unsigned char opeu_advice_38[];
-extern unsigned char opeu_advice_39[];
-extern unsigned char opeu_advice_40[];
-extern unsigned char opeu_advice_41[];
-extern unsigned char opeu_advice_42[];
-extern unsigned char opeu_advice_43[];
-extern unsigned char opeu_advice_44[];
-extern unsigned char opeu_advice_45[];
-extern unsigned char opeu_advice_46[];
-extern unsigned char opeu_advice_47[];
-extern unsigned char opeu_advice_48[];
-extern unsigned char opeu_advice_49[];
-extern unsigned char opeu_advice_50[];
-extern unsigned char opeu_advice_51[];
-extern unsigned char opeu_advice_52[];
-extern unsigned char opeu_advice_53[];
-extern unsigned char opeu_advice_54[];
-extern unsigned char opeu_advice_55[];
-extern unsigned char opeu_advice_56[];
-extern unsigned char opeu_advice_57[];
-extern unsigned char opeu_advice_58[];
-extern unsigned char opeu_advice_59[];
-extern unsigned char opeu_advice_60[];
-extern unsigned char opeu_advice_61[];
-extern unsigned char opeu_advice_62[];
-extern unsigned char opeu_advice_63[];
-extern unsigned char opeu_advice_64[];
-extern unsigned char opeu_advice_65[];
-extern unsigned char opeu_advice_66[];
-extern unsigned char opeu_advice_67[];
-extern unsigned char opeu_advice_68[];
-extern unsigned char opeu_advice_69[];
-extern unsigned char opeu_advice_70[];
-extern unsigned char opeu_advice_71[];
-extern unsigned char opeu_advice_72[];
-extern unsigned char opeu_advice_73[];
-extern unsigned char opeu_advice_74[];
-extern unsigned char opeu_advice_75[];
-extern unsigned char opeu_advice_76[];
-extern unsigned char opeu_advice_77[];
-extern unsigned char opeu_advice_78[];
-extern unsigned char opeu_advice_79[];
-extern unsigned char opeu_advice_80[];
-extern unsigned char opeu_advice_81[];
-extern unsigned char opeu_advice_82[];
-extern unsigned char opeu_advice_83[];
-extern unsigned char opeu_advice_84[];
-extern unsigned char opeu_advice_85[];
-extern unsigned char opeu_advice_86[];
-extern unsigned char opeu_advice_87[];
-extern unsigned char opeu_advice_88[];
-extern unsigned char opeu_advice_89[];
-extern unsigned char opeu_advice_90[];
-extern unsigned char opeu_advice_91[];
-extern unsigned char opeu_advice_92[];
-extern unsigned char opeu_reply_000[];
-extern unsigned char opeu_reply_001[];
-extern unsigned char opeu_reply_002[];
-extern unsigned char opeu_reply_003[];
-extern unsigned char opeu_reply_004[];
-extern unsigned char opeu_reply_005[];
-extern unsigned char opeu_reply_006[];
-extern unsigned char opeu_reply_007[];
-extern unsigned char opeu_reply_008[];
-extern unsigned char opeu_reply_009[];
-extern unsigned char opeu_reply_010[];
-extern unsigned char opeu_reply_011[];
-extern unsigned char opeu_reply_012[];
-extern unsigned char opeu_reply_013[];
-extern unsigned char opeu_reply_014[];
-extern unsigned char opeu_reply_015[];
-extern unsigned char opeu_reply_016[];
-extern unsigned char opeu_reply_017[];
-extern unsigned char opeu_reply_018[];
-extern unsigned char opeu_reply_019[];
-extern unsigned char opeu_reply_020[];
-extern unsigned char opeu_reply_021[];
-extern unsigned char opeu_reply_022[];
-extern unsigned char opeu_reply_023[];
-extern unsigned char opeu_reply_024[];
-extern unsigned char opeu_reply_025[];
-extern unsigned char opeu_reply_026[];
-extern unsigned char opeu_reply_027[];
-extern unsigned char opeu_reply_028[];
-extern unsigned char opeu_reply_029[];
-extern unsigned char opeu_reply_030[];
-extern unsigned char opeu_reply_031[];
-extern unsigned char opeu_reply_032[];
-extern unsigned char opeu_reply_033[];
-extern unsigned char opeu_reply_034[];
-extern unsigned char opeu_reply_035[];
-extern unsigned char opeu_reply_036[];
-extern unsigned char opeu_reply_037[];
-extern unsigned char opeu_reply_038[];
-extern unsigned char opeu_reply_039[];
-extern unsigned char opeu_reply_040[];
-extern unsigned char opeu_reply_041[];
-extern unsigned char opeu_reply_042[];
-extern unsigned char opeu_reply_043[];
-extern unsigned char opeu_reply_044[];
-extern unsigned char opeu_reply_045[];
-extern unsigned char opeu_reply_046[];
-extern unsigned char opeu_reply_047[];
-extern unsigned char opeu_reply_048[];
-extern unsigned char opeu_reply_049[];
-extern unsigned char opeu_reply_050[];
-extern unsigned char opeu_reply_051[];
-extern unsigned char opeu_reply_052[];
-extern unsigned char opeu_reply_053[];
-extern unsigned char opeu_reply_054[];
-extern unsigned char opeu_reply_055[];
-extern unsigned char opeu_reply_056[];
-extern unsigned char opeu_reply_057[];
-extern unsigned char opeu_reply_058[];
-extern unsigned char opeu_reply_059[];
-extern unsigned char opeu_reply_060[];
-extern unsigned char opeu_reply_061[];
-extern unsigned char opeu_reply_062[];
-extern unsigned char opeu_reply_063[];
-extern unsigned char opeu_reply_064[];
-extern unsigned char opeu_reply_065[];
-extern unsigned char opeu_reply_066[];
-extern unsigned char opeu_reply_067[];
-extern unsigned char opeu_reply_068[];
-extern unsigned char opeu_reply_069[];
-extern unsigned char opeu_reply_070[];
-extern unsigned char opeu_reply_071[];
-extern unsigned char opeu_reply_072[];
-extern unsigned char opeu_reply_073[];
-extern unsigned char opeu_reply_074[];
-extern unsigned char opeu_reply_075[];
-extern unsigned char opeu_reply_076[];
-extern unsigned char opeu_reply_077[];
-extern unsigned char opeu_reply_078[];
-extern unsigned char opeu_reply_079[];
-extern unsigned char opeu_reply_080[];
-extern unsigned char opeu_reply_081[];
-extern unsigned char opeu_reply_082[];
-extern unsigned char opeu_reply_083[];
-extern unsigned char opeu_reply_084[];
-extern unsigned char opeu_reply_085[];
-extern unsigned char opeu_reply_086[];
-extern unsigned char opeu_reply_087[];
-extern unsigned char opeu_reply_088[];
-extern unsigned char opeu_reply_089[];
-extern unsigned char opeu_reply_090[];
-extern unsigned char opeu_reply_091[];
-extern unsigned char opeu_reply_092[];
-extern unsigned char opeu_reply_093[];
-extern unsigned char opeu_reply_094[];
-extern unsigned char opeu_reply_095[];
-extern unsigned char opeu_reply_096[];
-extern unsigned char opeu_reply_097[];
-extern unsigned char opeu_reply_098[];
-extern unsigned char opeu_reply_099[];
-extern unsigned char opeu_reply_100[];
-extern unsigned char opeu_reply_101[];
-extern unsigned char opeu_reply_102[];
-extern unsigned char opeu_reply_103[];
-extern unsigned char opeu_reply_104[];
-extern unsigned char opeu_reply_105[];
-extern unsigned char opeu_reply_106[];
-extern unsigned char opeu_reply_107[];
-extern unsigned char opeu_reply_108[];
-extern unsigned char opeu_reply_109[];
-extern unsigned char opeu_reply_110[];
-extern unsigned char opeu_reply_111[];
-extern unsigned char opeu_reply_112[];
-extern unsigned char opeu_reply_113[];
-extern unsigned char opeu_reply_114[];
-extern unsigned char opeu_reply_115[];
-extern unsigned char opeu_reply_116[];
-extern unsigned char opeu_reply_117[];
-extern unsigned char opeu_reply_118[];
-extern unsigned char opeu_reply_119[];
-extern unsigned char opeu_reply_120[];
-extern unsigned char opeu_reply_121[];
-extern unsigned char opeu_reply_122[];
-extern unsigned char opeu_reply_123[];
-extern unsigned char opeu_reply_124[];
-extern unsigned char opeu_music_tracks[];
-extern unsigned char opeu_music_voices[];
-extern unsigned char opeu_music_events[];
-extern unsigned char opeu_sound_effects[];
-extern unsigned char opeu_path_cell_queue[];
-extern unsigned char opeu_path_cost_grid[];
-extern unsigned char opeu_turn_order[];
-extern unsigned char opeu_objective_links[];
-extern unsigned char opeu_unit_links[];
-extern unsigned char opeu_map_cells[];
-extern unsigned char opeu_influence_map[];
+#include <tuple>
+#include <vector>
 
-const PortImageObject port_image_objects[] = {
-  { opeu_view_cell_tiles,         0x349bu, 0x0000u, 288u,   "opeu_fg349b_0000"     }, /* data/fg349b */
-  { opeu_turn_frame_short_tiles,  0x349bu, 0x0120u, 576u,   "opeu_fg349b_0120"     }, /* data/fg349b */
-  { opeu_turn_frame_tall_tiles,   0x349bu, 0x0360u, 768u,   "opeu_fg349b_0360"     }, /* data/fg349b */
-  { opeu_element_type_icons,      0x349bu, 0x0660u, 704u,   "opeu_fg349b_0660"     }, /* data/fg349b */
-  { opeu_battle_hex_masks,        0x352du, 0x0000u, 390u,   "opeu_fg352d_0000"     }, /* data/fg352d */
-  { opeu_yes_no_pointer_save,     0x3546u, 0x0000u, 960u,   "opeu_fg3546_0000"     }, /* data/fg3546 */
-  { opeu_text_cursor_tile,        0x3546u, 0x03c0u, 32u,    "opeu_fg3546_03c0"     }, /* data/fg3546 */
-  { opeu_yes_no_pointer_image,    0x3546u, 0x03e0u, 768u,   "opeu_fg3546_03e0"     }, /* data/fg3546 */
-  { opeu_yes_no_pointer_shape,    0x3546u, 0x06e0u, 192u,   "opeu_fg3546_06e0"     }, /* data/fg3546 */
-  { opeu_menu_button_tiles,       0x35c0u, 0x0000u, 576u,   "opeu_fg35c0_0000"     }, /* data/fg35c0 */
-  { opeu_setup_marker_save,       0x35e4u, 0x0000u, 512u,   "opeu_fg35e4_0000"     }, /* data/fg35e4 */
-  { opeu_setup_marker_image,      0x35e4u, 0x0200u, 384u,   "opeu_fg35e4_0200"     }, /* data/fg35e4 */
-  { opeu_overview_type_masks,     0x361cu, 0x0000u, 80u,    "opeu_fg361c_0000"     }, /* data/fg361c */
-  { opeu_overview_type_sprites,   0x361cu, 0x0050u, 240u,   "opeu_fg361c_0050"     }, /* data/fg361c */
-  { opeu_overview_order_masks,    0x361cu, 0x0140u, 72u,    "opeu_fg361c_0140"     }, /* data/fg361c */
-  { opeu_overview_order_sprites,  0x361cu, 0x0188u, 216u,   "opeu_fg361c_0188"     }, /* data/fg361c */
-  { opeu_overview_blast_frames,   0x361cu, 0x0260u, 48u,    "opeu_fg361c_0260"     }, /* data/fg361c */
-  { opeu_view_type_sprites,       0x361cu, 0x0290u, 864u,   "opeu_fg361c_0290"     }, /* data/fg361c */
-  { opeu_view_type_masks,         0x361cu, 0x05f0u, 2592u,  "opeu_fg361c_05f0"     }, /* data/fg361c */
-  { opeu_view_shadow_images,      0x361cu, 0x1010u, 144u,   "opeu_fg361c_1010"     }, /* data/fg361c */
-  { opeu_view_order_sprites,      0x361cu, 0x10a0u, 1944u,  "opeu_fg361c_10a0"     }, /* data/fg361c */
-  { opeu_view_order_masks,        0x361cu, 0x1838u, 1944u,  "opeu_fg361c_1838"     }, /* data/fg361c */
-  { opeu_view_blast_sprites,      0x361cu, 0x1fd0u, 216u,   "opeu_fg361c_1fd0"     }, /* data/fg361c */
-  { opeu_view_blast_masks,        0x361cu, 0x20a8u, 648u,   "opeu_fg361c_20a8"     }, /* data/fg361c */
-  { opeu_battle_report_0,         0x384fu, 0x0000u, 73u,    "opeu_battle_report_0" }, /* data/fbattle */
-  { opeu_battle_report_1,         0x384fu, 0x0049u, 125u,   "opeu_battle_report_1" }, /* data/fbattle */
-  { opeu_battle_report_2,         0x384fu, 0x00c6u, 125u,   "opeu_battle_report_2" }, /* data/fbattle */
-  { opeu_battle_report_3,         0x384fu, 0x0143u, 121u,   "opeu_battle_report_3" }, /* data/fbattle */
-  { opeu_battle_report_4,         0x384fu, 0x01bcu, 46u,    "opeu_battle_report_4" }, /* data/fbattle */
-  { opeu_battle_report_5,         0x384fu, 0x01eau, 48u,    "opeu_battle_report_5" }, /* data/fbattle */
-  { opeu_battle_report_6,         0x384fu, 0x021au, 38u,    "opeu_battle_report_6" }, /* data/fbattle */
-  { opeu_context_frame_tiles,     0x3873u, 0x0000u, 288u,   "opeu_fg3873_0000"     }, /* data/fg3873 */
-  { opeu_list_arrow_tiles,        0x3885u, 0x0000u, 256u,   "opeu_fg3885_0000"     }, /* data/fg3885 */
-  { opeu_war_news_000,            0x3895u, 0x0000u, 46u,    "opeu_war_news_000"    }, /* data/fnews */
-  { opeu_war_news_001,            0x3895u, 0x002eu, 47u,    "opeu_war_news_001"    }, /* data/fnews */
-  { opeu_war_news_002,            0x3895u, 0x005du, 59u,    "opeu_war_news_002"    }, /* data/fnews */
-  { opeu_war_news_003,            0x3895u, 0x0098u, 56u,    "opeu_war_news_003"    }, /* data/fnews */
-  { opeu_war_news_004,            0x3895u, 0x00d0u, 59u,    "opeu_war_news_004"    }, /* data/fnews */
-  { opeu_war_news_005,            0x3895u, 0x010bu, 61u,    "opeu_war_news_005"    }, /* data/fnews */
-  { opeu_war_news_006,            0x3895u, 0x0148u, 46u,    "opeu_war_news_006"    }, /* data/fnews */
-  { opeu_war_news_007,            0x3895u, 0x0176u, 66u,    "opeu_war_news_007"    }, /* data/fnews */
-  { opeu_war_news_008,            0x3895u, 0x01b8u, 48u,    "opeu_war_news_008"    }, /* data/fnews */
-  { opeu_war_news_009,            0x3895u, 0x01e8u, 66u,    "opeu_war_news_009"    }, /* data/fnews */
-  { opeu_war_news_010,            0x3895u, 0x022au, 60u,    "opeu_war_news_010"    }, /* data/fnews */
-  { opeu_war_news_011,            0x3895u, 0x0266u, 54u,    "opeu_war_news_011"    }, /* data/fnews */
-  { opeu_war_news_012,            0x3895u, 0x029cu, 41u,    "opeu_war_news_012"    }, /* data/fnews */
-  { opeu_war_news_013,            0x3895u, 0x02c5u, 38u,    "opeu_war_news_013"    }, /* data/fnews */
-  { opeu_war_news_014,            0x3895u, 0x02ebu, 61u,    "opeu_war_news_014"    }, /* data/fnews */
-  { opeu_war_news_015,            0x3895u, 0x0328u, 68u,    "opeu_war_news_015"    }, /* data/fnews */
-  { opeu_war_news_016,            0x3895u, 0x036cu, 49u,    "opeu_war_news_016"    }, /* data/fnews */
-  { opeu_war_news_017,            0x3895u, 0x039du, 61u,    "opeu_war_news_017"    }, /* data/fnews */
-  { opeu_war_news_018,            0x3895u, 0x03dau, 53u,    "opeu_war_news_018"    }, /* data/fnews */
-  { opeu_war_news_019,            0x3895u, 0x040fu, 60u,    "opeu_war_news_019"    }, /* data/fnews */
-  { opeu_war_news_020,            0x3895u, 0x044bu, 31u,    "opeu_war_news_020"    }, /* data/fnews */
-  { opeu_war_news_021,            0x3895u, 0x046au, 62u,    "opeu_war_news_021"    }, /* data/fnews */
-  { opeu_war_news_022,            0x3895u, 0x04a8u, 49u,    "opeu_war_news_022"    }, /* data/fnews */
-  { opeu_war_news_023,            0x3895u, 0x04d9u, 62u,    "opeu_war_news_023"    }, /* data/fnews */
-  { opeu_war_news_024,            0x3895u, 0x0517u, 68u,    "opeu_war_news_024"    }, /* data/fnews */
-  { opeu_war_news_025,            0x3895u, 0x055bu, 43u,    "opeu_war_news_025"    }, /* data/fnews */
-  { opeu_war_news_026,            0x3895u, 0x0586u, 35u,    "opeu_war_news_026"    }, /* data/fnews */
-  { opeu_war_news_027,            0x3895u, 0x05a9u, 44u,    "opeu_war_news_027"    }, /* data/fnews */
-  { opeu_war_news_028,            0x3895u, 0x05d5u, 69u,    "opeu_war_news_028"    }, /* data/fnews */
-  { opeu_war_news_029,            0x3895u, 0x061au, 69u,    "opeu_war_news_029"    }, /* data/fnews */
-  { opeu_war_news_030,            0x3895u, 0x065fu, 66u,    "opeu_war_news_030"    }, /* data/fnews */
-  { opeu_war_news_031,            0x3895u, 0x06a1u, 63u,    "opeu_war_news_031"    }, /* data/fnews */
-  { opeu_war_news_032,            0x3895u, 0x06e0u, 38u,    "opeu_war_news_032"    }, /* data/fnews */
-  { opeu_war_news_033,            0x3895u, 0x0706u, 42u,    "opeu_war_news_033"    }, /* data/fnews */
-  { opeu_war_news_034,            0x3895u, 0x0730u, 74u,    "opeu_war_news_034"    }, /* data/fnews */
-  { opeu_war_news_035,            0x3895u, 0x077au, 77u,    "opeu_war_news_035"    }, /* data/fnews */
-  { opeu_war_news_036,            0x3895u, 0x07c7u, 69u,    "opeu_war_news_036"    }, /* data/fnews */
-  { opeu_war_news_037,            0x3895u, 0x080cu, 26u,    "opeu_war_news_037"    }, /* data/fnews */
-  { opeu_war_news_038,            0x3895u, 0x0826u, 77u,    "opeu_war_news_038"    }, /* data/fnews */
-  { opeu_war_news_039,            0x3895u, 0x0873u, 77u,    "opeu_war_news_039"    }, /* data/fnews */
-  { opeu_war_news_040,            0x3895u, 0x08c0u, 64u,    "opeu_war_news_040"    }, /* data/fnews */
-  { opeu_war_news_041,            0x3895u, 0x0900u, 45u,    "opeu_war_news_041"    }, /* data/fnews */
-  { opeu_war_news_042,            0x3895u, 0x092du, 40u,    "opeu_war_news_042"    }, /* data/fnews */
-  { opeu_war_news_043,            0x3895u, 0x0955u, 43u,    "opeu_war_news_043"    }, /* data/fnews */
-  { opeu_war_news_044,            0x3895u, 0x0980u, 59u,    "opeu_war_news_044"    }, /* data/fnews */
-  { opeu_war_news_045,            0x3895u, 0x09bbu, 27u,    "opeu_war_news_045"    }, /* data/fnews */
-  { opeu_war_news_046,            0x3895u, 0x09d6u, 70u,    "opeu_war_news_046"    }, /* data/fnews */
-  { opeu_war_news_047,            0x3895u, 0x0a1cu, 53u,    "opeu_war_news_047"    }, /* data/fnews */
-  { opeu_war_news_048,            0x3895u, 0x0a51u, 82u,    "opeu_war_news_048"    }, /* data/fnews */
-  { opeu_war_news_049,            0x3895u, 0x0aa3u, 61u,    "opeu_war_news_049"    }, /* data/fnews */
-  { opeu_war_news_050,            0x3895u, 0x0ae0u, 55u,    "opeu_war_news_050"    }, /* data/fnews */
-  { opeu_war_news_051,            0x3895u, 0x0b17u, 38u,    "opeu_war_news_051"    }, /* data/fnews */
-  { opeu_war_news_052,            0x3895u, 0x0b3du, 48u,    "opeu_war_news_052"    }, /* data/fnews */
-  { opeu_war_news_053,            0x3895u, 0x0b6du, 31u,    "opeu_war_news_053"    }, /* data/fnews */
-  { opeu_war_news_054,            0x3895u, 0x0b8cu, 59u,    "opeu_war_news_054"    }, /* data/fnews */
-  { opeu_war_news_055,            0x3895u, 0x0bc7u, 42u,    "opeu_war_news_055"    }, /* data/fnews */
-  { opeu_war_news_056,            0x3895u, 0x0bf1u, 62u,    "opeu_war_news_056"    }, /* data/fnews */
-  { opeu_war_news_057,            0x3895u, 0x0c2fu, 60u,    "opeu_war_news_057"    }, /* data/fnews */
-  { opeu_war_news_058,            0x3895u, 0x0c6bu, 66u,    "opeu_war_news_058"    }, /* data/fnews */
-  { opeu_war_news_059,            0x3895u, 0x0cadu, 76u,    "opeu_war_news_059"    }, /* data/fnews */
-  { opeu_war_news_060,            0x3895u, 0x0cf9u, 48u,    "opeu_war_news_060"    }, /* data/fnews */
-  { opeu_war_news_061,            0x3895u, 0x0d29u, 44u,    "opeu_war_news_061"    }, /* data/fnews */
-  { opeu_war_news_062,            0x3895u, 0x0d55u, 51u,    "opeu_war_news_062"    }, /* data/fnews */
-  { opeu_war_news_063,            0x3895u, 0x0d88u, 74u,    "opeu_war_news_063"    }, /* data/fnews */
-  { opeu_war_news_064,            0x3895u, 0x0dd2u, 44u,    "opeu_war_news_064"    }, /* data/fnews */
-  { opeu_war_news_065,            0x3895u, 0x0dfeu, 85u,    "opeu_war_news_065"    }, /* data/fnews */
-  { opeu_war_news_066,            0x3895u, 0x0e53u, 60u,    "opeu_war_news_066"    }, /* data/fnews */
-  { opeu_war_news_067,            0x3895u, 0x0e8fu, 42u,    "opeu_war_news_067"    }, /* data/fnews */
-  { opeu_war_news_068,            0x3895u, 0x0eb9u, 55u,    "opeu_war_news_068"    }, /* data/fnews */
-  { opeu_war_news_069,            0x3895u, 0x0ef0u, 37u,    "opeu_war_news_069"    }, /* data/fnews */
-  { opeu_war_news_070,            0x3895u, 0x0f15u, 58u,    "opeu_war_news_070"    }, /* data/fnews */
-  { opeu_war_news_071,            0x3895u, 0x0f4fu, 41u,    "opeu_war_news_071"    }, /* data/fnews */
-  { opeu_war_news_072,            0x3895u, 0x0f78u, 42u,    "opeu_war_news_072"    }, /* data/fnews */
-  { opeu_war_news_073,            0x3895u, 0x0fa2u, 60u,    "opeu_war_news_073"    }, /* data/fnews */
-  { opeu_war_news_074,            0x3895u, 0x0fdeu, 40u,    "opeu_war_news_074"    }, /* data/fnews */
-  { opeu_war_news_075,            0x3895u, 0x1006u, 54u,    "opeu_war_news_075"    }, /* data/fnews */
-  { opeu_war_news_076,            0x3895u, 0x103cu, 52u,    "opeu_war_news_076"    }, /* data/fnews */
-  { opeu_war_news_077,            0x3895u, 0x1070u, 32u,    "opeu_war_news_077"    }, /* data/fnews */
-  { opeu_war_news_078,            0x3895u, 0x1090u, 77u,    "opeu_war_news_078"    }, /* data/fnews */
-  { opeu_war_news_079,            0x3895u, 0x10ddu, 37u,    "opeu_war_news_079"    }, /* data/fnews */
-  { opeu_war_news_080,            0x3895u, 0x1102u, 58u,    "opeu_war_news_080"    }, /* data/fnews */
-  { opeu_war_news_081,            0x3895u, 0x113cu, 68u,    "opeu_war_news_081"    }, /* data/fnews */
-  { opeu_war_news_082,            0x3895u, 0x1180u, 78u,    "opeu_war_news_082"    }, /* data/fnews */
-  { opeu_war_news_083,            0x3895u, 0x11ceu, 52u,    "opeu_war_news_083"    }, /* data/fnews */
-  { opeu_war_news_084,            0x3895u, 0x1202u, 37u,    "opeu_war_news_084"    }, /* data/fnews */
-  { opeu_war_news_085,            0x3895u, 0x1227u, 79u,    "opeu_war_news_085"    }, /* data/fnews */
-  { opeu_war_news_086,            0x3895u, 0x1276u, 79u,    "opeu_war_news_086"    }, /* data/fnews */
-  { opeu_war_news_087,            0x3895u, 0x12c5u, 37u,    "opeu_war_news_087"    }, /* data/fnews */
-  { opeu_war_news_088,            0x3895u, 0x12eau, 47u,    "opeu_war_news_088"    }, /* data/fnews */
-  { opeu_war_news_089,            0x3895u, 0x1319u, 53u,    "opeu_war_news_089"    }, /* data/fnews */
-  { opeu_war_news_090,            0x3895u, 0x134eu, 47u,    "opeu_war_news_090"    }, /* data/fnews */
-  { opeu_war_news_091,            0x3895u, 0x137du, 49u,    "opeu_war_news_091"    }, /* data/fnews */
-  { opeu_war_news_092,            0x3895u, 0x13aeu, 41u,    "opeu_war_news_092"    }, /* data/fnews */
-  { opeu_war_news_093,            0x3895u, 0x13d7u, 43u,    "opeu_war_news_093"    }, /* data/fnews */
-  { opeu_war_news_094,            0x3895u, 0x1402u, 28u,    "opeu_war_news_094"    }, /* data/fnews */
-  { opeu_war_news_095,            0x3895u, 0x141eu, 68u,    "opeu_war_news_095"    }, /* data/fnews */
-  { opeu_war_news_096,            0x3895u, 0x1462u, 36u,    "opeu_war_news_096"    }, /* data/fnews */
-  { opeu_war_news_097,            0x3895u, 0x1486u, 56u,    "opeu_war_news_097"    }, /* data/fnews */
-  { opeu_war_news_098,            0x3895u, 0x14beu, 62u,    "opeu_war_news_098"    }, /* data/fnews */
-  { opeu_war_news_099,            0x3895u, 0x14fcu, 45u,    "opeu_war_news_099"    }, /* data/fnews */
-  { opeu_war_news_100,            0x3895u, 0x1529u, 40u,    "opeu_war_news_100"    }, /* data/fnews */
-  { opeu_war_news_101,            0x3895u, 0x1551u, 37u,    "opeu_war_news_101"    }, /* data/fnews */
-  { opeu_war_news_102,            0x3895u, 0x1576u, 40u,    "opeu_war_news_102"    }, /* data/fnews */
-  { opeu_war_news_103,            0x3895u, 0x159eu, 52u,    "opeu_war_news_103"    }, /* data/fnews */
-  { opeu_war_news_104,            0x3895u, 0x15d2u, 81u,    "opeu_war_news_104"    }, /* data/fnews */
-  { opeu_war_news_105,            0x3895u, 0x1623u, 39u,    "opeu_war_news_105"    }, /* data/fnews */
-  { opeu_war_news_106,            0x3895u, 0x164au, 30u,    "opeu_war_news_106"    }, /* data/fnews */
-  { opeu_war_news_107,            0x3895u, 0x1668u, 39u,    "opeu_war_news_107"    }, /* data/fnews */
-  { opeu_war_news_108,            0x3895u, 0x168fu, 33u,    "opeu_war_news_108"    }, /* data/fnews */
-  { opeu_war_news_109,            0x3895u, 0x16b0u, 43u,    "opeu_war_news_109"    }, /* data/fnews */
-  { opeu_war_news_110,            0x3895u, 0x16dbu, 51u,    "opeu_war_news_110"    }, /* data/fnews */
-  { opeu_war_news_111,            0x3895u, 0x170eu, 37u,    "opeu_war_news_111"    }, /* data/fnews */
-  { opeu_war_news_112,            0x3895u, 0x1733u, 40u,    "opeu_war_news_112"    }, /* data/fnews */
-  { opeu_war_news_113,            0x3895u, 0x175bu, 46u,    "opeu_war_news_113"    }, /* data/fnews */
-  { opeu_war_news_114,            0x3895u, 0x1789u, 65u,    "opeu_war_news_114"    }, /* data/fnews */
-  { opeu_war_news_115,            0x3895u, 0x17cau, 73u,    "opeu_war_news_115"    }, /* data/fnews */
-  { opeu_war_news_116,            0x3895u, 0x1813u, 57u,    "opeu_war_news_116"    }, /* data/fnews */
-  { opeu_war_news_117,            0x3895u, 0x184cu, 41u,    "opeu_war_news_117"    }, /* data/fnews */
-  { opeu_war_news_118,            0x3895u, 0x1875u, 33u,    "opeu_war_news_118"    }, /* data/fnews */
-  { opeu_war_news_119,            0x3895u, 0x1896u, 64u,    "opeu_war_news_119"    }, /* data/fnews */
-  { opeu_war_news_120,            0x3895u, 0x18d6u, 63u,    "opeu_war_news_120"    }, /* data/fnews */
-  { opeu_war_news_121,            0x3895u, 0x1915u, 80u,    "opeu_war_news_121"    }, /* data/fnews */
-  { opeu_war_news_122,            0x3895u, 0x1965u, 63u,    "opeu_war_news_122"    }, /* data/fnews */
-  { opeu_war_news_123,            0x3895u, 0x19a4u, 46u,    "opeu_war_news_123"    }, /* data/fnews */
-  { opeu_war_news_124,            0x3895u, 0x19d2u, 37u,    "opeu_war_news_124"    }, /* data/fnews */
-  { opeu_war_news_125,            0x3895u, 0x19f7u, 51u,    "opeu_war_news_125"    }, /* data/fnews */
-  { opeu_war_news_126,            0x3895u, 0x1a2au, 65u,    "opeu_war_news_126"    }, /* data/fnews */
-  { opeu_war_news_127,            0x3895u, 0x1a6bu, 44u,    "opeu_war_news_127"    }, /* data/fnews */
-  { opeu_war_news_128,            0x3895u, 0x1a97u, 50u,    "opeu_war_news_128"    }, /* data/fnews */
-  { opeu_war_news_129,            0x3895u, 0x1ac9u, 53u,    "opeu_war_news_129"    }, /* data/fnews */
-  { opeu_war_news_130,            0x3895u, 0x1afeu, 82u,    "opeu_war_news_130"    }, /* data/fnews */
-  { opeu_war_news_131,            0x3895u, 0x1b50u, 37u,    "opeu_war_news_131"    }, /* data/fnews */
-  { opeu_war_news_132,            0x3895u, 0x1b75u, 36u,    "opeu_war_news_132"    }, /* data/fnews */
-  { opeu_war_news_133,            0x3895u, 0x1b99u, 61u,    "opeu_war_news_133"    }, /* data/fnews */
-  { opeu_war_news_134,            0x3895u, 0x1bd6u, 29u,    "opeu_war_news_134"    }, /* data/fnews */
-  { opeu_war_news_135,            0x3895u, 0x1bf3u, 35u,    "opeu_war_news_135"    }, /* data/fnews */
-  { opeu_war_news_136,            0x3895u, 0x1c16u, 28u,    "opeu_war_news_136"    }, /* data/fnews */
-  { opeu_war_news_137,            0x3895u, 0x1c32u, 27u,    "opeu_war_news_137"    }, /* data/fnews */
-  { opeu_war_news_138,            0x3895u, 0x1c4du, 39u,    "opeu_war_news_138"    }, /* data/fnews */
-  { opeu_war_news_139,            0x3895u, 0x1c74u, 43u,    "opeu_war_news_139"    }, /* data/fnews */
-  { opeu_war_news_140,            0x3895u, 0x1c9fu, 30u,    "opeu_war_news_140"    }, /* data/fnews */
-  { opeu_war_news_141,            0x3895u, 0x1cbdu, 49u,    "opeu_war_news_141"    }, /* data/fnews */
-  { opeu_weather_terrain_ratings, 0x3a64u, 0x0000u, 330u,   "opeu_fg3a64_0000"     }, /* data/fg3a64 */
-  { opeu_air_sprite_save,         0x3a64u, 0x014au, 518u,   "opeu_fg3a64_014a"     }, /* data/fg3a64 */
-  { opeu_bomb_sprite_save,        0x3a99u, 0x0000u, 512u,   "opeu_fg3a99_0000"     }, /* data/fg3a99 */
-  { opeu_panel_border_tiles,      0x3ab9u, 0x0000u, 512u,   "opeu_fg3ab9_0000"     }, /* data/fg3ab9 */
-  { opeu_advice_00,               0x3ad9u, 0x0000u, 37u,    "opeu_advice_00"       }, /* data/fadvice */
-  { opeu_advice_01,               0x3ad9u, 0x0025u, 33u,    "opeu_advice_01"       }, /* data/fadvice */
-  { opeu_advice_02,               0x3ad9u, 0x0046u, 75u,    "opeu_advice_02"       }, /* data/fadvice */
-  { opeu_advice_03,               0x3ad9u, 0x0091u, 67u,    "opeu_advice_03"       }, /* data/fadvice */
-  { opeu_advice_04,               0x3ad9u, 0x00d4u, 51u,    "opeu_advice_04"       }, /* data/fadvice */
-  { opeu_advice_05,               0x3ad9u, 0x0107u, 40u,    "opeu_advice_05"       }, /* data/fadvice */
-  { opeu_advice_06,               0x3ad9u, 0x012fu, 29u,    "opeu_advice_06"       }, /* data/fadvice */
-  { opeu_advice_07,               0x3ad9u, 0x014cu, 35u,    "opeu_advice_07"       }, /* data/fadvice */
-  { opeu_advice_08,               0x3ad9u, 0x016fu, 29u,    "opeu_advice_08"       }, /* data/fadvice */
-  { opeu_advice_09,               0x3ad9u, 0x018cu, 59u,    "opeu_advice_09"       }, /* data/fadvice */
-  { opeu_advice_10,               0x3ad9u, 0x01c7u, 73u,    "opeu_advice_10"       }, /* data/fadvice */
-  { opeu_advice_11,               0x3ad9u, 0x0210u, 68u,    "opeu_advice_11"       }, /* data/fadvice */
-  { opeu_advice_12,               0x3ad9u, 0x0254u, 36u,    "opeu_advice_12"       }, /* data/fadvice */
-  { opeu_advice_13,               0x3ad9u, 0x0278u, 50u,    "opeu_advice_13"       }, /* data/fadvice */
-  { opeu_advice_14,               0x3ad9u, 0x02aau, 60u,    "opeu_advice_14"       }, /* data/fadvice */
-  { opeu_advice_15,               0x3ad9u, 0x02e6u, 49u,    "opeu_advice_15"       }, /* data/fadvice */
-  { opeu_advice_16,               0x3ad9u, 0x0317u, 44u,    "opeu_advice_16"       }, /* data/fadvice */
-  { opeu_advice_17,               0x3ad9u, 0x0343u, 39u,    "opeu_advice_17"       }, /* data/fadvice */
-  { opeu_advice_18,               0x3ad9u, 0x036au, 44u,    "opeu_advice_18"       }, /* data/fadvice */
-  { opeu_advice_19,               0x3ad9u, 0x0396u, 21u,    "opeu_advice_19"       }, /* data/fadvice */
-  { opeu_advice_20,               0x3ad9u, 0x03abu, 51u,    "opeu_advice_20"       }, /* data/fadvice */
-  { opeu_advice_21,               0x3ad9u, 0x03deu, 55u,    "opeu_advice_21"       }, /* data/fadvice */
-  { opeu_advice_22,               0x3ad9u, 0x0415u, 40u,    "opeu_advice_22"       }, /* data/fadvice */
-  { opeu_advice_23,               0x3ad9u, 0x043du, 38u,    "opeu_advice_23"       }, /* data/fadvice */
-  { opeu_advice_24,               0x3ad9u, 0x0463u, 40u,    "opeu_advice_24"       }, /* data/fadvice */
-  { opeu_advice_25,               0x3ad9u, 0x048bu, 19u,    "opeu_advice_25"       }, /* data/fadvice */
-  { opeu_advice_26,               0x3ad9u, 0x049eu, 38u,    "opeu_advice_26"       }, /* data/fadvice */
-  { opeu_advice_27,               0x3ad9u, 0x04c4u, 33u,    "opeu_advice_27"       }, /* data/fadvice */
-  { opeu_advice_28,               0x3ad9u, 0x04e5u, 45u,    "opeu_advice_28"       }, /* data/fadvice */
-  { opeu_advice_29,               0x3ad9u, 0x0512u, 30u,    "opeu_advice_29"       }, /* data/fadvice */
-  { opeu_advice_30,               0x3ad9u, 0x0530u, 50u,    "opeu_advice_30"       }, /* data/fadvice */
-  { opeu_advice_31,               0x3ad9u, 0x0562u, 48u,    "opeu_advice_31"       }, /* data/fadvice */
-  { opeu_advice_32,               0x3ad9u, 0x0592u, 61u,    "opeu_advice_32"       }, /* data/fadvice */
-  { opeu_advice_33,               0x3ad9u, 0x05cfu, 33u,    "opeu_advice_33"       }, /* data/fadvice */
-  { opeu_advice_34,               0x3ad9u, 0x05f0u, 47u,    "opeu_advice_34"       }, /* data/fadvice */
-  { opeu_advice_35,               0x3ad9u, 0x061fu, 60u,    "opeu_advice_35"       }, /* data/fadvice */
-  { opeu_advice_36,               0x3ad9u, 0x065bu, 67u,    "opeu_advice_36"       }, /* data/fadvice */
-  { opeu_advice_37,               0x3ad9u, 0x069eu, 41u,    "opeu_advice_37"       }, /* data/fadvice */
-  { opeu_advice_38,               0x3ad9u, 0x06c7u, 27u,    "opeu_advice_38"       }, /* data/fadvice */
-  { opeu_advice_39,               0x3ad9u, 0x06e2u, 36u,    "opeu_advice_39"       }, /* data/fadvice */
-  { opeu_advice_40,               0x3ad9u, 0x0706u, 49u,    "opeu_advice_40"       }, /* data/fadvice */
-  { opeu_advice_41,               0x3ad9u, 0x0737u, 55u,    "opeu_advice_41"       }, /* data/fadvice */
-  { opeu_advice_42,               0x3ad9u, 0x076eu, 51u,    "opeu_advice_42"       }, /* data/fadvice */
-  { opeu_advice_43,               0x3ad9u, 0x07a1u, 39u,    "opeu_advice_43"       }, /* data/fadvice */
-  { opeu_advice_44,               0x3ad9u, 0x07c8u, 46u,    "opeu_advice_44"       }, /* data/fadvice */
-  { opeu_advice_45,               0x3ad9u, 0x07f6u, 44u,    "opeu_advice_45"       }, /* data/fadvice */
-  { opeu_advice_46,               0x3ad9u, 0x0822u, 49u,    "opeu_advice_46"       }, /* data/fadvice */
-  { opeu_advice_47,               0x3ad9u, 0x0853u, 71u,    "opeu_advice_47"       }, /* data/fadvice */
-  { opeu_advice_48,               0x3ad9u, 0x089au, 52u,    "opeu_advice_48"       }, /* data/fadvice */
-  { opeu_advice_49,               0x3ad9u, 0x08ceu, 39u,    "opeu_advice_49"       }, /* data/fadvice */
-  { opeu_advice_50,               0x3ad9u, 0x08f5u, 58u,    "opeu_advice_50"       }, /* data/fadvice */
-  { opeu_advice_51,               0x3ad9u, 0x092fu, 49u,    "opeu_advice_51"       }, /* data/fadvice */
-  { opeu_advice_52,               0x3ad9u, 0x0960u, 37u,    "opeu_advice_52"       }, /* data/fadvice */
-  { opeu_advice_53,               0x3ad9u, 0x0985u, 51u,    "opeu_advice_53"       }, /* data/fadvice */
-  { opeu_advice_54,               0x3ad9u, 0x09b8u, 36u,    "opeu_advice_54"       }, /* data/fadvice */
-  { opeu_advice_55,               0x3ad9u, 0x09dcu, 66u,    "opeu_advice_55"       }, /* data/fadvice */
-  { opeu_advice_56,               0x3ad9u, 0x0a1eu, 35u,    "opeu_advice_56"       }, /* data/fadvice */
-  { opeu_advice_57,               0x3ad9u, 0x0a41u, 33u,    "opeu_advice_57"       }, /* data/fadvice */
-  { opeu_advice_58,               0x3ad9u, 0x0a62u, 30u,    "opeu_advice_58"       }, /* data/fadvice */
-  { opeu_advice_59,               0x3ad9u, 0x0a80u, 41u,    "opeu_advice_59"       }, /* data/fadvice */
-  { opeu_advice_60,               0x3ad9u, 0x0aa9u, 29u,    "opeu_advice_60"       }, /* data/fadvice */
-  { opeu_advice_61,               0x3ad9u, 0x0ac6u, 21u,    "opeu_advice_61"       }, /* data/fadvice */
-  { opeu_advice_62,               0x3ad9u, 0x0adbu, 31u,    "opeu_advice_62"       }, /* data/fadvice */
-  { opeu_advice_63,               0x3ad9u, 0x0afau, 76u,    "opeu_advice_63"       }, /* data/fadvice */
-  { opeu_advice_64,               0x3ad9u, 0x0b46u, 51u,    "opeu_advice_64"       }, /* data/fadvice */
-  { opeu_advice_65,               0x3ad9u, 0x0b79u, 70u,    "opeu_advice_65"       }, /* data/fadvice */
-  { opeu_advice_66,               0x3ad9u, 0x0bbfu, 53u,    "opeu_advice_66"       }, /* data/fadvice */
-  { opeu_advice_67,               0x3ad9u, 0x0bf4u, 79u,    "opeu_advice_67"       }, /* data/fadvice */
-  { opeu_advice_68,               0x3ad9u, 0x0c43u, 71u,    "opeu_advice_68"       }, /* data/fadvice */
-  { opeu_advice_69,               0x3ad9u, 0x0c8au, 40u,    "opeu_advice_69"       }, /* data/fadvice */
-  { opeu_advice_70,               0x3ad9u, 0x0cb2u, 41u,    "opeu_advice_70"       }, /* data/fadvice */
-  { opeu_advice_71,               0x3ad9u, 0x0cdbu, 55u,    "opeu_advice_71"       }, /* data/fadvice */
-  { opeu_advice_72,               0x3ad9u, 0x0d12u, 86u,    "opeu_advice_72"       }, /* data/fadvice */
-  { opeu_advice_73,               0x3ad9u, 0x0d68u, 69u,    "opeu_advice_73"       }, /* data/fadvice */
-  { opeu_advice_74,               0x3ad9u, 0x0dadu, 89u,    "opeu_advice_74"       }, /* data/fadvice */
-  { opeu_advice_75,               0x3ad9u, 0x0e06u, 50u,    "opeu_advice_75"       }, /* data/fadvice */
-  { opeu_advice_76,               0x3ad9u, 0x0e38u, 85u,    "opeu_advice_76"       }, /* data/fadvice */
-  { opeu_advice_77,               0x3ad9u, 0x0e8du, 54u,    "opeu_advice_77"       }, /* data/fadvice */
-  { opeu_advice_78,               0x3ad9u, 0x0ec3u, 66u,    "opeu_advice_78"       }, /* data/fadvice */
-  { opeu_advice_79,               0x3ad9u, 0x0f05u, 72u,    "opeu_advice_79"       }, /* data/fadvice */
-  { opeu_advice_80,               0x3ad9u, 0x0f4du, 45u,    "opeu_advice_80"       }, /* data/fadvice */
-  { opeu_advice_81,               0x3ad9u, 0x0f7au, 88u,    "opeu_advice_81"       }, /* data/fadvice */
-  { opeu_advice_82,               0x3ad9u, 0x0fd2u, 73u,    "opeu_advice_82"       }, /* data/fadvice */
-  { opeu_advice_83,               0x3ad9u, 0x101bu, 55u,    "opeu_advice_83"       }, /* data/fadvice */
-  { opeu_advice_84,               0x3ad9u, 0x1052u, 77u,    "opeu_advice_84"       }, /* data/fadvice */
-  { opeu_advice_85,               0x3ad9u, 0x109fu, 60u,    "opeu_advice_85"       }, /* data/fadvice */
-  { opeu_advice_86,               0x3ad9u, 0x10dbu, 87u,    "opeu_advice_86"       }, /* data/fadvice */
-  { opeu_advice_87,               0x3ad9u, 0x1132u, 53u,    "opeu_advice_87"       }, /* data/fadvice */
-  { opeu_advice_88,               0x3ad9u, 0x1167u, 76u,    "opeu_advice_88"       }, /* data/fadvice */
-  { opeu_advice_89,               0x3ad9u, 0x11b3u, 67u,    "opeu_advice_89"       }, /* data/fadvice */
-  { opeu_advice_90,               0x3ad9u, 0x11f6u, 67u,    "opeu_advice_90"       }, /* data/fadvice */
-  { opeu_advice_91,               0x3ad9u, 0x1239u, 64u,    "opeu_advice_91"       }, /* data/fadvice */
-  { opeu_advice_92,               0x3ad9u, 0x1279u, 69u,    "opeu_advice_92"       }, /* data/fadvice */
-  { opeu_reply_000,               0x3c05u, 0x0000u, 54u,    "opeu_reply_000"       }, /* data/freply */
-  { opeu_reply_001,               0x3c05u, 0x0036u, 33u,    "opeu_reply_001"       }, /* data/freply */
-  { opeu_reply_002,               0x3c05u, 0x0057u, 38u,    "opeu_reply_002"       }, /* data/freply */
-  { opeu_reply_003,               0x3c05u, 0x007du, 26u,    "opeu_reply_003"       }, /* data/freply */
-  { opeu_reply_004,               0x3c05u, 0x0097u, 56u,    "opeu_reply_004"       }, /* data/freply */
-  { opeu_reply_005,               0x3c05u, 0x00cfu, 75u,    "opeu_reply_005"       }, /* data/freply */
-  { opeu_reply_006,               0x3c05u, 0x011au, 23u,    "opeu_reply_006"       }, /* data/freply */
-  { opeu_reply_007,               0x3c05u, 0x0131u, 53u,    "opeu_reply_007"       }, /* data/freply */
-  { opeu_reply_008,               0x3c05u, 0x0166u, 53u,    "opeu_reply_008"       }, /* data/freply */
-  { opeu_reply_009,               0x3c05u, 0x019bu, 49u,    "opeu_reply_009"       }, /* data/freply */
-  { opeu_reply_010,               0x3c05u, 0x01ccu, 54u,    "opeu_reply_010"       }, /* data/freply */
-  { opeu_reply_011,               0x3c05u, 0x0202u, 39u,    "opeu_reply_011"       }, /* data/freply */
-  { opeu_reply_012,               0x3c05u, 0x0229u, 53u,    "opeu_reply_012"       }, /* data/freply */
-  { opeu_reply_013,               0x3c05u, 0x025eu, 75u,    "opeu_reply_013"       }, /* data/freply */
-  { opeu_reply_014,               0x3c05u, 0x02a9u, 61u,    "opeu_reply_014"       }, /* data/freply */
-  { opeu_reply_015,               0x3c05u, 0x02e6u, 73u,    "opeu_reply_015"       }, /* data/freply */
-  { opeu_reply_016,               0x3c05u, 0x032fu, 46u,    "opeu_reply_016"       }, /* data/freply */
-  { opeu_reply_017,               0x3c05u, 0x035du, 43u,    "opeu_reply_017"       }, /* data/freply */
-  { opeu_reply_018,               0x3c05u, 0x0388u, 51u,    "opeu_reply_018"       }, /* data/freply */
-  { opeu_reply_019,               0x3c05u, 0x03bbu, 27u,    "opeu_reply_019"       }, /* data/freply */
-  { opeu_reply_020,               0x3c05u, 0x03d6u, 71u,    "opeu_reply_020"       }, /* data/freply */
-  { opeu_reply_021,               0x3c05u, 0x041du, 1u,     "opeu_reply_021"       }, /* data/freply */
-  { opeu_reply_022,               0x3c05u, 0x041eu, 54u,    "opeu_reply_022"       }, /* data/freply */
-  { opeu_reply_023,               0x3c05u, 0x0454u, 43u,    "opeu_reply_023"       }, /* data/freply */
-  { opeu_reply_024,               0x3c05u, 0x047fu, 59u,    "opeu_reply_024"       }, /* data/freply */
-  { opeu_reply_025,               0x3c05u, 0x04bau, 49u,    "opeu_reply_025"       }, /* data/freply */
-  { opeu_reply_026,               0x3c05u, 0x04ebu, 73u,    "opeu_reply_026"       }, /* data/freply */
-  { opeu_reply_027,               0x3c05u, 0x0534u, 36u,    "opeu_reply_027"       }, /* data/freply */
-  { opeu_reply_028,               0x3c05u, 0x0558u, 37u,    "opeu_reply_028"       }, /* data/freply */
-  { opeu_reply_029,               0x3c05u, 0x057du, 37u,    "opeu_reply_029"       }, /* data/freply */
-  { opeu_reply_030,               0x3c05u, 0x05a2u, 36u,    "opeu_reply_030"       }, /* data/freply */
-  { opeu_reply_031,               0x3c05u, 0x05c6u, 41u,    "opeu_reply_031"       }, /* data/freply */
-  { opeu_reply_032,               0x3c05u, 0x05efu, 50u,    "opeu_reply_032"       }, /* data/freply */
-  { opeu_reply_033,               0x3c05u, 0x0621u, 24u,    "opeu_reply_033"       }, /* data/freply */
-  { opeu_reply_034,               0x3c05u, 0x0639u, 32u,    "opeu_reply_034"       }, /* data/freply */
-  { opeu_reply_035,               0x3c05u, 0x0659u, 32u,    "opeu_reply_035"       }, /* data/freply */
-  { opeu_reply_036,               0x3c05u, 0x0679u, 51u,    "opeu_reply_036"       }, /* data/freply */
-  { opeu_reply_037,               0x3c05u, 0x06acu, 57u,    "opeu_reply_037"       }, /* data/freply */
-  { opeu_reply_038,               0x3c05u, 0x06e5u, 49u,    "opeu_reply_038"       }, /* data/freply */
-  { opeu_reply_039,               0x3c05u, 0x0716u, 45u,    "opeu_reply_039"       }, /* data/freply */
-  { opeu_reply_040,               0x3c05u, 0x0743u, 67u,    "opeu_reply_040"       }, /* data/freply */
-  { opeu_reply_041,               0x3c05u, 0x0786u, 37u,    "opeu_reply_041"       }, /* data/freply */
-  { opeu_reply_042,               0x3c05u, 0x07abu, 50u,    "opeu_reply_042"       }, /* data/freply */
-  { opeu_reply_043,               0x3c05u, 0x07ddu, 25u,    "opeu_reply_043"       }, /* data/freply */
-  { opeu_reply_044,               0x3c05u, 0x07f6u, 44u,    "opeu_reply_044"       }, /* data/freply */
-  { opeu_reply_045,               0x3c05u, 0x0822u, 75u,    "opeu_reply_045"       }, /* data/freply */
-  { opeu_reply_046,               0x3c05u, 0x086du, 72u,    "opeu_reply_046"       }, /* data/freply */
-  { opeu_reply_047,               0x3c05u, 0x08b5u, 56u,    "opeu_reply_047"       }, /* data/freply */
-  { opeu_reply_048,               0x3c05u, 0x08edu, 55u,    "opeu_reply_048"       }, /* data/freply */
-  { opeu_reply_049,               0x3c05u, 0x0924u, 24u,    "opeu_reply_049"       }, /* data/freply */
-  { opeu_reply_050,               0x3c05u, 0x093cu, 84u,    "opeu_reply_050"       }, /* data/freply */
-  { opeu_reply_051,               0x3c05u, 0x0990u, 50u,    "opeu_reply_051"       }, /* data/freply */
-  { opeu_reply_052,               0x3c05u, 0x09c2u, 54u,    "opeu_reply_052"       }, /* data/freply */
-  { opeu_reply_053,               0x3c05u, 0x09f8u, 59u,    "opeu_reply_053"       }, /* data/freply */
-  { opeu_reply_054,               0x3c05u, 0x0a33u, 46u,    "opeu_reply_054"       }, /* data/freply */
-  { opeu_reply_055,               0x3c05u, 0x0a61u, 54u,    "opeu_reply_055"       }, /* data/freply */
-  { opeu_reply_056,               0x3c05u, 0x0a97u, 83u,    "opeu_reply_056"       }, /* data/freply */
-  { opeu_reply_057,               0x3c05u, 0x0aeau, 18u,    "opeu_reply_057"       }, /* data/freply */
-  { opeu_reply_058,               0x3c05u, 0x0afcu, 59u,    "opeu_reply_058"       }, /* data/freply */
-  { opeu_reply_059,               0x3c05u, 0x0b37u, 28u,    "opeu_reply_059"       }, /* data/freply */
-  { opeu_reply_060,               0x3c05u, 0x0b53u, 21u,    "opeu_reply_060"       }, /* data/freply */
-  { opeu_reply_061,               0x3c05u, 0x0b68u, 54u,    "opeu_reply_061"       }, /* data/freply */
-  { opeu_reply_062,               0x3c05u, 0x0b9eu, 53u,    "opeu_reply_062"       }, /* data/freply */
-  { opeu_reply_063,               0x3c05u, 0x0bd3u, 60u,    "opeu_reply_063"       }, /* data/freply */
-  { opeu_reply_064,               0x3c05u, 0x0c0fu, 65u,    "opeu_reply_064"       }, /* data/freply */
-  { opeu_reply_065,               0x3c05u, 0x0c50u, 61u,    "opeu_reply_065"       }, /* data/freply */
-  { opeu_reply_066,               0x3c05u, 0x0c8du, 70u,    "opeu_reply_066"       }, /* data/freply */
-  { opeu_reply_067,               0x3c05u, 0x0cd3u, 62u,    "opeu_reply_067"       }, /* data/freply */
-  { opeu_reply_068,               0x3c05u, 0x0d11u, 46u,    "opeu_reply_068"       }, /* data/freply */
-  { opeu_reply_069,               0x3c05u, 0x0d3fu, 44u,    "opeu_reply_069"       }, /* data/freply */
-  { opeu_reply_070,               0x3c05u, 0x0d6bu, 72u,    "opeu_reply_070"       }, /* data/freply */
-  { opeu_reply_071,               0x3c05u, 0x0db3u, 67u,    "opeu_reply_071"       }, /* data/freply */
-  { opeu_reply_072,               0x3c05u, 0x0df6u, 33u,    "opeu_reply_072"       }, /* data/freply */
-  { opeu_reply_073,               0x3c05u, 0x0e17u, 41u,    "opeu_reply_073"       }, /* data/freply */
-  { opeu_reply_074,               0x3c05u, 0x0e40u, 48u,    "opeu_reply_074"       }, /* data/freply */
-  { opeu_reply_075,               0x3c05u, 0x0e70u, 36u,    "opeu_reply_075"       }, /* data/freply */
-  { opeu_reply_076,               0x3c05u, 0x0e94u, 58u,    "opeu_reply_076"       }, /* data/freply */
-  { opeu_reply_077,               0x3c05u, 0x0eceu, 53u,    "opeu_reply_077"       }, /* data/freply */
-  { opeu_reply_078,               0x3c05u, 0x0f03u, 53u,    "opeu_reply_078"       }, /* data/freply */
-  { opeu_reply_079,               0x3c05u, 0x0f38u, 54u,    "opeu_reply_079"       }, /* data/freply */
-  { opeu_reply_080,               0x3c05u, 0x0f6eu, 70u,    "opeu_reply_080"       }, /* data/freply */
-  { opeu_reply_081,               0x3c05u, 0x0fb4u, 86u,    "opeu_reply_081"       }, /* data/freply */
-  { opeu_reply_082,               0x3c05u, 0x100au, 54u,    "opeu_reply_082"       }, /* data/freply */
-  { opeu_reply_083,               0x3c05u, 0x1040u, 56u,    "opeu_reply_083"       }, /* data/freply */
-  { opeu_reply_084,               0x3c05u, 0x1078u, 42u,    "opeu_reply_084"       }, /* data/freply */
-  { opeu_reply_085,               0x3c05u, 0x10a2u, 85u,    "opeu_reply_085"       }, /* data/freply */
-  { opeu_reply_086,               0x3c05u, 0x10f7u, 82u,    "opeu_reply_086"       }, /* data/freply */
-  { opeu_reply_087,               0x3c05u, 0x1149u, 49u,    "opeu_reply_087"       }, /* data/freply */
-  { opeu_reply_088,               0x3c05u, 0x117au, 69u,    "opeu_reply_088"       }, /* data/freply */
-  { opeu_reply_089,               0x3c05u, 0x11bfu, 83u,    "opeu_reply_089"       }, /* data/freply */
-  { opeu_reply_090,               0x3c05u, 0x1212u, 66u,    "opeu_reply_090"       }, /* data/freply */
-  { opeu_reply_091,               0x3c05u, 0x1254u, 82u,    "opeu_reply_091"       }, /* data/freply */
-  { opeu_reply_092,               0x3c05u, 0x12a6u, 69u,    "opeu_reply_092"       }, /* data/freply */
-  { opeu_reply_093,               0x3c05u, 0x12ebu, 79u,    "opeu_reply_093"       }, /* data/freply */
-  { opeu_reply_094,               0x3c05u, 0x133au, 54u,    "opeu_reply_094"       }, /* data/freply */
-  { opeu_reply_095,               0x3c05u, 0x1370u, 45u,    "opeu_reply_095"       }, /* data/freply */
-  { opeu_reply_096,               0x3c05u, 0x139du, 31u,    "opeu_reply_096"       }, /* data/freply */
-  { opeu_reply_097,               0x3c05u, 0x13bcu, 43u,    "opeu_reply_097"       }, /* data/freply */
-  { opeu_reply_098,               0x3c05u, 0x13e7u, 66u,    "opeu_reply_098"       }, /* data/freply */
-  { opeu_reply_099,               0x3c05u, 0x1429u, 19u,    "opeu_reply_099"       }, /* data/freply */
-  { opeu_reply_100,               0x3c05u, 0x143cu, 48u,    "opeu_reply_100"       }, /* data/freply */
-  { opeu_reply_101,               0x3c05u, 0x146cu, 31u,    "opeu_reply_101"       }, /* data/freply */
-  { opeu_reply_102,               0x3c05u, 0x148bu, 33u,    "opeu_reply_102"       }, /* data/freply */
-  { opeu_reply_103,               0x3c05u, 0x14acu, 28u,    "opeu_reply_103"       }, /* data/freply */
-  { opeu_reply_104,               0x3c05u, 0x14c8u, 40u,    "opeu_reply_104"       }, /* data/freply */
-  { opeu_reply_105,               0x3c05u, 0x14f0u, 58u,    "opeu_reply_105"       }, /* data/freply */
-  { opeu_reply_106,               0x3c05u, 0x152au, 24u,    "opeu_reply_106"       }, /* data/freply */
-  { opeu_reply_107,               0x3c05u, 0x1542u, 44u,    "opeu_reply_107"       }, /* data/freply */
-  { opeu_reply_108,               0x3c05u, 0x156eu, 76u,    "opeu_reply_108"       }, /* data/freply */
-  { opeu_reply_109,               0x3c05u, 0x15bau, 36u,    "opeu_reply_109"       }, /* data/freply */
-  { opeu_reply_110,               0x3c05u, 0x15deu, 41u,    "opeu_reply_110"       }, /* data/freply */
-  { opeu_reply_111,               0x3c05u, 0x1607u, 46u,    "opeu_reply_111"       }, /* data/freply */
-  { opeu_reply_112,               0x3c05u, 0x1635u, 43u,    "opeu_reply_112"       }, /* data/freply */
-  { opeu_reply_113,               0x3c05u, 0x1660u, 41u,    "opeu_reply_113"       }, /* data/freply */
-  { opeu_reply_114,               0x3c05u, 0x1689u, 44u,    "opeu_reply_114"       }, /* data/freply */
-  { opeu_reply_115,               0x3c05u, 0x16b5u, 75u,    "opeu_reply_115"       }, /* data/freply */
-  { opeu_reply_116,               0x3c05u, 0x1700u, 54u,    "opeu_reply_116"       }, /* data/freply */
-  { opeu_reply_117,               0x3c05u, 0x1736u, 35u,    "opeu_reply_117"       }, /* data/freply */
-  { opeu_reply_118,               0x3c05u, 0x1759u, 29u,    "opeu_reply_118"       }, /* data/freply */
-  { opeu_reply_119,               0x3c05u, 0x1776u, 41u,    "opeu_reply_119"       }, /* data/freply */
-  { opeu_reply_120,               0x3c05u, 0x179fu, 73u,    "opeu_reply_120"       }, /* data/freply */
-  { opeu_reply_121,               0x3c05u, 0x17e8u, 47u,    "opeu_reply_121"       }, /* data/freply */
-  { opeu_reply_122,               0x3c05u, 0x1817u, 63u,    "opeu_reply_122"       }, /* data/freply */
-  { opeu_reply_123,               0x3c05u, 0x1856u, 52u,    "opeu_reply_123"       }, /* data/freply */
-  { opeu_reply_124,               0x3c05u, 0x188au, 48u,    "opeu_reply_124"       }, /* data/freply */
-  { opeu_music_tracks,            0x3d91u, 0x0000u, 190u,   "opeu_music_tracks"    }, /* data/fmusic */
-  { opeu_music_voices,            0x3d91u, 0x00beu, 1629u,  "opeu_music_voices"    }, /* data/fmusic */
-  { opeu_music_events,            0x3d91u, 0x071bu, 29855u, "opeu_music_events"    }, /* data/fmusic */
-  { opeu_sound_effects,           0x3d91u, 0x7bbau, 847u,   "opeu_sound_effects"   }, /* data/fmusic */
-  { opeu_path_cell_queue,         0x4582u, 0x0000u, 3200u,  "opeu_fg4582_0000"     }, /* data/fg4582 */
-  { opeu_path_cost_grid,          0x4582u, 0x0c80u, 3200u,  "opeu_fg4582_0c80"     }, /* data/fg4582 */
-  { opeu_turn_order,              0x4712u, 0x2012u, 64u,    "opeu_turn_order"      }, /* data/mapstate */
-  { opeu_objective_links,         0x4712u, 0x2052u, 84u,    "opeu_objective_links" }, /* data/mapstate */
-  { opeu_unit_links,              0x4712u, 0x20a6u, 16u,    "opeu_unit_links"      }, /* data/mapstate */
-  { opeu_map_cells,               0x4712u, 0x20b6u, 1600u,  "opeu_map_cells"       }, /* data/mapstate */
-  { opeu_influence_map,           0x4712u, 0x26f6u, 200u,   "opeu_influence_map"   }, /* data/mapstate */
+namespace opeu::game::detail::image_block {
+namespace {
+// clang-format off
+static_assert(sizeof(VIEW_CELL_TILES) == 288);
+static_assert(sizeof(TURN_FRAME_SHORT_TILES) == 576);
+static_assert(sizeof(TURN_FRAME_TALL_TILES) == 768);
+static_assert(sizeof(ELEMENT_TYPE_ICONS) == 704);
+static_assert(sizeof(BATTLE_HEX_MASKS) == 390);
+static_assert(sizeof(YES_NO_POINTER_SAVE) == 960);
+static_assert(sizeof(TEXT_CURSOR_TILE) == 32);
+static_assert(sizeof(YES_NO_POINTER_IMAGE) == 768);
+static_assert(sizeof(YES_NO_POINTER_SHAPE) == 192);
+static_assert(sizeof(MENU_BUTTON_TILES) == 576);
+static_assert(sizeof(SETUP_MARKER_SAVE) == 512);
+static_assert(sizeof(SETUP_MARKER_IMAGE) == 384);
+static_assert(sizeof(OVERVIEW_TYPE_MASKS) == 80);
+static_assert(sizeof(OVERVIEW_TYPE_SPRITES) == 240);
+static_assert(sizeof(OVERVIEW_ORDER_MASKS) == 72);
+static_assert(sizeof(OVERVIEW_ORDER_SPRITES) == 216);
+static_assert(sizeof(OVERVIEW_BLAST_FRAMES) == 48);
+static_assert(sizeof(VIEW_TYPE_SPRITES) == 864);
+static_assert(sizeof(VIEW_TYPE_MASKS) == 2592);
+static_assert(sizeof(VIEW_SHADOW_IMAGES) == 144);
+static_assert(sizeof(VIEW_ORDER_SPRITES) == 1944);
+static_assert(sizeof(VIEW_ORDER_MASKS) == 1944);
+static_assert(sizeof(VIEW_BLAST_SPRITES) == 216);
+static_assert(sizeof(VIEW_BLAST_MASKS) == 648);
+static_assert(sizeof(BATTLE_REPORT_0) == 73);
+static_assert(sizeof(BATTLE_REPORT_1) == 125);
+static_assert(sizeof(BATTLE_REPORT_2) == 125);
+static_assert(sizeof(BATTLE_REPORT_3) == 121);
+static_assert(sizeof(BATTLE_REPORT_4) == 46);
+static_assert(sizeof(BATTLE_REPORT_5) == 48);
+static_assert(sizeof(BATTLE_REPORT_6) == 38);
+static_assert(sizeof(CONTEXT_FRAME_TILES) == 288);
+static_assert(sizeof(LIST_ARROW_TILES) == 256);
+static_assert(sizeof(WAR_NEWS_000) == 46);
+static_assert(sizeof(WAR_NEWS_001) == 47);
+static_assert(sizeof(WAR_NEWS_002) == 59);
+static_assert(sizeof(WAR_NEWS_003) == 56);
+static_assert(sizeof(WAR_NEWS_004) == 59);
+static_assert(sizeof(WAR_NEWS_005) == 61);
+static_assert(sizeof(WAR_NEWS_006) == 46);
+static_assert(sizeof(WAR_NEWS_007) == 66);
+static_assert(sizeof(WAR_NEWS_008) == 48);
+static_assert(sizeof(WAR_NEWS_009) == 66);
+static_assert(sizeof(WAR_NEWS_010) == 60);
+static_assert(sizeof(WAR_NEWS_011) == 54);
+static_assert(sizeof(WAR_NEWS_012) == 41);
+static_assert(sizeof(WAR_NEWS_013) == 38);
+static_assert(sizeof(WAR_NEWS_014) == 61);
+static_assert(sizeof(WAR_NEWS_015) == 68);
+static_assert(sizeof(WAR_NEWS_016) == 49);
+static_assert(sizeof(WAR_NEWS_017) == 61);
+static_assert(sizeof(WAR_NEWS_018) == 53);
+static_assert(sizeof(WAR_NEWS_019) == 60);
+static_assert(sizeof(WAR_NEWS_020) == 31);
+static_assert(sizeof(WAR_NEWS_021) == 62);
+static_assert(sizeof(WAR_NEWS_022) == 49);
+static_assert(sizeof(WAR_NEWS_023) == 62);
+static_assert(sizeof(WAR_NEWS_024) == 68);
+static_assert(sizeof(WAR_NEWS_025) == 43);
+static_assert(sizeof(WAR_NEWS_026) == 35);
+static_assert(sizeof(WAR_NEWS_027) == 44);
+static_assert(sizeof(WAR_NEWS_028) == 69);
+static_assert(sizeof(WAR_NEWS_029) == 69);
+static_assert(sizeof(WAR_NEWS_030) == 66);
+static_assert(sizeof(WAR_NEWS_031) == 63);
+static_assert(sizeof(WAR_NEWS_032) == 38);
+static_assert(sizeof(WAR_NEWS_033) == 42);
+static_assert(sizeof(WAR_NEWS_034) == 74);
+static_assert(sizeof(WAR_NEWS_035) == 77);
+static_assert(sizeof(WAR_NEWS_036) == 69);
+static_assert(sizeof(WAR_NEWS_037) == 26);
+static_assert(sizeof(WAR_NEWS_038) == 77);
+static_assert(sizeof(WAR_NEWS_039) == 77);
+static_assert(sizeof(WAR_NEWS_040) == 64);
+static_assert(sizeof(WAR_NEWS_041) == 45);
+static_assert(sizeof(WAR_NEWS_042) == 40);
+static_assert(sizeof(WAR_NEWS_043) == 43);
+static_assert(sizeof(WAR_NEWS_044) == 59);
+static_assert(sizeof(WAR_NEWS_045) == 27);
+static_assert(sizeof(WAR_NEWS_046) == 70);
+static_assert(sizeof(WAR_NEWS_047) == 53);
+static_assert(sizeof(WAR_NEWS_048) == 82);
+static_assert(sizeof(WAR_NEWS_049) == 61);
+static_assert(sizeof(WAR_NEWS_050) == 55);
+static_assert(sizeof(WAR_NEWS_051) == 38);
+static_assert(sizeof(WAR_NEWS_052) == 48);
+static_assert(sizeof(WAR_NEWS_053) == 31);
+static_assert(sizeof(WAR_NEWS_054) == 59);
+static_assert(sizeof(WAR_NEWS_055) == 42);
+static_assert(sizeof(WAR_NEWS_056) == 62);
+static_assert(sizeof(WAR_NEWS_057) == 60);
+static_assert(sizeof(WAR_NEWS_058) == 66);
+static_assert(sizeof(WAR_NEWS_059) == 76);
+static_assert(sizeof(WAR_NEWS_060) == 48);
+static_assert(sizeof(WAR_NEWS_061) == 44);
+static_assert(sizeof(WAR_NEWS_062) == 51);
+static_assert(sizeof(WAR_NEWS_063) == 74);
+static_assert(sizeof(WAR_NEWS_064) == 44);
+static_assert(sizeof(WAR_NEWS_065) == 85);
+static_assert(sizeof(WAR_NEWS_066) == 60);
+static_assert(sizeof(WAR_NEWS_067) == 42);
+static_assert(sizeof(WAR_NEWS_068) == 55);
+static_assert(sizeof(WAR_NEWS_069) == 37);
+static_assert(sizeof(WAR_NEWS_070) == 58);
+static_assert(sizeof(WAR_NEWS_071) == 41);
+static_assert(sizeof(WAR_NEWS_072) == 42);
+static_assert(sizeof(WAR_NEWS_073) == 60);
+static_assert(sizeof(WAR_NEWS_074) == 40);
+static_assert(sizeof(WAR_NEWS_075) == 54);
+static_assert(sizeof(WAR_NEWS_076) == 52);
+static_assert(sizeof(WAR_NEWS_077) == 32);
+static_assert(sizeof(WAR_NEWS_078) == 77);
+static_assert(sizeof(WAR_NEWS_079) == 37);
+static_assert(sizeof(WAR_NEWS_080) == 58);
+static_assert(sizeof(WAR_NEWS_081) == 68);
+static_assert(sizeof(WAR_NEWS_082) == 78);
+static_assert(sizeof(WAR_NEWS_083) == 52);
+static_assert(sizeof(WAR_NEWS_084) == 37);
+static_assert(sizeof(WAR_NEWS_085) == 79);
+static_assert(sizeof(WAR_NEWS_086) == 79);
+static_assert(sizeof(WAR_NEWS_087) == 37);
+static_assert(sizeof(WAR_NEWS_088) == 47);
+static_assert(sizeof(WAR_NEWS_089) == 53);
+static_assert(sizeof(WAR_NEWS_090) == 47);
+static_assert(sizeof(WAR_NEWS_091) == 49);
+static_assert(sizeof(WAR_NEWS_092) == 41);
+static_assert(sizeof(WAR_NEWS_093) == 43);
+static_assert(sizeof(WAR_NEWS_094) == 28);
+static_assert(sizeof(WAR_NEWS_095) == 68);
+static_assert(sizeof(WAR_NEWS_096) == 36);
+static_assert(sizeof(WAR_NEWS_097) == 56);
+static_assert(sizeof(WAR_NEWS_098) == 62);
+static_assert(sizeof(WAR_NEWS_099) == 45);
+static_assert(sizeof(WAR_NEWS_100) == 40);
+static_assert(sizeof(WAR_NEWS_101) == 37);
+static_assert(sizeof(WAR_NEWS_102) == 40);
+static_assert(sizeof(WAR_NEWS_103) == 52);
+static_assert(sizeof(WAR_NEWS_104) == 81);
+static_assert(sizeof(WAR_NEWS_105) == 39);
+static_assert(sizeof(WAR_NEWS_106) == 30);
+static_assert(sizeof(WAR_NEWS_107) == 39);
+static_assert(sizeof(WAR_NEWS_108) == 33);
+static_assert(sizeof(WAR_NEWS_109) == 43);
+static_assert(sizeof(WAR_NEWS_110) == 51);
+static_assert(sizeof(WAR_NEWS_111) == 37);
+static_assert(sizeof(WAR_NEWS_112) == 40);
+static_assert(sizeof(WAR_NEWS_113) == 46);
+static_assert(sizeof(WAR_NEWS_114) == 65);
+static_assert(sizeof(WAR_NEWS_115) == 73);
+static_assert(sizeof(WAR_NEWS_116) == 57);
+static_assert(sizeof(WAR_NEWS_117) == 41);
+static_assert(sizeof(WAR_NEWS_118) == 33);
+static_assert(sizeof(WAR_NEWS_119) == 64);
+static_assert(sizeof(WAR_NEWS_120) == 63);
+static_assert(sizeof(WAR_NEWS_121) == 80);
+static_assert(sizeof(WAR_NEWS_122) == 63);
+static_assert(sizeof(WAR_NEWS_123) == 46);
+static_assert(sizeof(WAR_NEWS_124) == 37);
+static_assert(sizeof(WAR_NEWS_125) == 51);
+static_assert(sizeof(WAR_NEWS_126) == 65);
+static_assert(sizeof(WAR_NEWS_127) == 44);
+static_assert(sizeof(WAR_NEWS_128) == 50);
+static_assert(sizeof(WAR_NEWS_129) == 53);
+static_assert(sizeof(WAR_NEWS_130) == 82);
+static_assert(sizeof(WAR_NEWS_131) == 37);
+static_assert(sizeof(WAR_NEWS_132) == 36);
+static_assert(sizeof(WAR_NEWS_133) == 61);
+static_assert(sizeof(WAR_NEWS_134) == 29);
+static_assert(sizeof(WAR_NEWS_135) == 35);
+static_assert(sizeof(WAR_NEWS_136) == 28);
+static_assert(sizeof(WAR_NEWS_137) == 27);
+static_assert(sizeof(WAR_NEWS_138) == 39);
+static_assert(sizeof(WAR_NEWS_139) == 43);
+static_assert(sizeof(WAR_NEWS_140) == 30);
+static_assert(sizeof(WAR_NEWS_141) == 49);
+static_assert(sizeof(WEATHER_TERRAIN_RATINGS) == 330);
+static_assert(sizeof(AIR_SPRITE_SAVE) == 518);
+static_assert(sizeof(BOMB_SPRITE_SAVE) == 512);
+static_assert(sizeof(PANEL_BORDER_TILES) == 512);
+static_assert(sizeof(ADVICE_00) == 37);
+static_assert(sizeof(ADVICE_01) == 33);
+static_assert(sizeof(ADVICE_02) == 75);
+static_assert(sizeof(ADVICE_03) == 67);
+static_assert(sizeof(ADVICE_04) == 51);
+static_assert(sizeof(ADVICE_05) == 40);
+static_assert(sizeof(ADVICE_06) == 29);
+static_assert(sizeof(ADVICE_07) == 35);
+static_assert(sizeof(ADVICE_08) == 29);
+static_assert(sizeof(ADVICE_09) == 59);
+static_assert(sizeof(ADVICE_10) == 73);
+static_assert(sizeof(ADVICE_11) == 68);
+static_assert(sizeof(ADVICE_12) == 36);
+static_assert(sizeof(ADVICE_13) == 50);
+static_assert(sizeof(ADVICE_14) == 60);
+static_assert(sizeof(ADVICE_15) == 49);
+static_assert(sizeof(ADVICE_16) == 44);
+static_assert(sizeof(ADVICE_17) == 39);
+static_assert(sizeof(ADVICE_18) == 44);
+static_assert(sizeof(ADVICE_19) == 21);
+static_assert(sizeof(ADVICE_20) == 51);
+static_assert(sizeof(ADVICE_21) == 55);
+static_assert(sizeof(ADVICE_22) == 40);
+static_assert(sizeof(ADVICE_23) == 38);
+static_assert(sizeof(ADVICE_24) == 40);
+static_assert(sizeof(ADVICE_25) == 19);
+static_assert(sizeof(ADVICE_26) == 38);
+static_assert(sizeof(ADVICE_27) == 33);
+static_assert(sizeof(ADVICE_28) == 45);
+static_assert(sizeof(ADVICE_29) == 30);
+static_assert(sizeof(ADVICE_30) == 50);
+static_assert(sizeof(ADVICE_31) == 48);
+static_assert(sizeof(ADVICE_32) == 61);
+static_assert(sizeof(ADVICE_33) == 33);
+static_assert(sizeof(ADVICE_34) == 47);
+static_assert(sizeof(ADVICE_35) == 60);
+static_assert(sizeof(ADVICE_36) == 67);
+static_assert(sizeof(ADVICE_37) == 41);
+static_assert(sizeof(ADVICE_38) == 27);
+static_assert(sizeof(ADVICE_39) == 36);
+static_assert(sizeof(ADVICE_40) == 49);
+static_assert(sizeof(ADVICE_41) == 55);
+static_assert(sizeof(ADVICE_42) == 51);
+static_assert(sizeof(ADVICE_43) == 39);
+static_assert(sizeof(ADVICE_44) == 46);
+static_assert(sizeof(ADVICE_45) == 44);
+static_assert(sizeof(ADVICE_46) == 49);
+static_assert(sizeof(ADVICE_47) == 71);
+static_assert(sizeof(ADVICE_48) == 52);
+static_assert(sizeof(ADVICE_49) == 39);
+static_assert(sizeof(ADVICE_50) == 58);
+static_assert(sizeof(ADVICE_51) == 49);
+static_assert(sizeof(ADVICE_52) == 37);
+static_assert(sizeof(ADVICE_53) == 51);
+static_assert(sizeof(ADVICE_54) == 36);
+static_assert(sizeof(ADVICE_55) == 66);
+static_assert(sizeof(ADVICE_56) == 35);
+static_assert(sizeof(ADVICE_57) == 33);
+static_assert(sizeof(ADVICE_58) == 30);
+static_assert(sizeof(ADVICE_59) == 41);
+static_assert(sizeof(ADVICE_60) == 29);
+static_assert(sizeof(ADVICE_61) == 21);
+static_assert(sizeof(ADVICE_62) == 31);
+static_assert(sizeof(ADVICE_63) == 76);
+static_assert(sizeof(ADVICE_64) == 51);
+static_assert(sizeof(ADVICE_65) == 70);
+static_assert(sizeof(ADVICE_66) == 53);
+static_assert(sizeof(ADVICE_67) == 79);
+static_assert(sizeof(ADVICE_68) == 71);
+static_assert(sizeof(ADVICE_69) == 40);
+static_assert(sizeof(ADVICE_70) == 41);
+static_assert(sizeof(ADVICE_71) == 55);
+static_assert(sizeof(ADVICE_72) == 86);
+static_assert(sizeof(ADVICE_73) == 69);
+static_assert(sizeof(ADVICE_74) == 89);
+static_assert(sizeof(ADVICE_75) == 50);
+static_assert(sizeof(ADVICE_76) == 85);
+static_assert(sizeof(ADVICE_77) == 54);
+static_assert(sizeof(ADVICE_78) == 66);
+static_assert(sizeof(ADVICE_79) == 72);
+static_assert(sizeof(ADVICE_80) == 45);
+static_assert(sizeof(ADVICE_81) == 88);
+static_assert(sizeof(ADVICE_82) == 73);
+static_assert(sizeof(ADVICE_83) == 55);
+static_assert(sizeof(ADVICE_84) == 77);
+static_assert(sizeof(ADVICE_85) == 60);
+static_assert(sizeof(ADVICE_86) == 87);
+static_assert(sizeof(ADVICE_87) == 53);
+static_assert(sizeof(ADVICE_88) == 76);
+static_assert(sizeof(ADVICE_89) == 67);
+static_assert(sizeof(ADVICE_90) == 67);
+static_assert(sizeof(ADVICE_91) == 64);
+static_assert(sizeof(ADVICE_92) == 69);
+static_assert(sizeof(REPLY_000) == 54);
+static_assert(sizeof(REPLY_001) == 33);
+static_assert(sizeof(REPLY_002) == 38);
+static_assert(sizeof(REPLY_003) == 26);
+static_assert(sizeof(REPLY_004) == 56);
+static_assert(sizeof(REPLY_005) == 75);
+static_assert(sizeof(REPLY_006) == 23);
+static_assert(sizeof(REPLY_007) == 53);
+static_assert(sizeof(REPLY_008) == 53);
+static_assert(sizeof(REPLY_009) == 49);
+static_assert(sizeof(REPLY_010) == 54);
+static_assert(sizeof(REPLY_011) == 39);
+static_assert(sizeof(REPLY_012) == 53);
+static_assert(sizeof(REPLY_013) == 75);
+static_assert(sizeof(REPLY_014) == 61);
+static_assert(sizeof(REPLY_015) == 73);
+static_assert(sizeof(REPLY_016) == 46);
+static_assert(sizeof(REPLY_017) == 43);
+static_assert(sizeof(REPLY_018) == 51);
+static_assert(sizeof(REPLY_019) == 27);
+static_assert(sizeof(REPLY_020) == 71);
+static_assert(sizeof(REPLY_021) == 1);
+static_assert(sizeof(REPLY_022) == 54);
+static_assert(sizeof(REPLY_023) == 43);
+static_assert(sizeof(REPLY_024) == 59);
+static_assert(sizeof(REPLY_025) == 49);
+static_assert(sizeof(REPLY_026) == 73);
+static_assert(sizeof(REPLY_027) == 36);
+static_assert(sizeof(REPLY_028) == 37);
+static_assert(sizeof(REPLY_029) == 37);
+static_assert(sizeof(REPLY_030) == 36);
+static_assert(sizeof(REPLY_031) == 41);
+static_assert(sizeof(REPLY_032) == 50);
+static_assert(sizeof(REPLY_033) == 24);
+static_assert(sizeof(REPLY_034) == 32);
+static_assert(sizeof(REPLY_035) == 32);
+static_assert(sizeof(REPLY_036) == 51);
+static_assert(sizeof(REPLY_037) == 57);
+static_assert(sizeof(REPLY_038) == 49);
+static_assert(sizeof(REPLY_039) == 45);
+static_assert(sizeof(REPLY_040) == 67);
+static_assert(sizeof(REPLY_041) == 37);
+static_assert(sizeof(REPLY_042) == 50);
+static_assert(sizeof(REPLY_043) == 25);
+static_assert(sizeof(REPLY_044) == 44);
+static_assert(sizeof(REPLY_045) == 75);
+static_assert(sizeof(REPLY_046) == 72);
+static_assert(sizeof(REPLY_047) == 56);
+static_assert(sizeof(REPLY_048) == 55);
+static_assert(sizeof(REPLY_049) == 24);
+static_assert(sizeof(REPLY_050) == 84);
+static_assert(sizeof(REPLY_051) == 50);
+static_assert(sizeof(REPLY_052) == 54);
+static_assert(sizeof(REPLY_053) == 59);
+static_assert(sizeof(REPLY_054) == 46);
+static_assert(sizeof(REPLY_055) == 54);
+static_assert(sizeof(REPLY_056) == 83);
+static_assert(sizeof(REPLY_057) == 18);
+static_assert(sizeof(REPLY_058) == 59);
+static_assert(sizeof(REPLY_059) == 28);
+static_assert(sizeof(REPLY_060) == 21);
+static_assert(sizeof(REPLY_061) == 54);
+static_assert(sizeof(REPLY_062) == 53);
+static_assert(sizeof(REPLY_063) == 60);
+static_assert(sizeof(REPLY_064) == 65);
+static_assert(sizeof(REPLY_065) == 61);
+static_assert(sizeof(REPLY_066) == 70);
+static_assert(sizeof(REPLY_067) == 62);
+static_assert(sizeof(REPLY_068) == 46);
+static_assert(sizeof(REPLY_069) == 44);
+static_assert(sizeof(REPLY_070) == 72);
+static_assert(sizeof(REPLY_071) == 67);
+static_assert(sizeof(REPLY_072) == 33);
+static_assert(sizeof(REPLY_073) == 41);
+static_assert(sizeof(REPLY_074) == 48);
+static_assert(sizeof(REPLY_075) == 36);
+static_assert(sizeof(REPLY_076) == 58);
+static_assert(sizeof(REPLY_077) == 53);
+static_assert(sizeof(REPLY_078) == 53);
+static_assert(sizeof(REPLY_079) == 54);
+static_assert(sizeof(REPLY_080) == 70);
+static_assert(sizeof(REPLY_081) == 86);
+static_assert(sizeof(REPLY_082) == 54);
+static_assert(sizeof(REPLY_083) == 56);
+static_assert(sizeof(REPLY_084) == 42);
+static_assert(sizeof(REPLY_085) == 85);
+static_assert(sizeof(REPLY_086) == 82);
+static_assert(sizeof(REPLY_087) == 49);
+static_assert(sizeof(REPLY_088) == 69);
+static_assert(sizeof(REPLY_089) == 83);
+static_assert(sizeof(REPLY_090) == 66);
+static_assert(sizeof(REPLY_091) == 82);
+static_assert(sizeof(REPLY_092) == 69);
+static_assert(sizeof(REPLY_093) == 79);
+static_assert(sizeof(REPLY_094) == 54);
+static_assert(sizeof(REPLY_095) == 45);
+static_assert(sizeof(REPLY_096) == 31);
+static_assert(sizeof(REPLY_097) == 43);
+static_assert(sizeof(REPLY_098) == 66);
+static_assert(sizeof(REPLY_099) == 19);
+static_assert(sizeof(REPLY_100) == 48);
+static_assert(sizeof(REPLY_101) == 31);
+static_assert(sizeof(REPLY_102) == 33);
+static_assert(sizeof(REPLY_103) == 28);
+static_assert(sizeof(REPLY_104) == 40);
+static_assert(sizeof(REPLY_105) == 58);
+static_assert(sizeof(REPLY_106) == 24);
+static_assert(sizeof(REPLY_107) == 44);
+static_assert(sizeof(REPLY_108) == 76);
+static_assert(sizeof(REPLY_109) == 36);
+static_assert(sizeof(REPLY_110) == 41);
+static_assert(sizeof(REPLY_111) == 46);
+static_assert(sizeof(REPLY_112) == 43);
+static_assert(sizeof(REPLY_113) == 41);
+static_assert(sizeof(REPLY_114) == 44);
+static_assert(sizeof(REPLY_115) == 75);
+static_assert(sizeof(REPLY_116) == 54);
+static_assert(sizeof(REPLY_117) == 35);
+static_assert(sizeof(REPLY_118) == 29);
+static_assert(sizeof(REPLY_119) == 41);
+static_assert(sizeof(REPLY_120) == 73);
+static_assert(sizeof(REPLY_121) == 47);
+static_assert(sizeof(REPLY_122) == 63);
+static_assert(sizeof(REPLY_123) == 52);
+static_assert(sizeof(REPLY_124) == 48);
+static_assert(sizeof(MUSIC_TRACKS) == 190);
+static_assert(sizeof(MUSIC_VOICES) == 1629);
+static_assert(sizeof(MUSIC_EVENTS) == 29855);
+static_assert(sizeof(SOUND_EFFECTS) == 847);
+static_assert(sizeof(PATH_CELL_QUEUE) == 3200);
+static_assert(sizeof(PATH_COST_GRID) == 3200);
+
+constexpr std::tuple FAR_OBJECTS{
+  FarObject{ { 0x349b, 0x0000 }, VIEW_CELL_TILES         }, // data/fg349b
+  FarObject{ { 0x349b, 0x0120 }, TURN_FRAME_SHORT_TILES  }, // data/fg349b
+  FarObject{ { 0x349b, 0x0360 }, TURN_FRAME_TALL_TILES   }, // data/fg349b
+  FarObject{ { 0x349b, 0x0660 }, ELEMENT_TYPE_ICONS      }, // data/fg349b
+  FarObject{ { 0x352d, 0x0000 }, BATTLE_HEX_MASKS        }, // data/fg352d
+  FarObject{ { 0x3546, 0x0000 }, YES_NO_POINTER_SAVE     }, // data/fg3546
+  FarObject{ { 0x3546, 0x03c0 }, TEXT_CURSOR_TILE        }, // data/fg3546
+  FarObject{ { 0x3546, 0x03e0 }, YES_NO_POINTER_IMAGE    }, // data/fg3546
+  FarObject{ { 0x3546, 0x06e0 }, YES_NO_POINTER_SHAPE    }, // data/fg3546
+  FarObject{ { 0x35c0, 0x0000 }, MENU_BUTTON_TILES       }, // data/fg35c0
+  FarObject{ { 0x35e4, 0x0000 }, SETUP_MARKER_SAVE       }, // data/fg35e4
+  FarObject{ { 0x35e4, 0x0200 }, SETUP_MARKER_IMAGE      }, // data/fg35e4
+  FarObject{ { 0x361c, 0x0000 }, OVERVIEW_TYPE_MASKS     }, // data/fg361c
+  FarObject{ { 0x361c, 0x0050 }, OVERVIEW_TYPE_SPRITES   }, // data/fg361c
+  FarObject{ { 0x361c, 0x0140 }, OVERVIEW_ORDER_MASKS    }, // data/fg361c
+  FarObject{ { 0x361c, 0x0188 }, OVERVIEW_ORDER_SPRITES  }, // data/fg361c
+  FarObject{ { 0x361c, 0x0260 }, OVERVIEW_BLAST_FRAMES   }, // data/fg361c
+  FarObject{ { 0x361c, 0x0290 }, VIEW_TYPE_SPRITES       }, // data/fg361c
+  FarObject{ { 0x361c, 0x05f0 }, VIEW_TYPE_MASKS         }, // data/fg361c
+  FarObject{ { 0x361c, 0x1010 }, VIEW_SHADOW_IMAGES      }, // data/fg361c
+  FarObject{ { 0x361c, 0x10a0 }, VIEW_ORDER_SPRITES      }, // data/fg361c
+  FarObject{ { 0x361c, 0x1838 }, VIEW_ORDER_MASKS        }, // data/fg361c
+  FarObject{ { 0x361c, 0x1fd0 }, VIEW_BLAST_SPRITES      }, // data/fg361c
+  FarObject{ { 0x361c, 0x20a8 }, VIEW_BLAST_MASKS        }, // data/fg361c
+  FarObject{ { 0x384f, 0x0000 }, BATTLE_REPORT_0         }, // data/fbattle
+  FarObject{ { 0x384f, 0x0049 }, BATTLE_REPORT_1         }, // data/fbattle
+  FarObject{ { 0x384f, 0x00c6 }, BATTLE_REPORT_2         }, // data/fbattle
+  FarObject{ { 0x384f, 0x0143 }, BATTLE_REPORT_3         }, // data/fbattle
+  FarObject{ { 0x384f, 0x01bc }, BATTLE_REPORT_4         }, // data/fbattle
+  FarObject{ { 0x384f, 0x01ea }, BATTLE_REPORT_5         }, // data/fbattle
+  FarObject{ { 0x384f, 0x021a }, BATTLE_REPORT_6         }, // data/fbattle
+  FarObject{ { 0x3873, 0x0000 }, CONTEXT_FRAME_TILES     }, // data/fg3873
+  FarObject{ { 0x3885, 0x0000 }, LIST_ARROW_TILES        }, // data/fg3885
+  FarObject{ { 0x3895, 0x0000 }, WAR_NEWS_000            }, // data/fnews
+  FarObject{ { 0x3895, 0x002e }, WAR_NEWS_001            }, // data/fnews
+  FarObject{ { 0x3895, 0x005d }, WAR_NEWS_002            }, // data/fnews
+  FarObject{ { 0x3895, 0x0098 }, WAR_NEWS_003            }, // data/fnews
+  FarObject{ { 0x3895, 0x00d0 }, WAR_NEWS_004            }, // data/fnews
+  FarObject{ { 0x3895, 0x010b }, WAR_NEWS_005            }, // data/fnews
+  FarObject{ { 0x3895, 0x0148 }, WAR_NEWS_006            }, // data/fnews
+  FarObject{ { 0x3895, 0x0176 }, WAR_NEWS_007            }, // data/fnews
+  FarObject{ { 0x3895, 0x01b8 }, WAR_NEWS_008            }, // data/fnews
+  FarObject{ { 0x3895, 0x01e8 }, WAR_NEWS_009            }, // data/fnews
+  FarObject{ { 0x3895, 0x022a }, WAR_NEWS_010            }, // data/fnews
+  FarObject{ { 0x3895, 0x0266 }, WAR_NEWS_011            }, // data/fnews
+  FarObject{ { 0x3895, 0x029c }, WAR_NEWS_012            }, // data/fnews
+  FarObject{ { 0x3895, 0x02c5 }, WAR_NEWS_013            }, // data/fnews
+  FarObject{ { 0x3895, 0x02eb }, WAR_NEWS_014            }, // data/fnews
+  FarObject{ { 0x3895, 0x0328 }, WAR_NEWS_015            }, // data/fnews
+  FarObject{ { 0x3895, 0x036c }, WAR_NEWS_016            }, // data/fnews
+  FarObject{ { 0x3895, 0x039d }, WAR_NEWS_017            }, // data/fnews
+  FarObject{ { 0x3895, 0x03da }, WAR_NEWS_018            }, // data/fnews
+  FarObject{ { 0x3895, 0x040f }, WAR_NEWS_019            }, // data/fnews
+  FarObject{ { 0x3895, 0x044b }, WAR_NEWS_020            }, // data/fnews
+  FarObject{ { 0x3895, 0x046a }, WAR_NEWS_021            }, // data/fnews
+  FarObject{ { 0x3895, 0x04a8 }, WAR_NEWS_022            }, // data/fnews
+  FarObject{ { 0x3895, 0x04d9 }, WAR_NEWS_023            }, // data/fnews
+  FarObject{ { 0x3895, 0x0517 }, WAR_NEWS_024            }, // data/fnews
+  FarObject{ { 0x3895, 0x055b }, WAR_NEWS_025            }, // data/fnews
+  FarObject{ { 0x3895, 0x0586 }, WAR_NEWS_026            }, // data/fnews
+  FarObject{ { 0x3895, 0x05a9 }, WAR_NEWS_027            }, // data/fnews
+  FarObject{ { 0x3895, 0x05d5 }, WAR_NEWS_028            }, // data/fnews
+  FarObject{ { 0x3895, 0x061a }, WAR_NEWS_029            }, // data/fnews
+  FarObject{ { 0x3895, 0x065f }, WAR_NEWS_030            }, // data/fnews
+  FarObject{ { 0x3895, 0x06a1 }, WAR_NEWS_031            }, // data/fnews
+  FarObject{ { 0x3895, 0x06e0 }, WAR_NEWS_032            }, // data/fnews
+  FarObject{ { 0x3895, 0x0706 }, WAR_NEWS_033            }, // data/fnews
+  FarObject{ { 0x3895, 0x0730 }, WAR_NEWS_034            }, // data/fnews
+  FarObject{ { 0x3895, 0x077a }, WAR_NEWS_035            }, // data/fnews
+  FarObject{ { 0x3895, 0x07c7 }, WAR_NEWS_036            }, // data/fnews
+  FarObject{ { 0x3895, 0x080c }, WAR_NEWS_037            }, // data/fnews
+  FarObject{ { 0x3895, 0x0826 }, WAR_NEWS_038            }, // data/fnews
+  FarObject{ { 0x3895, 0x0873 }, WAR_NEWS_039            }, // data/fnews
+  FarObject{ { 0x3895, 0x08c0 }, WAR_NEWS_040            }, // data/fnews
+  FarObject{ { 0x3895, 0x0900 }, WAR_NEWS_041            }, // data/fnews
+  FarObject{ { 0x3895, 0x092d }, WAR_NEWS_042            }, // data/fnews
+  FarObject{ { 0x3895, 0x0955 }, WAR_NEWS_043            }, // data/fnews
+  FarObject{ { 0x3895, 0x0980 }, WAR_NEWS_044            }, // data/fnews
+  FarObject{ { 0x3895, 0x09bb }, WAR_NEWS_045            }, // data/fnews
+  FarObject{ { 0x3895, 0x09d6 }, WAR_NEWS_046            }, // data/fnews
+  FarObject{ { 0x3895, 0x0a1c }, WAR_NEWS_047            }, // data/fnews
+  FarObject{ { 0x3895, 0x0a51 }, WAR_NEWS_048            }, // data/fnews
+  FarObject{ { 0x3895, 0x0aa3 }, WAR_NEWS_049            }, // data/fnews
+  FarObject{ { 0x3895, 0x0ae0 }, WAR_NEWS_050            }, // data/fnews
+  FarObject{ { 0x3895, 0x0b17 }, WAR_NEWS_051            }, // data/fnews
+  FarObject{ { 0x3895, 0x0b3d }, WAR_NEWS_052            }, // data/fnews
+  FarObject{ { 0x3895, 0x0b6d }, WAR_NEWS_053            }, // data/fnews
+  FarObject{ { 0x3895, 0x0b8c }, WAR_NEWS_054            }, // data/fnews
+  FarObject{ { 0x3895, 0x0bc7 }, WAR_NEWS_055            }, // data/fnews
+  FarObject{ { 0x3895, 0x0bf1 }, WAR_NEWS_056            }, // data/fnews
+  FarObject{ { 0x3895, 0x0c2f }, WAR_NEWS_057            }, // data/fnews
+  FarObject{ { 0x3895, 0x0c6b }, WAR_NEWS_058            }, // data/fnews
+  FarObject{ { 0x3895, 0x0cad }, WAR_NEWS_059            }, // data/fnews
+  FarObject{ { 0x3895, 0x0cf9 }, WAR_NEWS_060            }, // data/fnews
+  FarObject{ { 0x3895, 0x0d29 }, WAR_NEWS_061            }, // data/fnews
+  FarObject{ { 0x3895, 0x0d55 }, WAR_NEWS_062            }, // data/fnews
+  FarObject{ { 0x3895, 0x0d88 }, WAR_NEWS_063            }, // data/fnews
+  FarObject{ { 0x3895, 0x0dd2 }, WAR_NEWS_064            }, // data/fnews
+  FarObject{ { 0x3895, 0x0dfe }, WAR_NEWS_065            }, // data/fnews
+  FarObject{ { 0x3895, 0x0e53 }, WAR_NEWS_066            }, // data/fnews
+  FarObject{ { 0x3895, 0x0e8f }, WAR_NEWS_067            }, // data/fnews
+  FarObject{ { 0x3895, 0x0eb9 }, WAR_NEWS_068            }, // data/fnews
+  FarObject{ { 0x3895, 0x0ef0 }, WAR_NEWS_069            }, // data/fnews
+  FarObject{ { 0x3895, 0x0f15 }, WAR_NEWS_070            }, // data/fnews
+  FarObject{ { 0x3895, 0x0f4f }, WAR_NEWS_071            }, // data/fnews
+  FarObject{ { 0x3895, 0x0f78 }, WAR_NEWS_072            }, // data/fnews
+  FarObject{ { 0x3895, 0x0fa2 }, WAR_NEWS_073            }, // data/fnews
+  FarObject{ { 0x3895, 0x0fde }, WAR_NEWS_074            }, // data/fnews
+  FarObject{ { 0x3895, 0x1006 }, WAR_NEWS_075            }, // data/fnews
+  FarObject{ { 0x3895, 0x103c }, WAR_NEWS_076            }, // data/fnews
+  FarObject{ { 0x3895, 0x1070 }, WAR_NEWS_077            }, // data/fnews
+  FarObject{ { 0x3895, 0x1090 }, WAR_NEWS_078            }, // data/fnews
+  FarObject{ { 0x3895, 0x10dd }, WAR_NEWS_079            }, // data/fnews
+  FarObject{ { 0x3895, 0x1102 }, WAR_NEWS_080            }, // data/fnews
+  FarObject{ { 0x3895, 0x113c }, WAR_NEWS_081            }, // data/fnews
+  FarObject{ { 0x3895, 0x1180 }, WAR_NEWS_082            }, // data/fnews
+  FarObject{ { 0x3895, 0x11ce }, WAR_NEWS_083            }, // data/fnews
+  FarObject{ { 0x3895, 0x1202 }, WAR_NEWS_084            }, // data/fnews
+  FarObject{ { 0x3895, 0x1227 }, WAR_NEWS_085            }, // data/fnews
+  FarObject{ { 0x3895, 0x1276 }, WAR_NEWS_086            }, // data/fnews
+  FarObject{ { 0x3895, 0x12c5 }, WAR_NEWS_087            }, // data/fnews
+  FarObject{ { 0x3895, 0x12ea }, WAR_NEWS_088            }, // data/fnews
+  FarObject{ { 0x3895, 0x1319 }, WAR_NEWS_089            }, // data/fnews
+  FarObject{ { 0x3895, 0x134e }, WAR_NEWS_090            }, // data/fnews
+  FarObject{ { 0x3895, 0x137d }, WAR_NEWS_091            }, // data/fnews
+  FarObject{ { 0x3895, 0x13ae }, WAR_NEWS_092            }, // data/fnews
+  FarObject{ { 0x3895, 0x13d7 }, WAR_NEWS_093            }, // data/fnews
+  FarObject{ { 0x3895, 0x1402 }, WAR_NEWS_094            }, // data/fnews
+  FarObject{ { 0x3895, 0x141e }, WAR_NEWS_095            }, // data/fnews
+  FarObject{ { 0x3895, 0x1462 }, WAR_NEWS_096            }, // data/fnews
+  FarObject{ { 0x3895, 0x1486 }, WAR_NEWS_097            }, // data/fnews
+  FarObject{ { 0x3895, 0x14be }, WAR_NEWS_098            }, // data/fnews
+  FarObject{ { 0x3895, 0x14fc }, WAR_NEWS_099            }, // data/fnews
+  FarObject{ { 0x3895, 0x1529 }, WAR_NEWS_100            }, // data/fnews
+  FarObject{ { 0x3895, 0x1551 }, WAR_NEWS_101            }, // data/fnews
+  FarObject{ { 0x3895, 0x1576 }, WAR_NEWS_102            }, // data/fnews
+  FarObject{ { 0x3895, 0x159e }, WAR_NEWS_103            }, // data/fnews
+  FarObject{ { 0x3895, 0x15d2 }, WAR_NEWS_104            }, // data/fnews
+  FarObject{ { 0x3895, 0x1623 }, WAR_NEWS_105            }, // data/fnews
+  FarObject{ { 0x3895, 0x164a }, WAR_NEWS_106            }, // data/fnews
+  FarObject{ { 0x3895, 0x1668 }, WAR_NEWS_107            }, // data/fnews
+  FarObject{ { 0x3895, 0x168f }, WAR_NEWS_108            }, // data/fnews
+  FarObject{ { 0x3895, 0x16b0 }, WAR_NEWS_109            }, // data/fnews
+  FarObject{ { 0x3895, 0x16db }, WAR_NEWS_110            }, // data/fnews
+  FarObject{ { 0x3895, 0x170e }, WAR_NEWS_111            }, // data/fnews
+  FarObject{ { 0x3895, 0x1733 }, WAR_NEWS_112            }, // data/fnews
+  FarObject{ { 0x3895, 0x175b }, WAR_NEWS_113            }, // data/fnews
+  FarObject{ { 0x3895, 0x1789 }, WAR_NEWS_114            }, // data/fnews
+  FarObject{ { 0x3895, 0x17ca }, WAR_NEWS_115            }, // data/fnews
+  FarObject{ { 0x3895, 0x1813 }, WAR_NEWS_116            }, // data/fnews
+  FarObject{ { 0x3895, 0x184c }, WAR_NEWS_117            }, // data/fnews
+  FarObject{ { 0x3895, 0x1875 }, WAR_NEWS_118            }, // data/fnews
+  FarObject{ { 0x3895, 0x1896 }, WAR_NEWS_119            }, // data/fnews
+  FarObject{ { 0x3895, 0x18d6 }, WAR_NEWS_120            }, // data/fnews
+  FarObject{ { 0x3895, 0x1915 }, WAR_NEWS_121            }, // data/fnews
+  FarObject{ { 0x3895, 0x1965 }, WAR_NEWS_122            }, // data/fnews
+  FarObject{ { 0x3895, 0x19a4 }, WAR_NEWS_123            }, // data/fnews
+  FarObject{ { 0x3895, 0x19d2 }, WAR_NEWS_124            }, // data/fnews
+  FarObject{ { 0x3895, 0x19f7 }, WAR_NEWS_125            }, // data/fnews
+  FarObject{ { 0x3895, 0x1a2a }, WAR_NEWS_126            }, // data/fnews
+  FarObject{ { 0x3895, 0x1a6b }, WAR_NEWS_127            }, // data/fnews
+  FarObject{ { 0x3895, 0x1a97 }, WAR_NEWS_128            }, // data/fnews
+  FarObject{ { 0x3895, 0x1ac9 }, WAR_NEWS_129            }, // data/fnews
+  FarObject{ { 0x3895, 0x1afe }, WAR_NEWS_130            }, // data/fnews
+  FarObject{ { 0x3895, 0x1b50 }, WAR_NEWS_131            }, // data/fnews
+  FarObject{ { 0x3895, 0x1b75 }, WAR_NEWS_132            }, // data/fnews
+  FarObject{ { 0x3895, 0x1b99 }, WAR_NEWS_133            }, // data/fnews
+  FarObject{ { 0x3895, 0x1bd6 }, WAR_NEWS_134            }, // data/fnews
+  FarObject{ { 0x3895, 0x1bf3 }, WAR_NEWS_135            }, // data/fnews
+  FarObject{ { 0x3895, 0x1c16 }, WAR_NEWS_136            }, // data/fnews
+  FarObject{ { 0x3895, 0x1c32 }, WAR_NEWS_137            }, // data/fnews
+  FarObject{ { 0x3895, 0x1c4d }, WAR_NEWS_138            }, // data/fnews
+  FarObject{ { 0x3895, 0x1c74 }, WAR_NEWS_139            }, // data/fnews
+  FarObject{ { 0x3895, 0x1c9f }, WAR_NEWS_140            }, // data/fnews
+  FarObject{ { 0x3895, 0x1cbd }, WAR_NEWS_141            }, // data/fnews
+  FarObject{ { 0x3a64, 0x0000 }, WEATHER_TERRAIN_RATINGS }, // data/fg3a64
+  FarObject{ { 0x3a64, 0x014a }, AIR_SPRITE_SAVE         }, // data/fg3a64
+  FarObject{ { 0x3a99, 0x0000 }, BOMB_SPRITE_SAVE        }, // data/fg3a99
+  FarObject{ { 0x3ab9, 0x0000 }, PANEL_BORDER_TILES      }, // data/fg3ab9
+  FarObject{ { 0x3ad9, 0x0000 }, ADVICE_00               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0025 }, ADVICE_01               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0046 }, ADVICE_02               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0091 }, ADVICE_03               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x00d4 }, ADVICE_04               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0107 }, ADVICE_05               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x012f }, ADVICE_06               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x014c }, ADVICE_07               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x016f }, ADVICE_08               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x018c }, ADVICE_09               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x01c7 }, ADVICE_10               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0210 }, ADVICE_11               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0254 }, ADVICE_12               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0278 }, ADVICE_13               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x02aa }, ADVICE_14               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x02e6 }, ADVICE_15               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0317 }, ADVICE_16               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0343 }, ADVICE_17               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x036a }, ADVICE_18               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0396 }, ADVICE_19               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x03ab }, ADVICE_20               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x03de }, ADVICE_21               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0415 }, ADVICE_22               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x043d }, ADVICE_23               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0463 }, ADVICE_24               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x048b }, ADVICE_25               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x049e }, ADVICE_26               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x04c4 }, ADVICE_27               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x04e5 }, ADVICE_28               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0512 }, ADVICE_29               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0530 }, ADVICE_30               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0562 }, ADVICE_31               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0592 }, ADVICE_32               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x05cf }, ADVICE_33               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x05f0 }, ADVICE_34               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x061f }, ADVICE_35               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x065b }, ADVICE_36               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x069e }, ADVICE_37               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x06c7 }, ADVICE_38               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x06e2 }, ADVICE_39               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0706 }, ADVICE_40               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0737 }, ADVICE_41               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x076e }, ADVICE_42               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x07a1 }, ADVICE_43               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x07c8 }, ADVICE_44               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x07f6 }, ADVICE_45               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0822 }, ADVICE_46               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0853 }, ADVICE_47               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x089a }, ADVICE_48               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x08ce }, ADVICE_49               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x08f5 }, ADVICE_50               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x092f }, ADVICE_51               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0960 }, ADVICE_52               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0985 }, ADVICE_53               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x09b8 }, ADVICE_54               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x09dc }, ADVICE_55               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0a1e }, ADVICE_56               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0a41 }, ADVICE_57               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0a62 }, ADVICE_58               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0a80 }, ADVICE_59               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0aa9 }, ADVICE_60               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0ac6 }, ADVICE_61               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0adb }, ADVICE_62               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0afa }, ADVICE_63               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0b46 }, ADVICE_64               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0b79 }, ADVICE_65               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0bbf }, ADVICE_66               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0bf4 }, ADVICE_67               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0c43 }, ADVICE_68               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0c8a }, ADVICE_69               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0cb2 }, ADVICE_70               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0cdb }, ADVICE_71               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0d12 }, ADVICE_72               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0d68 }, ADVICE_73               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0dad }, ADVICE_74               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0e06 }, ADVICE_75               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0e38 }, ADVICE_76               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0e8d }, ADVICE_77               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0ec3 }, ADVICE_78               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0f05 }, ADVICE_79               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0f4d }, ADVICE_80               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0f7a }, ADVICE_81               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x0fd2 }, ADVICE_82               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x101b }, ADVICE_83               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x1052 }, ADVICE_84               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x109f }, ADVICE_85               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x10db }, ADVICE_86               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x1132 }, ADVICE_87               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x1167 }, ADVICE_88               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x11b3 }, ADVICE_89               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x11f6 }, ADVICE_90               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x1239 }, ADVICE_91               }, // data/fadvice
+  FarObject{ { 0x3ad9, 0x1279 }, ADVICE_92               }, // data/fadvice
+  FarObject{ { 0x3c05, 0x0000 }, REPLY_000               }, // data/freply
+  FarObject{ { 0x3c05, 0x0036 }, REPLY_001               }, // data/freply
+  FarObject{ { 0x3c05, 0x0057 }, REPLY_002               }, // data/freply
+  FarObject{ { 0x3c05, 0x007d }, REPLY_003               }, // data/freply
+  FarObject{ { 0x3c05, 0x0097 }, REPLY_004               }, // data/freply
+  FarObject{ { 0x3c05, 0x00cf }, REPLY_005               }, // data/freply
+  FarObject{ { 0x3c05, 0x011a }, REPLY_006               }, // data/freply
+  FarObject{ { 0x3c05, 0x0131 }, REPLY_007               }, // data/freply
+  FarObject{ { 0x3c05, 0x0166 }, REPLY_008               }, // data/freply
+  FarObject{ { 0x3c05, 0x019b }, REPLY_009               }, // data/freply
+  FarObject{ { 0x3c05, 0x01cc }, REPLY_010               }, // data/freply
+  FarObject{ { 0x3c05, 0x0202 }, REPLY_011               }, // data/freply
+  FarObject{ { 0x3c05, 0x0229 }, REPLY_012               }, // data/freply
+  FarObject{ { 0x3c05, 0x025e }, REPLY_013               }, // data/freply
+  FarObject{ { 0x3c05, 0x02a9 }, REPLY_014               }, // data/freply
+  FarObject{ { 0x3c05, 0x02e6 }, REPLY_015               }, // data/freply
+  FarObject{ { 0x3c05, 0x032f }, REPLY_016               }, // data/freply
+  FarObject{ { 0x3c05, 0x035d }, REPLY_017               }, // data/freply
+  FarObject{ { 0x3c05, 0x0388 }, REPLY_018               }, // data/freply
+  FarObject{ { 0x3c05, 0x03bb }, REPLY_019               }, // data/freply
+  FarObject{ { 0x3c05, 0x03d6 }, REPLY_020               }, // data/freply
+  FarObject{ { 0x3c05, 0x041d }, REPLY_021               }, // data/freply
+  FarObject{ { 0x3c05, 0x041e }, REPLY_022               }, // data/freply
+  FarObject{ { 0x3c05, 0x0454 }, REPLY_023               }, // data/freply
+  FarObject{ { 0x3c05, 0x047f }, REPLY_024               }, // data/freply
+  FarObject{ { 0x3c05, 0x04ba }, REPLY_025               }, // data/freply
+  FarObject{ { 0x3c05, 0x04eb }, REPLY_026               }, // data/freply
+  FarObject{ { 0x3c05, 0x0534 }, REPLY_027               }, // data/freply
+  FarObject{ { 0x3c05, 0x0558 }, REPLY_028               }, // data/freply
+  FarObject{ { 0x3c05, 0x057d }, REPLY_029               }, // data/freply
+  FarObject{ { 0x3c05, 0x05a2 }, REPLY_030               }, // data/freply
+  FarObject{ { 0x3c05, 0x05c6 }, REPLY_031               }, // data/freply
+  FarObject{ { 0x3c05, 0x05ef }, REPLY_032               }, // data/freply
+  FarObject{ { 0x3c05, 0x0621 }, REPLY_033               }, // data/freply
+  FarObject{ { 0x3c05, 0x0639 }, REPLY_034               }, // data/freply
+  FarObject{ { 0x3c05, 0x0659 }, REPLY_035               }, // data/freply
+  FarObject{ { 0x3c05, 0x0679 }, REPLY_036               }, // data/freply
+  FarObject{ { 0x3c05, 0x06ac }, REPLY_037               }, // data/freply
+  FarObject{ { 0x3c05, 0x06e5 }, REPLY_038               }, // data/freply
+  FarObject{ { 0x3c05, 0x0716 }, REPLY_039               }, // data/freply
+  FarObject{ { 0x3c05, 0x0743 }, REPLY_040               }, // data/freply
+  FarObject{ { 0x3c05, 0x0786 }, REPLY_041               }, // data/freply
+  FarObject{ { 0x3c05, 0x07ab }, REPLY_042               }, // data/freply
+  FarObject{ { 0x3c05, 0x07dd }, REPLY_043               }, // data/freply
+  FarObject{ { 0x3c05, 0x07f6 }, REPLY_044               }, // data/freply
+  FarObject{ { 0x3c05, 0x0822 }, REPLY_045               }, // data/freply
+  FarObject{ { 0x3c05, 0x086d }, REPLY_046               }, // data/freply
+  FarObject{ { 0x3c05, 0x08b5 }, REPLY_047               }, // data/freply
+  FarObject{ { 0x3c05, 0x08ed }, REPLY_048               }, // data/freply
+  FarObject{ { 0x3c05, 0x0924 }, REPLY_049               }, // data/freply
+  FarObject{ { 0x3c05, 0x093c }, REPLY_050               }, // data/freply
+  FarObject{ { 0x3c05, 0x0990 }, REPLY_051               }, // data/freply
+  FarObject{ { 0x3c05, 0x09c2 }, REPLY_052               }, // data/freply
+  FarObject{ { 0x3c05, 0x09f8 }, REPLY_053               }, // data/freply
+  FarObject{ { 0x3c05, 0x0a33 }, REPLY_054               }, // data/freply
+  FarObject{ { 0x3c05, 0x0a61 }, REPLY_055               }, // data/freply
+  FarObject{ { 0x3c05, 0x0a97 }, REPLY_056               }, // data/freply
+  FarObject{ { 0x3c05, 0x0aea }, REPLY_057               }, // data/freply
+  FarObject{ { 0x3c05, 0x0afc }, REPLY_058               }, // data/freply
+  FarObject{ { 0x3c05, 0x0b37 }, REPLY_059               }, // data/freply
+  FarObject{ { 0x3c05, 0x0b53 }, REPLY_060               }, // data/freply
+  FarObject{ { 0x3c05, 0x0b68 }, REPLY_061               }, // data/freply
+  FarObject{ { 0x3c05, 0x0b9e }, REPLY_062               }, // data/freply
+  FarObject{ { 0x3c05, 0x0bd3 }, REPLY_063               }, // data/freply
+  FarObject{ { 0x3c05, 0x0c0f }, REPLY_064               }, // data/freply
+  FarObject{ { 0x3c05, 0x0c50 }, REPLY_065               }, // data/freply
+  FarObject{ { 0x3c05, 0x0c8d }, REPLY_066               }, // data/freply
+  FarObject{ { 0x3c05, 0x0cd3 }, REPLY_067               }, // data/freply
+  FarObject{ { 0x3c05, 0x0d11 }, REPLY_068               }, // data/freply
+  FarObject{ { 0x3c05, 0x0d3f }, REPLY_069               }, // data/freply
+  FarObject{ { 0x3c05, 0x0d6b }, REPLY_070               }, // data/freply
+  FarObject{ { 0x3c05, 0x0db3 }, REPLY_071               }, // data/freply
+  FarObject{ { 0x3c05, 0x0df6 }, REPLY_072               }, // data/freply
+  FarObject{ { 0x3c05, 0x0e17 }, REPLY_073               }, // data/freply
+  FarObject{ { 0x3c05, 0x0e40 }, REPLY_074               }, // data/freply
+  FarObject{ { 0x3c05, 0x0e70 }, REPLY_075               }, // data/freply
+  FarObject{ { 0x3c05, 0x0e94 }, REPLY_076               }, // data/freply
+  FarObject{ { 0x3c05, 0x0ece }, REPLY_077               }, // data/freply
+  FarObject{ { 0x3c05, 0x0f03 }, REPLY_078               }, // data/freply
+  FarObject{ { 0x3c05, 0x0f38 }, REPLY_079               }, // data/freply
+  FarObject{ { 0x3c05, 0x0f6e }, REPLY_080               }, // data/freply
+  FarObject{ { 0x3c05, 0x0fb4 }, REPLY_081               }, // data/freply
+  FarObject{ { 0x3c05, 0x100a }, REPLY_082               }, // data/freply
+  FarObject{ { 0x3c05, 0x1040 }, REPLY_083               }, // data/freply
+  FarObject{ { 0x3c05, 0x1078 }, REPLY_084               }, // data/freply
+  FarObject{ { 0x3c05, 0x10a2 }, REPLY_085               }, // data/freply
+  FarObject{ { 0x3c05, 0x10f7 }, REPLY_086               }, // data/freply
+  FarObject{ { 0x3c05, 0x1149 }, REPLY_087               }, // data/freply
+  FarObject{ { 0x3c05, 0x117a }, REPLY_088               }, // data/freply
+  FarObject{ { 0x3c05, 0x11bf }, REPLY_089               }, // data/freply
+  FarObject{ { 0x3c05, 0x1212 }, REPLY_090               }, // data/freply
+  FarObject{ { 0x3c05, 0x1254 }, REPLY_091               }, // data/freply
+  FarObject{ { 0x3c05, 0x12a6 }, REPLY_092               }, // data/freply
+  FarObject{ { 0x3c05, 0x12eb }, REPLY_093               }, // data/freply
+  FarObject{ { 0x3c05, 0x133a }, REPLY_094               }, // data/freply
+  FarObject{ { 0x3c05, 0x1370 }, REPLY_095               }, // data/freply
+  FarObject{ { 0x3c05, 0x139d }, REPLY_096               }, // data/freply
+  FarObject{ { 0x3c05, 0x13bc }, REPLY_097               }, // data/freply
+  FarObject{ { 0x3c05, 0x13e7 }, REPLY_098               }, // data/freply
+  FarObject{ { 0x3c05, 0x1429 }, REPLY_099               }, // data/freply
+  FarObject{ { 0x3c05, 0x143c }, REPLY_100               }, // data/freply
+  FarObject{ { 0x3c05, 0x146c }, REPLY_101               }, // data/freply
+  FarObject{ { 0x3c05, 0x148b }, REPLY_102               }, // data/freply
+  FarObject{ { 0x3c05, 0x14ac }, REPLY_103               }, // data/freply
+  FarObject{ { 0x3c05, 0x14c8 }, REPLY_104               }, // data/freply
+  FarObject{ { 0x3c05, 0x14f0 }, REPLY_105               }, // data/freply
+  FarObject{ { 0x3c05, 0x152a }, REPLY_106               }, // data/freply
+  FarObject{ { 0x3c05, 0x1542 }, REPLY_107               }, // data/freply
+  FarObject{ { 0x3c05, 0x156e }, REPLY_108               }, // data/freply
+  FarObject{ { 0x3c05, 0x15ba }, REPLY_109               }, // data/freply
+  FarObject{ { 0x3c05, 0x15de }, REPLY_110               }, // data/freply
+  FarObject{ { 0x3c05, 0x1607 }, REPLY_111               }, // data/freply
+  FarObject{ { 0x3c05, 0x1635 }, REPLY_112               }, // data/freply
+  FarObject{ { 0x3c05, 0x1660 }, REPLY_113               }, // data/freply
+  FarObject{ { 0x3c05, 0x1689 }, REPLY_114               }, // data/freply
+  FarObject{ { 0x3c05, 0x16b5 }, REPLY_115               }, // data/freply
+  FarObject{ { 0x3c05, 0x1700 }, REPLY_116               }, // data/freply
+  FarObject{ { 0x3c05, 0x1736 }, REPLY_117               }, // data/freply
+  FarObject{ { 0x3c05, 0x1759 }, REPLY_118               }, // data/freply
+  FarObject{ { 0x3c05, 0x1776 }, REPLY_119               }, // data/freply
+  FarObject{ { 0x3c05, 0x179f }, REPLY_120               }, // data/freply
+  FarObject{ { 0x3c05, 0x17e8 }, REPLY_121               }, // data/freply
+  FarObject{ { 0x3c05, 0x1817 }, REPLY_122               }, // data/freply
+  FarObject{ { 0x3c05, 0x1856 }, REPLY_123               }, // data/freply
+  FarObject{ { 0x3c05, 0x188a }, REPLY_124               }, // data/freply
+  FarObject{ { 0x3d91, 0x0000 }, MUSIC_TRACKS            }, // data/fmusic
+  FarObject{ { 0x3d91, 0x00be }, MUSIC_VOICES            }, // data/fmusic
+  FarObject{ { 0x3d91, 0x071b }, MUSIC_EVENTS            }, // data/fmusic
+  FarObject{ { 0x3d91, 0x7bba }, SOUND_EFFECTS           }, // data/fmusic
+  FarObject{ { 0x4582, 0x0000 }, PATH_CELL_QUEUE         }, // data/fg4582
+  FarObject{ { 0x4582, 0x0c80 }, PATH_COST_GRID          }, // data/fg4582
 };
-const unsigned port_image_object_count = std::size(port_image_objects);
+// clang-format on
+} // namespace
+
+auto FarDataBlocks() -> std::vector<ImageBlock> {
+  return std::apply([](auto const&... objects) { return std::vector<ImageBlock>{ objects.Block()... }; }, FAR_OBJECTS);
+}
+} // namespace opeu::game::detail::image_block

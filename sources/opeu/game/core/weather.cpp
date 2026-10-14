@@ -6,6 +6,8 @@
 #include "data/fg3a64.hpp"
 #include "types.hpp"
 
+#include <algorithm>
+
 using namespace opeu::game;
 
 namespace {
@@ -27,7 +29,7 @@ void opeu_weather_update(Game& game) {
     if (roll == 0) {
       if (data.weather != next) {
         data.weather = static_cast<uint8_t>(next);
-        for (uint16_t n = 0; n < 55; n++) data.terrain_ratings[n] = opeu_weather_terrain_ratings[next][n];
+        std::ranges::copy(WEATHER_TERRAIN_RATINGS[next], data.terrain_ratings.begin());
       }
       break;
     }

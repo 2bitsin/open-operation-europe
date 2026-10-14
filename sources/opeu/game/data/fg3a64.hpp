@@ -49,7 +49,4 @@ inline constexpr std::array<std::uint8_t, 518> AIR_SPRITE_SAVE{};
 namespace opeu::game {
 using detail::fg3a64::AIR_SPRITE_SAVE;
 using detail::fg3a64::WEATHER_TERRAIN_RATINGS;
-
-// The old name, for the callers outside data/ that still use it.
-inline constexpr auto& opeu_weather_terrain_ratings{ WEATHER_TERRAIN_RATINGS };
 } // namespace opeu::game
