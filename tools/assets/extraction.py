@@ -1,5 +1,6 @@
-"""What tools/assets/extract.py and tools/assets/pack.py share: the shipped files, the extract-assets probe that
-decodes them (sources/opeu/probes/extract-assets, the assets module's decoders), and how JSON is written."""
+"""What tools/assets/extract.py and tools/assets/pack.py share: the shipped files, the code table of their texts, the
+extract-assets probe that decodes them (sources/opeu/probes/extract-assets, the assets module's decoders), and how
+JSON is written."""
 import json
 import shutil
 import subprocess
@@ -8,6 +9,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SHIPPED = ROOT / 'sources' / 'opeu' / 'opeu' / 'assets.embed'
+CODE_TABLE = Path(__file__).resolve().parent / 'code-table.json'  # by hand: KOEI's text code and Unicode, with reasons
+PACKED_CODE_TABLE = 'texts/code-table.json'
+LINE_RECORD_MEMBERS = 16  # a record of more members (the messages) is written a member a line
 
 
 def find_probe(given=None):
@@ -25,7 +29,7 @@ def find_probe(given=None):
 
 def run_probe(probe, assets, out):
     """Decodes every shipped file in `assets`, writes the images under `out`/images/, returns the probe's records."""
-    result = subprocess.run([str(probe), str(assets), str(out)], capture_output=True, text=True, check=False)
+    result = subprocess.run([str(probe), str(assets), str(out), str(CODE_TABLE)], capture_output=True, text=True, check=False)
     if result.returncode != 0:
         sys.exit(f'tools/assets: {probe} failed: {result.stderr.strip()}')
     return [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
@@ -41,7 +45,7 @@ def _flat(value):
     def scalar_or_row(v):
         return not isinstance(v, (list, dict)) or (isinstance(v, list) and not any(isinstance(i, (list, dict)) for i in v))
     if isinstance(value, dict):
-        return all(scalar_or_row(v) for v in value.values())
+        return len(value) <= LINE_RECORD_MEMBERS and all(scalar_or_row(v) for v in value.values())
     return scalar_or_row(value)
 
 
@@ -58,8 +62,11 @@ def table_text(value, depth=0):
 
 
 def write_tables(out, records):
-    """Writes each table record of the probe to `out`/<its path>; returns the paths written."""
-    paths = []
+    """Writes each table record of the probe to `out`/<its path> and the code table beside the messages; returns the
+    paths written."""
+    (Path(out) / PACKED_CODE_TABLE).parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(CODE_TABLE, Path(out) / PACKED_CODE_TABLE)
+    paths = [PACKED_CODE_TABLE]
     for record in (r for r in records if r['kind'] == 'table'):
         path = Path(out) / record['path']
         path.parent.mkdir(parents=True, exist_ok=True)

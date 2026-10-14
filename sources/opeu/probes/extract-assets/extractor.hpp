@@ -2,9 +2,10 @@
 // Writes every shipped asset to open formats: a PNG and an index PNG per graphic under <out>/images/, and one JSON
 // record per line on the output stream for each asset and palette, one per table file (tables/*.json: the scenarios,
 // map layers, battle fields, palettes and glyph codes, written by the assets module's table writers) and the epilogue's
-// token.
+// token; Texts adds texts/messages.json, the game's texts decoded by the code table.
 
 #include "opeu/assets/catalogue.hpp"
+#include "opeu/assets/code-table.hpp"
 #include "opeu/assets/source.hpp"
 
 #include <cstdio>
@@ -23,6 +24,8 @@ public:
   Extractor(assets::Source const& source, std::filesystem::path out, Emit emit);
 
   [[nodiscard]] auto Run() const -> std::expected<void, std::string>;
+  // The messages of every text the shipped files hold, as `table` decodes them.
+  [[nodiscard]] auto Texts(assets::CodeTable const& table) const -> std::expected<void, std::string>;
 
 private:
   [[nodiscard]] auto Graphics() const -> std::expected<void, std::string>;

@@ -121,7 +121,7 @@ template <std::size_t SIDE>
 }
 
 // A game text as a record member: under `name` when ASCII; else, in KOEI's double-byte code, its bytes in hex under
-// `name`_koei (the code has no Unicode table yet).
+// `name`_koei, so that a table reads back without the code table (texts/messages.json holds their UTF-8).
 [[nodiscard]] inline auto TextMember(std::string_view const name, std::string_view const text) -> Json {
   auto member = Json::object();
   if (IsAscii(text)) {

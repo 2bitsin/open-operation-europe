@@ -7,6 +7,7 @@
 #include "opeu/assets/glyphs.hpp"
 #include "opeu/assets/map-tables.hpp"
 #include "opeu/assets/maps.hpp"
+#include "opeu/assets/messages.hpp"
 #include "opeu/assets/palette-table.hpp"
 #include "opeu/assets/palette.hpp"
 #include "opeu/assets/scenario-table.hpp"
@@ -124,6 +125,13 @@ auto Extractor::Tables() const -> Done {
   _emit(TableRecord(assets::PALETTE_TABLE, assets::PaletteTableText(assets::ClassicPalettes())));
   _emit(TableRecord(assets::GLYPH_CODE_TABLE, assets::GlyphCodeTableText(assets::EndingGlyphCodes())));
   return EpilogueToken();
+}
+
+auto Extractor::Texts(assets::CodeTable const& table) const -> Done {
+  auto const file{ _source.get().File("SCEDATA").and_then(assets::DecodeScenarioFile) };
+  if (!file) return Failed("SCEDATA", file.error());
+  _emit(TableRecord(assets::MESSAGES, assets::MessagesText(assets::MessagesOf(assets::ScenarioTexts(*file), table))));
+  return {};
 }
 
 auto Extractor::EpilogueToken() const -> Done {

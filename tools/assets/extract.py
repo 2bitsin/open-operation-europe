@@ -15,6 +15,8 @@ Runs the extract-assets probe (sources/opeu/probes/extract-assets) over the ship
     tables/*.json              the tables the classic pack holds (docs/asset-pack.md, "Tables"): scenarios, maps,
                                battle fields, palettes, glyph codes
     tables/epilogue-token.json ENDGRP.NPK's one-shot token
+    texts/messages.json        every text of the shipped files as UTF-8 by id (docs/asset-pack.md, "Texts")
+    texts/code-table.json      tools/assets/code-table.json, the code that turns them back into the files' bytes
 
 The output directory is replaced, so a run is idempotent: the same inputs give the same bytes.
 docs/asset-formats.md describes the formats and the manifest.

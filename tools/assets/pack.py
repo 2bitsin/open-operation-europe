@@ -9,8 +9,9 @@ Decodes the shipped files (sources/opeu/opeu/assets.embed) through the extract-a
 decoders, and writes the pack twice:
 
     DIR (default sources/opeu/assets/packs.embed/classic)   the directory form, checked in and compiled into the game:
-                                                           pack.json, <class>/<readable name>.png (naming.py) and
-                                                           tables/*.json (the data that is no picture)
+                                                           pack.json, <class>/<readable name>.png (naming.py),
+                                                           tables/*.json (the data that is no picture) and
+                                                           texts/*.json (the messages and the code table)
     FILE (default _local/packs/classic.opeupack)            the archive form: the same files in one file
 
 `--check` writes nothing: it decodes the pack into a scratch directory and exits non-zero, naming the files, when the
