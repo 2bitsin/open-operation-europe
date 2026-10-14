@@ -1,19 +1,22 @@
 // The initial values of the opening's file names, its two file handles (-1: closed) and its palette table: 113
 // palettes of 16 RGB triples (DAC levels 0..15). The scenes address rows 0..111 by index; the closing fade uses the
 // last row by its own name, CLOSING_PALETTE.
-#include "recovered.hpp"
+#pragma once
+
+#include <array>
+#include <cstdint>
 
 namespace opeu::intro::detail::file_and_palette_data {
 
-char const    LOGO_FILE_NAME[]    = "KOEILOGO.FNT";
-char const    PICTURE_FILE_NAME[] = "OPENGRP.NPK";
-char const    SPRITE_FILE_NAME[]  = "MOPENGRP.DAT";
-int16_t const PICTURE_HANDLE      = -1; // OPENGRP.NPK
-int16_t const LOGO_HANDLE         = -1; // KOEILOGO.FNT
+inline constexpr std::array<char, 13> LOGO_FILE_NAME{ std::to_array("KOEILOGO.FNT") };
+inline constexpr std::array<char, 12> PICTURE_FILE_NAME{ std::to_array("OPENGRP.NPK") };
+inline constexpr std::array<char, 13> SPRITE_FILE_NAME{ std::to_array("MOPENGRP.DAT") };
+inline constexpr std::int16_t         PICTURE_HANDLE{ -1 }; // OPENGRP.NPK
+inline constexpr std::int16_t         LOGO_HANDLE{ -1 };    // KOEILOGO.FNT
 
 // Rows 0..111.
 // clang-format off
-uint8_t const PALETTE_TABLE[112][48] = {
+inline constexpr std::array<std::array<std::uint8_t, 48>, 112> PALETTE_TABLE{ {
   {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 }, //   0
   { 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 }, //   1
   {  0,  0,  0, 15,  0,  0,  0, 11,  0, 15, 15,  0,  0,  0, 15, 15,  0, 15,  0, 15, 15, 15, 15, 15,  7,  7,  7, 10,  0,  0,  0,  6,  0, 10, 10,  0,  0,  0, 10, 10,  0, 10,  0, 10, 10, 10, 10, 10 }, //   2
@@ -126,11 +129,11 @@ uint8_t const PALETTE_TABLE[112][48] = {
   {  0,  0,  0,  4,  0,  2, 10,  4,  4,  4, 12, 12,  2, 12, 10,  0, 10,  8,  0,  8,  6, 10, 10, 10,  2,  2,  2,  6,  6,  6, 11,  6,  6,  7, 10, 14,  1, 10,  0,  2,  6,  4,  0, 10,  8,  0,  4,  2 }, // 109
   {  0,  0,  0,  4,  0,  2, 10,  4,  4,  4, 12, 12,  2, 12, 10,  0, 10,  8,  0,  8,  6, 10, 10, 10,  2,  2,  2,  6,  6,  6, 11,  6,  6,  7, 10, 14,  1, 10,  0,  2,  6,  4,  0, 10,  8,  0,  4,  2 }, // 110
   {  0,  0,  0,  4,  0,  2, 10,  4,  4,  4, 12, 12,  2, 12, 10,  0, 10,  8,  0,  8,  6, 10, 10, 10,  2,  2,  2,  6,  6,  6, 11,  6,  6,  7, 10, 14,  1, 10,  0,  2,  6,  4,  0, 10,  8,  0,  3,  1 }, // 111
-};
+} };
 // clang-format on
 
 // Palette 112, where the opening's closing fade ends: the palette the game's first screen is drawn in.
-uint8_t const CLOSING_PALETTE[48] = { 0, 0, 0, 9, 1, 4, 3, 13, 3, 11, 13, 7, 4, 4, 9, 11, 7,  11, 6,  15, 12, 15, 15, 15,
-                                      6, 6, 6, 9, 4, 7, 7, 15, 8, 3,  11, 6, 3, 1, 6, 13, 11, 13, 11, 15, 14, 11, 11, 11 };
+inline constexpr std::array<std::uint8_t, 48> CLOSING_PALETTE{ 0, 0, 0, 9, 1, 4, 3, 13, 3, 11, 13, 7, 4, 4, 9, 11, 7,  11, 6,  15, 12, 15, 15, 15,
+                                                               6, 6, 6, 9, 4, 7, 7, 15, 8, 3,  11, 6, 3, 1, 6, 13, 11, 13, 11, 15, 14, 11, 11, 11 };
 
-}
+} // namespace opeu::intro::detail::file_and_palette_data

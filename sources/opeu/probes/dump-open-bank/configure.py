@@ -1,4 +1,4 @@
-"""The bank dump reads OPEN's song bank, recovered/data/ofmusic.cpp of the intro."""
+"""The bank dump reads OPEN's song bank, recovered/data/song-bank.cpp of the intro."""
 import buildutil_configure as bc
 
 intro = bc.source_dir().parents[1] / "intro"

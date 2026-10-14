@@ -25,6 +25,7 @@
 #include "open-state.hpp"
 #include "segment-bytes.hpp"
 
+#include <array>
 #include <cstddef>
 #include <span>
 
@@ -45,7 +46,9 @@ struct OpenImageObject {
   Paragraph                  segment; // 0 = DGROUP, else relative to the load segment
   NearWord                   offset;
 };
-[[nodiscard]] auto OpenImageObjects() -> std::span<OpenImageObject const>;
+inline constexpr std::size_t OPEN_IMAGE_OBJECT_COUNT{ 71 };
+// Every recovered data object and its place.
+[[nodiscard]] auto OpenImageObjects() -> std::array<OpenImageObject, OPEN_IMAGE_OBJECT_COUNT>;
 } // namespace opeu::intro::detail::load_image
 
 namespace opeu::intro {
@@ -56,5 +59,6 @@ using detail::load_image::OPEN_DS_SEGMENT;
 using detail::load_image::OPEN_HEAP_SEGMENT;
 using detail::load_image::OPEN_LOAD_SEGMENT;
 using detail::load_image::OpenImageObject;
+using detail::load_image::OPEN_IMAGE_OBJECT_COUNT;
 using detail::load_image::OpenImageObjects;
 } // namespace opeu::intro

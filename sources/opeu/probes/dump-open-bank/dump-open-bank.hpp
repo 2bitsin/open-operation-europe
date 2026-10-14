@@ -1,4 +1,4 @@
-// Diagnostic: writes OPEN.EXE's FM music bank to stdout (dump-open-bank.cpp).
+// Diagnostic: writes the opening's FM song bank to stdout (dump-open-bank.cpp).
 #pragma once
 
 namespace opeu::probes::detail::dump_open_bank {

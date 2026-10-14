@@ -1,2 +1,2 @@
 Init_submodule()
-Link_dependencies(opeu-intro)  # OPEN.EXE's FM music bank (recovered/data/ofmusic.cpp).
+Link_dependencies(opeu-intro)  # The opening's FM song bank (recovered/data/song-bank.cpp).
