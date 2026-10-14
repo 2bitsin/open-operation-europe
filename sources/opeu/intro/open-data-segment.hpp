@@ -4,6 +4,7 @@
 // shutdown's song 5 reads this segment as music.
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
@@ -23,107 +24,107 @@ struct TextSaved {
 
 #pragma pack(push, 1)
 struct OpenDataSegment {
-  uint8_t library_data[0x92]; // KOEI library and C runtime _DATA
-  // The text console (recovered/data/console-data.cpp)
-  uint8_t   digit_font[10][16]; // unreferenced 8x16 digit glyphs
-  uint32_t  draw_hooks[4];      // the library's two draw routines, twice; never called through
-  uint8_t   text_erase[8];      // the erase of one character; never printed
-  uint8_t   text_unused[16];
-  int16_t   text_x;    // column 0..79
-  int16_t   text_y;    // pixel row 0..399
-  int16_t   text_left; // left column (ESC R)
-  uint8_t   text_paper;
-  uint8_t   text_ink;
-  uint8_t   text_background;
-  uint8_t   text_background_pad;
-  int16_t   text_large; // large mode (ESC Y 1)
-  TextSaved text_saved;
-  uint8_t   text_lead; // pending Shift-JIS lead byte
-  uint8_t   text_lead_pad;
-  int16_t   text_state;    // escape-sequence state
-  uint16_t  format_output; // a formatted string's destination; always the console
+  std::array<std::uint8_t, 0x92> library_data; // KOEI library and C runtime _DATA
+  // The text console (recovered/data/console-data.hpp)
+  std::array<std::array<std::uint8_t, 16>, 10> digit_font; // unreferenced 8x16 digit glyphs
+  std::array<std::uint32_t, 4>                 draw_hooks; // the library's two draw routines, twice; never called through
+  std::array<std::uint8_t, 8>                  text_erase; // the erase of one character; never printed
+  std::array<std::uint8_t, 16>                 text_unused;
+  int16_t                                      text_x;    // column 0..79
+  int16_t                                      text_y;    // pixel row 0..399
+  int16_t                                      text_left; // left column (ESC R)
+  uint8_t                                      text_paper;
+  uint8_t                                      text_ink;
+  uint8_t                                      text_background;
+  uint8_t                                      text_background_pad;
+  int16_t                                      text_large; // large mode (ESC Y 1)
+  TextSaved                                    text_saved;
+  uint8_t                                      text_lead; // pending Shift-JIS lead byte
+  uint8_t                                      text_lead_pad;
+  int16_t                                      text_state;    // escape-sequence state
+  uint16_t                                     format_output; // a formatted string's destination; always the console
   // Reserved: kept for the layout until M4
-  char    reserved_ems_name[8];
-  int16_t reserved_sprite_mapped;
-  // The music (recovered/data/music-data.cpp)
-  uint8_t music_current;
-  uint8_t effect_current;
-  char    music_bank[26];
-  char    music_path[14];
-  // The scenes (recovered/data/scene-data.cpp)
-  int16_t  aborted;     // a scene was aborted by input
-  int16_t  frame_y[11]; // units scene: rows, heights, capture offsets
-  int16_t  frame_h[11];
-  uint16_t frame_off[11];
-  uint16_t bob_a[20];      // bobbing curve of the first aircraft group
-  int16_t  blast_steps[6]; // explosions
-  uint8_t  blast_slots[3];
-  uint8_t  blast_slots_pad;
-  int16_t  blast_x[3];
-  int16_t  blast_y[3];
-  uint16_t blast_masks[6];
-  uint16_t blast_sprites[6];
-  uint8_t  flash_slots[3]; // flak flash palettes
-  uint8_t  flash_slots_pad;
-  uint16_t bob_b[20]; // bobbing curve of the second aircraft group
-  int16_t  flak_x[4];
-  int16_t  flak_y[4];
-  int16_t  gun_flips[3];
-  int16_t  shell_x[6]; // the six shell frames
-  int16_t  shell_y[6];
-  int16_t  shell_w[6];
-  int16_t  shell_ws[6];
-  int16_t  shell_h[6];
-  uint16_t shell_sprite[6];
-  uint16_t shell_save[6];
-  int16_t  flash_on; // muzzle flash on/off and phase
-  int16_t  flash_phase;
-  char     alloc_err1[11];
-  char     alloc_err2[11];
-  char     alloc_err3[11];
-  char     alloc_err4[11];
-  char     alloc_err5[11];
-  char     alloc_err6[11];
-  char     alloc_err7[11];
-  char     alloc_err9[11];
-  char     console_reset[13]; // the console reset sequence
-  char     scenario_file_name[11];
-  // The helpers (recovered/data/helper-data.cpp)
-  uint16_t stream_count; // picture stream bytes left
-  uint8_t  palette[48];  // the current palette
-  uint8_t  black[48];
-  uint8_t  spare_palette[48];
-  uint8_t  icon[16][2];
-  char     error_format[16]; // "OPEN ERROR=  %s"
-  // The file names and the palette table (recovered/data/file-and-palette-data.cpp)
-  char    logo_file_name[13];
-  uint8_t logo_file_name_pad;
-  char    picture_file_name[12];
-  char    sprite_file_name[13];
-  uint8_t sprite_file_name_pad;
-  int16_t picture_handle; // OPENGRP.NPK
-  int16_t logo_handle;    // KOEILOGO.FNT
-  uint8_t palettes[112][48];
-  uint8_t closing_palette[48];                // palette 112
-  uint8_t library_data_after_palettes[0x284]; // KOEI library and C runtime data
+  std::array<char, 8> reserved_ems_name;
+  int16_t             reserved_sprite_mapped;
+  // The music (recovered/data/music-data.hpp)
+  uint8_t              music_current;
+  uint8_t              effect_current;
+  std::array<char, 26> music_bank;
+  std::array<char, 14> music_path;
+  // The scenes (recovered/data/scene-data.hpp)
+  int16_t                       aborted; // a scene was aborted by input
+  std::array<std::int16_t, 11>  frame_y; // units scene: rows, heights, capture offsets
+  std::array<std::int16_t, 11>  frame_h;
+  std::array<std::uint16_t, 11> frame_off;
+  std::array<std::uint16_t, 20> bob_a;       // bobbing curve of the first aircraft group
+  std::array<std::int16_t, 6>   blast_steps; // explosions
+  std::array<std::uint8_t, 3>   blast_slots;
+  uint8_t                       blast_slots_pad;
+  std::array<std::int16_t, 3>   blast_x;
+  std::array<std::int16_t, 3>   blast_y;
+  std::array<std::uint16_t, 6>  blast_masks;
+  std::array<std::uint16_t, 6>  blast_sprites;
+  std::array<std::uint8_t, 3>   flash_slots; // flak flash palettes
+  uint8_t                       flash_slots_pad;
+  std::array<std::uint16_t, 20> bob_b; // bobbing curve of the second aircraft group
+  std::array<std::int16_t, 4>   flak_x;
+  std::array<std::int16_t, 4>   flak_y;
+  std::array<std::int16_t, 3>   gun_flips;
+  std::array<std::int16_t, 6>   shell_x; // the six shell frames
+  std::array<std::int16_t, 6>   shell_y;
+  std::array<std::int16_t, 6>   shell_w;
+  std::array<std::int16_t, 6>   shell_ws;
+  std::array<std::int16_t, 6>   shell_h;
+  std::array<std::uint16_t, 6>  shell_sprite;
+  std::array<std::uint16_t, 6>  shell_save;
+  int16_t                       flash_on; // muzzle flash on/off and phase
+  int16_t                       flash_phase;
+  std::array<char, 11>          alloc_err1;
+  std::array<char, 11>          alloc_err2;
+  std::array<char, 11>          alloc_err3;
+  std::array<char, 11>          alloc_err4;
+  std::array<char, 11>          alloc_err5;
+  std::array<char, 11>          alloc_err6;
+  std::array<char, 11>          alloc_err7;
+  std::array<char, 11>          alloc_err9;
+  std::array<char, 13>          console_reset; // the console reset sequence
+  std::array<char, 11>          scenario_file_name;
+  // The helpers (recovered/data/helper-data.hpp)
+  uint16_t                                    stream_count; // picture stream bytes left
+  std::array<std::uint8_t, 48>                palette;      // the current palette
+  std::array<std::uint8_t, 48>                black;
+  std::array<std::uint8_t, 48>                spare_palette;
+  std::array<std::array<std::uint8_t, 2>, 16> icon;
+  std::array<char, 16>                        error_format; // "OPEN ERROR=  %s"
+  // The file names and the palette table (recovered/data/file-and-palette-data.hpp)
+  std::array<char, 13>                          logo_file_name;
+  uint8_t                                       logo_file_name_pad;
+  std::array<char, 12>                          picture_file_name;
+  std::array<char, 13>                          sprite_file_name;
+  uint8_t                                       sprite_file_name_pad;
+  int16_t                                       picture_handle; // OPENGRP.NPK
+  int16_t                                       logo_handle;    // KOEILOGO.FNT
+  std::array<std::array<std::uint8_t, 48>, 112> palettes;
+  std::array<std::uint8_t, 48>                  closing_palette;             // palette 112
+  std::array<std::uint8_t, 0x284>               library_data_after_palettes; // KOEI library and C runtime data
   // BSS
-  uint8_t  reserved_ems_pages[16]; // kept for the layout until M4
-  uint16_t reserved_sprite_handle; // kept for the layout until M4
-  uint8_t  library_bss_after_sprite_handle[4];
-  uint16_t stream_offset; // the picture stream's far pointer
-  uint16_t stream_segment;
-  uint8_t  library_bss_after_stream[14];
-  uint16_t music_driver; // the music driver's open result
-  uint16_t buffer_a;     // segments of the 64 KB far buffers
-  uint16_t buffer_b;
-  uint16_t buffer_c;
-  uint16_t buffer_d;
-  uint16_t buffer_e;
-  uint16_t buffer_f;
-  uint16_t sound_enabled;
-  uint16_t stream_buffer; // the picture stream's buffer
-  uint16_t sprite_sheet;  // MOPENGRP.DAT: masks and shell sprites
-  uint8_t  library_bss_after_buffers[12];
+  std::array<std::uint8_t, 16> reserved_ems_pages;     // kept for the layout until M4
+  uint16_t                     reserved_sprite_handle; // kept for the layout until M4
+  std::array<std::uint8_t, 4>  library_bss_after_sprite_handle;
+  uint16_t                     stream_offset; // the picture stream's far pointer
+  uint16_t                     stream_segment;
+  std::array<std::uint8_t, 14> library_bss_after_stream;
+  uint16_t                     music_driver; // the music driver's open result
+  uint16_t                     buffer_a;     // segments of the 64 KB far buffers
+  uint16_t                     buffer_b;
+  uint16_t                     buffer_c;
+  uint16_t                     buffer_d;
+  uint16_t                     buffer_e;
+  uint16_t                     buffer_f;
+  uint16_t                     sound_enabled;
+  uint16_t                     stream_buffer; // the picture stream's buffer
+  uint16_t                     sprite_sheet;  // MOPENGRP.DAT: masks and shell sprites
+  std::array<std::uint8_t, 12> library_bss_after_buffers;
 };
 #pragma pack(pop)
 

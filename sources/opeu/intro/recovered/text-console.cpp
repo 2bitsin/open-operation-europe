@@ -14,6 +14,7 @@
 // Near pointers are 16-bit DGROUP offsets. The formatter's conversion buffer is reserved on the opening's stack in
 // DGROUP (SS = DS), so callees receive DGROUP offsets too; a printf receives the DGROUP offset of its argument words.
 #include "recovered.hpp"
+#include "repeat.hpp"
 #include "segment-bytes.hpp"
 
 #include "services.hpp"
@@ -60,13 +61,13 @@ auto NegateLong(int32_t value) -> int32_t {
 auto ReadKey() -> uint8_t;
 auto ParseDecimal(Open& open, uint16_t& p) -> int16_t;
 auto WriteDigits(Open& open, uint16_t& p, uint16_t v, uint16_t base) -> int16_t;
-void FormatArguments(Open& open, uint16_t args);
+auto FormatArguments(Open& open, uint16_t args) -> void;
 auto ShiftJisToJis(Open& open, uint16_t code) -> uint16_t;
-void ClampCursor(Open& open);
-void SetCursorColumn(Open& open, int16_t x);
-void SetCursorRow(Open& open, int16_t y);
-void NewLine(Open& open);
-void ApplyControlCharacter(Open& open, uint8_t c);
+auto ClampCursor(Open& open) -> void;
+auto SetCursorColumn(Open& open, int16_t x) -> void;
+auto SetCursorRow(Open& open, int16_t y) -> void;
+auto NewLine(Open& open) -> void;
+auto ApplyControlCharacter(Open& open, uint8_t c) -> void;
 
 // Waits for a key and returns its character.
 auto ReadKey() -> uint8_t {
@@ -76,20 +77,20 @@ auto ReadKey() -> uint8_t {
 }
 
 // Reads keys until none is waiting.
-void FlushKeys() {
-  while (opeu_turn_input_b() != 0u) ReadKey();
+auto FlushKeys() -> void {
+  RepeatWhile([] { return opeu_turn_input_b() != 0u; }, [] { ReadKey(); });
 }
 
-// The unsigned decimal at p; p is left at the first non-digit.
+// The decimal number (no sign) at p; p is left at the first non-digit.
 auto ParseDecimal(Open& open, uint16_t& p) -> int16_t {
-  uint16_t a = 0;
-  uint16_t b = 0;
-  a          = 0;
-  while ((b = Byte(open, p) - '0') < 10) {
-    a = static_cast<uint16_t>(b + (a * 10));
-    ++p;
-  }
-  return static_cast<int16_t>(a);
+  auto const digit{ [&] { return static_cast<uint16_t>(Byte(open, p) - '0'); } };
+  uint16_t   value{ 0 };
+  RepeatWhile([&] { return digit() < 10; },
+              [&] {
+                value = static_cast<uint16_t>(digit() + (value * 10));
+                ++p;
+              });
+  return static_cast<int16_t>(value);
 }
 
 // The digits of v in base, upper case, written at p; the digit count.
@@ -105,125 +106,172 @@ auto WriteDigits(Open& open, uint16_t& p, uint16_t v, uint16_t base) -> int16_t 
   return static_cast<int16_t>(a + 1);
 }
 
-// printf: `args` addresses the format's near pointer followed by its arguments; every formatted character goes to
-// the console.
-// The opening's recovered control flow, one branch
-// per format code; it goes when the opening becomes a scene (M6).
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void FormatArguments(Open& open, uint16_t args) {
-  uint8_t                pad             = 0;
-  int16_t                left_justify    = 0;
-  uint8_t                code            = 0;
-  int16_t                precision       = 0;
-  int16_t                width           = 0;
-  int16_t                long_argument   = 0;
-  uint16_t               text            = 0;
-  int16_t                base            = 0;
-  uint16_t               format          = 0;
-  int16_t                plus            = 0;
-  uint16_t               conversion      = 0;
-  int16_t                precision_given = 0;
-  uint16_t               argument        = 0;
-  StackReservation const reservation{ open.State(), 20 };
-  conversion = reservation.Near();
-  format     = Word(open, args);
-  argument   = static_cast<uint16_t>(args + 2);
-  while ((code = Byte(open, format++)) != 0) {
-    if (code == '%') {
-      text            = conversion;
-      precision       = 6;
-      plus            = 0;
-      long_argument   = 0;
-      precision_given = 0;
-      left_justify    = 0;
-      if (Byte(open, format) == '-') {
-        format++;
-        left_justify = 1;
+namespace {
+// One printf directive after its '%': the flags, the width, the precision and the size, and its conversion code.
+struct Directive {
+  uint8_t code{ 0 };
+  uint8_t pad{ ' ' };
+  bool    left_justify{ false };
+  bool    plus{ false };
+  bool    long_argument{ false };
+  bool    precision_given{ false };
+  int16_t precision{ 6 };
+  int16_t width{ 0 };
+};
+
+// printf over the opening's data segment: the format and its arguments at near pointers, the conversion buffer on the
+// stack, every formatted character to the console.
+class Formatter {
+public:
+  Formatter(Open& open, uint16_t args, uint16_t conversion) noexcept
+      : _open{ open }, _format{ Word(open, args) }, _argument{ static_cast<uint16_t>(args + 2) }, _conversion{ conversion }, _text{ conversion } { }
+
+  // Formats up to the format's end.
+  auto Run() -> void {
+    RepeatUntil([&] {
+      auto const code{ NextFormatByte() };
+      if (code == 0) return true;
+      if (code != '%') {
+        PutCharacter(_open, code);
+        return false;
       }
-      if (Byte(open, format) == '+') {
-        format++;
-        plus = 1;
-      }
-      code = Byte(open, format);
-      pad  = code == '0' ? '0' : ' ';
-      if (code >= '0' && code <= '9')
-        width = ParseDecimal(open, format);
-      else
-        width = 0;
-      code = Byte(open, format++);
-      if (code == '.') {
-        precision       = ParseDecimal(open, format);
-        precision_given = 1;
-        code            = Byte(open, format++);
-      }
-      if (AsciiUpper(code) == 'L') {
-        long_argument = 1;
-        code          = Byte(open, format++);
-      }
-      switch (AsciiUpper(code)) {
-      case 'X': base = 16; goto number;
-      case 'D':
-        if (long_argument != 0) {
-          if (LongAt(open, argument) < 0) {
-            SetLong(open, argument, NegateLong(LongAt(open, argument)));
-            Byte(open, text) = '-';
-            text++;
-            width--;
-          } else if (plus != 0) {
-            Byte(open, text) = '+';
-            text++;
-            width--;
-          }
-        } else {
-          if (IntAt(open, argument) < 0) {
-            SetInt(open, argument, static_cast<int16_t>(-IntAt(open, argument)));
-            Byte(open, text) = '-';
-            text++;
-            width--;
-          } else if (plus != 0) {
-            Byte(open, text) = '+';
-            text++;
-            width--;
-          }
-        }
-        [[fallthrough]];
-      case 'U': base = 10; goto number;
-      case 'O':
-        base = 8;
-      number:
-        if (long_argument == 0) width = static_cast<int16_t>(width - WriteDigits(open, text, static_cast<uint16_t>(NextInt(open, argument)), static_cast<uint16_t>(base)));
-        goto term;
-      case 'S':
-        text  = NextWord(open, argument);
-        width = static_cast<int16_t>(width - StringLength(open.Segment(), text));
-        goto print;
-      case 'C':
-        Byte(open, text) = static_cast<uint8_t>(NextInt(open, argument));
-        text++;
-        width--;
-      term:
-        Byte(open, text) = 0;
-        text             = conversion;
-        precision_given  = 0;
-      print:
-        if (left_justify == 0)
-          while (width-- > 0) PutCharacter(open, pad);
-        while (Byte(open, text) != 0u) {
-          if ((precision_given == 0) || precision > 0) {
-            PutCharacter(open, Byte(open, text));
-            precision--;
-          }
-          text++;
-        }
-        if (left_justify != 0)
-          while (width-- > 0) PutCharacter(open, ' ');
-        continue;
-      case 0: goto done;
-      }
-    }
-    PutCharacter(open, code);
+      return !FormatDirective();
+    });
   }
-done:;
+
+private:
+  auto NextFormatByte() -> uint8_t {
+    return Byte(_open, _format++);
+  }
+
+  // A '%' directive; false when the format ends inside it.
+  auto FormatDirective() -> bool {
+    ParseDirective();
+    switch (AsciiUpper(_directive.code)) {
+    case 'X': FormatNumber(16); break;
+    case 'D':
+      WriteSign();
+      FormatNumber(10);
+      break;
+    case 'U': FormatNumber(10); break;
+    case 'O': FormatNumber(8); break;
+    case 'S': FormatString(); break;
+    case 'C': FormatCharacter(); break;
+    case 0:   return false;
+    default:  PutCharacter(_open, _directive.code); break; // any other code is copied
+    }
+    return true;
+  }
+
+  // [-][+][0][width][.precision][l] and the conversion code.
+  auto ParseDirective() -> void {
+    _directive = Directive{};
+    _text      = _conversion;
+    if (Byte(_open, _format) == '-') {
+      _format++;
+      _directive.left_justify = true;
+    }
+    if (Byte(_open, _format) == '+') {
+      _format++;
+      _directive.plus = true;
+    }
+    auto const first{ Byte(_open, _format) };
+    _directive.pad   = first == '0' ? '0' : ' ';
+    _directive.width = (first >= '0' && first <= '9') ? ParseDecimal(_open, _format) : int16_t{ 0 };
+    _directive.code  = NextFormatByte();
+    if (_directive.code == '.') {
+      _directive.precision       = ParseDecimal(_open, _format);
+      _directive.precision_given = true;
+      _directive.code            = NextFormatByte();
+    }
+    if (AsciiUpper(_directive.code) == 'L') {
+      _directive.long_argument = true;
+      _directive.code          = NextFormatByte();
+    }
+  }
+
+  // A negative argument is made positive in place and its '-' written; a '+' when asked for.
+  auto WriteSign() -> void {
+    auto const negative{ _directive.long_argument ? LongAt(_open, _argument) < 0 : IntAt(_open, _argument) < 0 };
+    if (negative) {
+      if (_directive.long_argument) {
+        SetLong(_open, _argument, NegateLong(LongAt(_open, _argument)));
+      } else {
+        SetInt(_open, _argument, static_cast<int16_t>(-IntAt(_open, _argument)));
+      }
+      Append('-');
+    } else if (_directive.plus) {
+      Append('+');
+    }
+  }
+
+  // An int's digits; a %l number prints nothing more and its argument stays.
+  auto FormatNumber(uint16_t base) -> void {
+    if (!_directive.long_argument) _directive.width = static_cast<int16_t>(_directive.width - WriteDigits(_open, _text, static_cast<uint16_t>(NextInt(_open, _argument)), base));
+    Terminate();
+    Print();
+  }
+
+  // The string at the argument's near pointer, in place.
+  auto FormatString() -> void {
+    _text            = NextWord(_open, _argument);
+    _directive.width = static_cast<int16_t>(_directive.width - StringLength(_open.Segment(), _text));
+    Print();
+  }
+
+  auto FormatCharacter() -> void {
+    Append(static_cast<uint8_t>(NextInt(_open, _argument)));
+    Terminate();
+    Print();
+  }
+
+  // One byte into the conversion buffer, taken from the width.
+  auto Append(uint8_t character) -> void {
+    Byte(_open, _text) = character;
+    _text++;
+    _directive.width--;
+  }
+
+  // Ends the conversion buffer's text and prints it from its start, whole.
+  auto Terminate() -> void {
+    Byte(_open, _text)         = 0;
+    _text                      = _conversion;
+    _directive.precision_given = false;
+  }
+
+  // The text, padded to the width on the side the directive asks; a given precision limits the characters.
+  auto Print() -> void {
+    if (!_directive.left_justify) PutRepeated(_directive.pad);
+    RepeatWhile([&] { return Byte(_open, _text) != 0u; },
+                [&] {
+                  if (!_directive.precision_given || _directive.precision > 0) {
+                    PutCharacter(_open, Byte(_open, _text));
+                    _directive.precision--;
+                  }
+                  _text++;
+                });
+    if (_directive.left_justify) PutRepeated(' ');
+  }
+
+  // The padding the width leaves.
+  auto PutRepeated(uint8_t character) -> void {
+    std::ranges::for_each(std::views::iota(0, std::max<int>(_directive.width, 0)), [&](int) { PutCharacter(_open, character); });
+  }
+
+  Open&     _open;
+  uint16_t  _format;
+  uint16_t  _argument;
+  uint16_t  _conversion;
+  uint16_t  _text;
+  Directive _directive;
+};
+} // namespace
+
+// printf: `args` addresses the format's near pointer followed by its arguments; every formatted character goes to
+// the console. The conversion buffer lies on the opening's stack.
+auto FormatArguments(Open& open, uint16_t args) -> void {
+  StackReservation const reservation{ open.State(), 20 };
+  Formatter{ open, args, reservation.Near() }.Run();
 }
 
 // Shift-JIS to JIS X 0208; 2228h for a code without a lead byte.
@@ -245,30 +293,30 @@ auto ShiftJisToJis([[maybe_unused]] Open& open, uint16_t code) -> uint16_t {
   return 0x2228;
 }
 
-void ClampCursor(Open& open) {
+auto ClampCursor(Open& open) -> void {
   Data(open).text_x = std::clamp<int16_t>(Data(open).text_x, 0, 79);
   Data(open).text_y = std::clamp<int16_t>(Data(open).text_y, 0, 399);
 }
 
-void SetCursorColumn(Open& open, int16_t x) {
+auto SetCursorColumn(Open& open, int16_t x) -> void {
   Data(open).text_x = x;
   ClampCursor(open);
 }
 
-void SetCursorRow(Open& open, int16_t y) {
+auto SetCursorRow(Open& open, int16_t y) -> void {
   Data(open).text_y = y;
   ClampCursor(open);
 }
 
 // Lines are 16 pixels, 32 in large mode.
-void NewLine(Open& open) {
+auto NewLine(Open& open) -> void {
   int16_t a         = 0;
   Data(open).text_x = Data(open).text_left;
   a                 = static_cast<int16_t>(Data(open).text_y + (Data(open).text_large != 0 ? 32 : 16));
   if (a <= 399) Data(open).text_y = a;
 }
 
-void ApplyControlCharacter(Open& open, uint8_t c) {
+auto ApplyControlCharacter(Open& open, uint8_t c) -> void {
   switch (c) {
   case 10: NewLine(open); break;
   case 13: Data(open).text_x = Data(open).text_left; break;
@@ -299,9 +347,13 @@ auto PutCharacter(Open& open, uint8_t c) -> uint8_t {
     case 'T':
       opeu_ui_box(static_cast<uint16_t>(Data(open).text_x), static_cast<uint16_t>(Data(open).text_y), static_cast<uint16_t>(80 - Data(open).text_x), (Data(open).text_large != 0) ? 32 : 16,
                   Data(open).text_background);
-      goto reset;
-    case '*': opeu_vga_clear(); goto reset;
-    case 'S': goto reset;
+      Data(open).text_state = 0;
+      break;
+    case '*':
+      opeu_vga_clear();
+      Data(open).text_state = 0;
+      break;
+    case 'S': Data(open).text_state = 0; break;
     default:  break;
     }
     break;
@@ -311,7 +363,6 @@ auto PutCharacter(Open& open, uint8_t c) -> uint8_t {
     break;
   case 3:
     SetCursorColumn(open, static_cast<int16_t>(c - 0x20));
-  reset:
     Data(open).text_state = 0;
     break;
   case 4:
@@ -360,17 +411,17 @@ auto PutCharacter(Open& open, uint8_t c) -> uint8_t {
 }
 
 // A string to the console.
-void PutString(Open& open, uint16_t s) {
-  while (Byte(open, s) != 0u) PutCharacter(open, Byte(open, s++));
+auto PutString(Open& open, uint16_t s) -> void {
+  RepeatWhile([&] { return Byte(open, s) != 0u; }, [&] { PutCharacter(open, Byte(open, s++)); });
 }
 
 // printf to the console: the format's near pointer and its arguments at `frame`.
-void PrintArguments(Open& open, uint16_t frame) {
+auto PrintArguments(Open& open, uint16_t frame) -> void {
   StackReservation const return_address{ open.State(), 4 };
   FormatArguments(open, frame);
 }
 
-void CursorPrint(Open& open, std::span<uint16_t const> words) {
+auto CursorPrint(Open& open, std::span<uint16_t const> words) -> void {
   StackReservation const frame{ open.State(), static_cast<uint16_t>(2 * words.size()) };
   std::ranges::for_each(std::views::iota(0uz, words.size()), [&](std::size_t index) { SetWord(open, static_cast<uint16_t>(frame.Near() + (2 * index)), words[index]); });
   PrintArguments(open, frame.Near());

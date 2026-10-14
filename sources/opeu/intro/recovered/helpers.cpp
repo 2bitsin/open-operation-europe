@@ -7,6 +7,7 @@
 #include "hostinput.hpp" // port_time_us
 #include "open-services.hpp"
 #include "port.hpp"
+#include "repeat.hpp"
 #include "segment-buffers.hpp"
 #include "services.hpp"
 #include "vgalib.hpp"
@@ -15,6 +16,7 @@
 #include <array>
 #include <cstdint>
 #include <span>
+#include <utility>
 
 namespace opeu::intro::detail::helpers {
 namespace {
@@ -36,18 +38,18 @@ auto QueryMouse() -> MouseState {
 // nothing by it), so the wait is here: until the host clock passes the next frame boundary of mode 12h's 59.940476 Hz
 // refresh (the 25.175 MHz dot clock / (800 x 525)). The boundaries are absolute multiples of the period, so the pump's
 // 1 ms granularity never accumulates drift.
-void WaitForRetrace() {
+auto WaitForRetrace() -> void {
   constexpr uint64_t NUMERATOR{ static_cast<uint64_t>(800) * 525 * 1000000 };
   constexpr uint64_t DENOMINATOR{ 25175000 }; // period in us = NUMERATOR / DENOMINATOR
   uint64_t const     frame{ (port_time_us() * DENOMINATOR / NUMERATOR) + 1 };
   uint64_t const     next{ ((frame * NUMERATOR) + DENOMINATOR - 1) / DENOMINATOR };
-  while (port_time_us() < next) port_pump();
+  RepeatWhile([&] { return port_time_us() < next; }, [] { port_pump(); });
 }
 
 // The current palette into the DAC.
-void LoadPalette(Open& open) {
+auto LoadPalette(Open& open) -> void {
   WaitForRetrace();
-  opeu_set_palette(0, 16, Data(open).palette);
+  opeu_set_palette(0, 16, Data(open).palette.data());
 }
 
 // Moves every current component one step toward the target; whether any differed.
@@ -73,21 +75,23 @@ auto NextPictureByte(Open& open) -> uint8_t;
 auto Delay(uint16_t ticks) -> void {
   if (ticks != 0u) {
     services::StartEffectCountdown(ticks);
-    while (services::EffectCountdown() != 0u);
+    RepeatUntil([] { return services::EffectCountdown() == 0u; });
   }
 }
 
 // Waits until the music timeline (the FM driver's down-counter) has run `ticks` further; 1 if a key or button came first.
 auto WaitTicks(uint16_t ticks) -> int16_t {
   auto const target{ static_cast<uint16_t>(opeu_fm_busy() - ticks) };
-  do {
-    if (PollInput() != 0) return 1;
-  } while (opeu_fm_busy() > target);
-  return 0;
+  auto       aborted{ false };
+  RepeatUntil([&] {
+    aborted = PollInput() != 0;
+    return aborted || opeu_fm_busy() <= target;
+  });
+  return aborted ? 1 : 0;
 }
 
 // The pointer's range: columns x..x+width, game lines y..y+height (screen lines 40 lower).
-void LimitMouse(int16_t x, int16_t y, int16_t width, int16_t height) {
+auto LimitMouse(int16_t x, int16_t y, int16_t width, int16_t height) -> void {
   port_mouse_x_range(static_cast<uint16_t>(x), static_cast<uint16_t>(width + x));
   port_mouse_y_range(static_cast<uint16_t>(y + 40), static_cast<uint16_t>(y + height + 40));
 }
@@ -126,18 +130,18 @@ auto NextPictureByte(Open& open) -> uint8_t {
 }
 
 // Moves OPENGRP.NPK to a file position and empties the stream.
-void SeekPicture(Open& open, int32_t position) {
+auto SeekPicture(Open& open, int32_t position) -> void {
   if (opeu_dos_seek(Data(open).picture_handle, position, 0) != -1) Data(open).stream_count = 0;
 }
 
 // Decodes the picture at a file position of OPENGRP.NPK onto the screen at (x column, y line).
-void DrawPicture(Open& open, uint16_t x, uint16_t y, int32_t position) {
+auto DrawPicture(Open& open, uint16_t x, uint16_t y, int32_t position) -> void {
   SeekPicture(open, position);
   opeu_picture_decode_masked(x, y, [&open] { return NextPictureByte(open); });
 }
 
 // Copies the palette to the current palette and loads the DAC.
-void SetCurrentPalette(Open& open, Palette palette) {
+auto SetCurrentPalette(Open& open, Palette palette) -> void {
   std::ranges::copy(palette, std::begin(Data(open).palette));
   LoadPalette(open);
 }
@@ -152,15 +156,17 @@ auto StepPalette(Open& open, Palette target) -> int16_t {
 // Fades completely. Mode FFFFh takes the steps back to back (Delay(0) waits nothing); any other mode waits a tick
 // between steps and returns 1 when input aborts the fade.
 auto FadePalette(Open& open, Palette target, uint16_t mode) -> int16_t {
-  while (StepToward(open, target)) {
-    LoadPalette(open);
-    if (mode == 0xffff) {
-      Delay(0);
-    } else if (WaitTicks(1) != 0) {
-      return 1;
-    }
-  }
-  return 0;
+  auto aborted{ false };
+  RepeatWhile([&] { return !aborted && StepToward(open, target); },
+              [&] {
+                LoadPalette(open);
+                if (mode == 0xffff) {
+                  Delay(0);
+                } else {
+                  aborted = WaitTicks(1) != 0;
+                }
+              });
+  return aborted ? 1 : 0;
 }
 
 // The fade to black that input aborts.
@@ -179,7 +185,7 @@ auto FadeToClosingPalette(Open& open) -> int16_t {
 }
 
 // The attribute controller's identity palette.
-void SetIdentityPalette([[maybe_unused]] Open& open) {
+auto SetIdentityPalette([[maybe_unused]] Open& open) -> void {
   koei_vga_identity_palette();
 }
 
@@ -204,8 +210,12 @@ auto OpenFileOrStop(Open& open, uint16_t name) -> int16_t {
   return handle;
 }
 
-void Hang() {
-  for (;;) port_pump();
+auto Hang() -> void {
+  RepeatUntil([] {
+    port_pump();
+    return false;
+  });
+  std::unreachable(); // the loop above never ends
 }
 
 }

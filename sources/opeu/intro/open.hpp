@@ -10,6 +10,7 @@
 
 #include "opeu/services/machine.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -72,8 +73,8 @@ inline auto SetWord(Open const& open, std::uint16_t near, std::uint16_t value) n
 // The near pointer (DS offset) of a byte array in DGROUP (a string, a palette), where the opening hands one on.
 template <class _Byte, std::size_t SIZE>
   requires(sizeof(_Byte) == 1)
-[[nodiscard]] inline auto Near(Open const& open, _Byte const (&object)[SIZE]) noexcept -> std::uint16_t {
-  return static_cast<std::uint16_t>(reinterpret_cast<std::byte const*>(object) - std::as_bytes(open.Segment()).data()); // NOLINT(*-reinterpret-cast): a field's offset in the segment
+[[nodiscard]] inline auto Near(Open const& open, std::array<_Byte, SIZE> const& object) noexcept -> std::uint16_t {
+  return static_cast<std::uint16_t>(std::as_bytes(std::span{ object }).data() - std::as_bytes(open.Segment()).data());
 }
 } // namespace opeu::intro::detail::open
 

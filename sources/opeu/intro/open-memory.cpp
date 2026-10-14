@@ -3,6 +3,7 @@
 
 #include "load-image.hpp"
 #include "port.hpp"
+#include "repeat.hpp"
 
 #include "opeu/contract.hpp"
 
@@ -40,9 +41,8 @@ auto OpenMemory::Load() -> void {
 // order, and again until a pass moves nothing.
 auto OpenMemory::FirstFit(Paragraph paragraphs) const -> std::uint32_t {
   std::uint32_t candidate{ OPEN_HEAP_SEGMENT };
-  bool          moved{ true };
-  while (moved) {
-    moved = false;
+  RepeatUntil([&] {
+    auto moved{ false };
     std::ranges::for_each(_blocks, [&](Block const& block) {
       std::uint32_t const start{ block.segment - 1u };
       std::uint32_t const end{ std::uint32_t{ block.segment } + block.paragraphs };
@@ -51,7 +51,8 @@ auto OpenMemory::FirstFit(Paragraph paragraphs) const -> std::uint32_t {
         moved     = true;
       }
     });
-  }
+    return !moved;
+  });
   return candidate;
 }
 
@@ -63,7 +64,7 @@ auto OpenMemory::Allocate(Paragraph paragraphs) -> Paragraph {
   }
   auto const place{ std::ranges::find_if(_blocks, [&](Block const& block) { return block.segment >= segment; }) };
   _blocks.insert(place, Block{ .segment = static_cast<Paragraph>(segment), .paragraphs = paragraphs });
-  port_trace("mem", "OPEN dos_alloc %04x paragraphs -> %04x", paragraphs, static_cast<unsigned>(segment));
+  port_trace("mem", "OPEN dos_alloc %04x paragraphs -> %04x", paragraphs, static_cast<std::uint32_t>(segment));
   return static_cast<Paragraph>(segment);
 }
 
