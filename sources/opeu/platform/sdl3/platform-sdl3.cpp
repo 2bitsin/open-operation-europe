@@ -18,6 +18,7 @@
 // setting (the browser paces frames).
 #include "opeu/platform/platform.hpp"
 
+#include "opeu/platform/sdl3/backend.hpp"
 #include "opeu/platform/sdl3/handles.hpp"
 #include "opeu/platform/sdl3/target.hpp"
 
@@ -39,7 +40,7 @@
 #include <utility>
 #include <vector>
 
-namespace opeu::platform::detail::sdl3 {
+namespace opeu::platform::detail::backend {
 namespace {
 // true: hide the host cursor while it is over the window (the game draws its own mouse pointer).
 constexpr auto HIDE_CURSOR{ true };
@@ -265,75 +266,15 @@ auto Spelled(std::string const& directory, std::string const& want) -> std::opti
   return find.found;
 }
 
-// Where a DOS name leads inside the save directory.
-enum class Found : std::uint8_t {
-  EXISTS,    // every component exists
-  CREATABLE, // all but the last, which is spelled in upper case (the DOS spelling)
-  MISSING,   // a directory is missing, or the name is too long
-};
+// Nothing when SDL's call succeeded; otherwise the call's name and SDL's error.
+[[nodiscard]] auto Opened(bool const succeeded, std::string_view const call) -> std::expected<void, std::string> {
+  if (succeeded) return {};
+  return std::unexpected{ std::format("{}: {}", call, SDL_GetError()) };
+}
 
-struct Resolution {
-  Found       found{ Found::MISSING };
-  std::string path;
-};
+} // namespace
 
-using UniqueAudioStream = std::unique_ptr<SDL_AudioStream, Destroy<SDL_DestroyAudioStream>>;
-
-// The SDL window, renderer, audio stream and the last frame, behind platform.hpp.
-class Backend {
-public:
-  auto               Init(PlatConfig const& config) -> int;
-  auto               Shutdown() -> void;
-  auto               Present(Frame const& frame) -> void;
-  [[nodiscard]] auto WritePng(std::string const& path) const -> bool;
-  [[nodiscard]] auto PollEvent() -> std::optional<InputEvent>;
-  [[nodiscard]] auto TicksUs() const -> std::uint64_t;
-  [[nodiscard]] auto Headless() const -> bool {
-    return _headless;
-  }
-  auto               SetSaveDir(std::string_view dir) -> void;
-  [[nodiscard]] auto Resolve(std::string_view dos_name) -> Resolution;
-  [[nodiscard]] auto OpenAudio(int rate, AudioSource source) -> bool;
-  auto               LockAudio() const -> void;
-  auto               UnlockAudio() const -> void;
-
-private:
-  [[nodiscard]] auto        OpenWindow(PlatConfig const& config) -> bool;
-  [[nodiscard]] auto        InitSubsystems() -> bool;
-  [[nodiscard]] auto        MakeWindow(PlatConfig const& config, std::string const& title) -> bool;
-  auto                      ClearWindow() const -> void;
-  auto                      Redraw() const -> void;
-  auto                      ReplaceTexture(int width, int height) -> void;
-  auto                      Convert(Frame const& frame) -> void;
-  [[nodiscard]] auto        Translated(SDL_Event& sdl) const -> std::optional<InputEvent>;
-  [[nodiscard]] static auto KeyEvent(SDL_KeyboardEvent const& key) -> std::optional<InputEvent>;
-  [[nodiscard]] auto        ButtonEvent(SDL_Event& sdl) const -> std::optional<InputEvent>;
-  auto                      Place(float fx, float fy, InputEvent& event) const -> void;
-  [[nodiscard]] auto        SaveDir() -> std::string const&;
-  static auto SDLCALL       FillAudio(void* backend, SDL_AudioStream* stream, int additional, int total) -> void;
-
-  bool          _inited{ false };
-  bool          _headless{ false };
-  SDL_InitFlags _sdl_flags{ 0 };
-  std::uint64_t _t0_ns{ 0 };
-
-  UniqueWindow   _window;
-  UniqueRenderer _renderer;
-  UniqueTexture  _texture;
-  int            _texture_width{ 0 };
-  int            _texture_height{ 0 };
-
-  std::vector<std::uint8_t>               _frame; // the last indexed frame
-  int                                     _frame_width{ 0 };
-  int                                     _frame_height{ 0 };
-  std::array<std::uint8_t, PALETTE_BYTES> _palette{};
-  std::vector<std::uint32_t>              _converted; // the frame through the palette
-
-  UniqueAudioStream _audio;
-  AudioSource       _audio_source;
-
-  std::string _save_dir;
-};
+namespace {
 
 // The one backend of the process; SDL itself is process-wide. The game-facing services reach it through the free
 // functions of platform.hpp until the machine interface (M2 B5) hands it down.
@@ -342,26 +283,22 @@ auto TheBackend() -> Backend& {
   return backend;
 }
 
+} // namespace
+
 // ---- lifecycle ----------------------------------------------------------------------------------------------------
 
-auto Backend::Init(PlatConfig const& config) -> int {
-  if (_inited) return 0;
+auto Backend::Init(PlatConfig const& config) -> std::expected<void, std::string> {
+  if (_inited) return {};
   _headless = config.headless != 0;
-
-  if (_headless) {
-    // No subsystems: timers and the filesystem helpers need none.
-    if (!SDL_Init(0)) {
-      std::println(stderr, "plat_init: SDL_Init: {}", SDL_GetError());
-      return -1;
-    }
-    _sdl_flags = 0;
-  } else if (!OpenWindow(config)) {
-    return -1;
-  }
+  // Headless: no subsystems; timers and the filesystem helpers need none.
+  auto const opened{ _headless ? Opened(SDL_Init(0), "SDL_Init") : OpenWindow(config) };
+  if (!opened) return opened;
   _t0_ns  = SDL_GetTicksNS();
   _inited = true;
-  return 0;
+  return {};
 }
+
+namespace {
 
 // The window's logical size and its integer scale on the desktop.
 struct WindowSize {
@@ -378,30 +315,29 @@ struct WindowSize {
   };
 }
 
-auto Backend::OpenWindow(PlatConfig const& config) -> bool {
+} // namespace
+
+auto Backend::OpenWindow(PlatConfig const& config) -> std::expected<void, std::string> {
   auto const title{ std::string{ config.title.empty() ? DEFAULT_TITLE : config.title } };
   SDL_SetAppMetadata(title.c_str(), nullptr, nullptr);
   target::PrepareHints();
-  if (!InitSubsystems() || !MakeWindow(config, title)) return false;
-  ClearWindow();
-  return true;
+  auto const opened{ InitSubsystems().and_then([&] { return MakeWindow(config, title); }) };
+  if (opened) ClearWindow();
+  return opened;
 }
 
-auto Backend::InitSubsystems() -> bool {
-  if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
-    std::println(stderr, "plat_init: SDL_Init(video): {}", SDL_GetError());
-    return false;
-  }
+auto Backend::InitSubsystems() -> std::expected<void, std::string> {
+  if (auto const video{ Opened(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS), "SDL_Init(video)") }; !video) return video;
   _sdl_flags = SDL_INIT_VIDEO | SDL_INIT_EVENTS;
   // Audio is optional: continue silently if there is no device.
   if (SDL_InitSubSystem(SDL_INIT_AUDIO))
     _sdl_flags |= SDL_INIT_AUDIO;
   else
     std::println(stderr, "plat_init: no audio: {}", SDL_GetError());
-  return true;
+  return {};
 }
 
-auto Backend::MakeWindow(PlatConfig const& config, std::string const& title) -> bool {
+auto Backend::MakeWindow(PlatConfig const& config, std::string const& title) -> std::expected<void, std::string> {
   auto const      size{ SizeOf(config) };
   SDL_WindowFlags window_flags{ SDL_WINDOW_RESIZABLE | target::ExtraWindowFlags() };
   if (config.fullscreen != 0) window_flags |= SDL_WINDOW_FULLSCREEN;
@@ -411,15 +347,15 @@ auto Backend::MakeWindow(PlatConfig const& config, std::string const& title) -> 
   _window.reset(window);
   _renderer.reset(renderer);
   if (!created) {
-    std::println(stderr, "plat_init: SDL_CreateWindowAndRenderer: {}", SDL_GetError());
+    auto failed{ Opened(created, "SDL_CreateWindowAndRenderer") };
     _renderer.reset();
     _window.reset();
     SDL_Quit();
-    return false;
+    return failed;
   }
   target::PaceFrames(*_renderer);
   SDL_SetRenderLogicalPresentation(_renderer.get(), size.width, size.height, PRESENTATION);
-  return true;
+  return {};
 }
 
 auto Backend::ClearWindow() const -> void {
@@ -663,6 +599,8 @@ auto Backend::UnlockAudio() const -> void {
   if (_audio) SDL_UnlockAudioStream(_audio.get());
 }
 
+namespace {
+
 [[nodiscard]] auto OpenMode(FileMode const mode) -> std::ios::openmode {
   switch (mode) {
   case FileMode::READ:       return std::ios::in | std::ios::binary;
@@ -680,14 +618,18 @@ auto Backend::UnlockAudio() const -> void {
 }
 
 } // namespace
-} // namespace opeu::platform::detail::sdl3
+} // namespace opeu::platform::detail::backend
 
 // ---- the platform contract ----------------------------------------------------------------------------------------
 
-using opeu::platform::detail::sdl3::TheBackend;
+using opeu::platform::detail::backend::TheBackend;
 
 auto plat_init(PlatConfig const* const cfg) -> int {
-  return cfg == nullptr ? -1 : TheBackend().Init(*cfg);
+  if (cfg == nullptr) return -1;
+  auto const opened{ TheBackend().Init(*cfg) };
+  if (opened) return 0;
+  std::println(stderr, "plat_init: {}", opened.error());
+  return -1;
 }
 
 auto plat_shutdown() -> void {
@@ -720,16 +662,16 @@ auto TicksUs() -> std::uint64_t {
 }
 
 auto SleepMs(int const ms) -> void {
-  target::Sleep(ms, sdl3::TheBackend().Headless());
+  target::Sleep(ms, backend::TheBackend().Headless());
 }
 
 SaveFile::SaveFile(std::fstream stream) : _stream{ std::move(stream) } { }
 
 auto SaveFile::Open(std::string_view const dos_name, FileMode const mode) -> std::optional<SaveFile> {
   auto const [found, path]{ TheBackend().Resolve(dos_name) };
-  auto const usable{ mode == FileMode::CREATE ? found != sdl3::Found::MISSING : found == sdl3::Found::EXISTS };
+  auto const usable{ mode == FileMode::CREATE ? found != backend::Found::MISSING : found == backend::Found::EXISTS };
   if (!usable) return std::nullopt;
-  std::fstream stream{ path, sdl3::OpenMode(mode) };
+  std::fstream stream{ path, backend::OpenMode(mode) };
   if (!stream.is_open()) return std::nullopt;
   return SaveFile{ std::move(stream) };
 }
@@ -754,7 +696,7 @@ auto SaveFile::Write(std::span<std::uint8_t const> const bytes) -> std::size_t {
 
 auto SaveFile::Seek(std::int64_t const offset, SeekOrigin const origin) -> std::optional<std::int64_t> {
   _stream.clear();
-  _stream.seekg(offset, sdl3::Direction(origin));
+  _stream.seekg(offset, backend::Direction(origin));
   if (_stream.fail()) {
     _stream.clear();
     return std::nullopt;
