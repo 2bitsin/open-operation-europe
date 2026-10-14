@@ -57,7 +57,13 @@ The runs (RUNS below):
 
 Each run records the exit code, the SHA-1 of every `--shots` frame and of
 the final `--png` frame, of the WAV and OPL log where recorded, and of every
-file the game left in its save directory.
+file the game left in its save directory. `play_measured` also returns the
+run's peak resident memory (the `opeu` process's own `ru_maxrss`, from
+`os.wait4`), which the memory gates judge.
+
+The suites play the runs `default_workers()` at a time: min(cores, 4), or
+OPEU_TEST_WORKERS when it is set. A game that leaks takes the machine down
+with it once every core plays one; four bound the damage.
 
     python3 play.py regen <opeu> <dir>   rewrite ../fixtures/play/ from <opeu>, outputs in <dir>
     python3 play.py run <opeu> <name> <dir>   one run, outputs kept in <dir>
@@ -71,6 +77,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -83,6 +90,17 @@ GOLDENS = GOLDEN_DIR / 'goldens.json'
 SCENARIOS = ['france', 'africa', 'kursk', 'normandy', 'bulge', 'berlin']
 MINUTE = 60000
 SCRIPT_TAIL_MS = 5000  # virtual time a run lasts after its script's last event, where the length is the script's
+RUN_TIMEOUT_S = 600
+MAX_WORKERS = 4  # the suites' fan-out unless WORKERS_VARIABLE says otherwise
+WORKERS_VARIABLE = 'OPEU_TEST_WORKERS'
+
+
+def default_workers() -> int:
+  """How many runs the suites (play.test, perf.test) play at once: min(cores, MAX_WORKERS), or OPEU_TEST_WORKERS."""
+  configured = os.environ.get(WORKERS_VARIABLE, '').strip()
+  if configured:
+    return max(1, int(configured))
+  return max(1, min(os.cpu_count() or 1, MAX_WORKERS))
 
 
 class Script:
@@ -595,15 +613,46 @@ def recorded(spec: Run, out: Path, exit_code: int) -> dict:
   return result
 
 
+@dataclass(frozen=True)
+class Played:
+  """A finished run: its result record and the peak resident memory of its `opeu` process."""
+  result: dict
+  peak_rss_mb: float
+
+
 def run(opeu: str | Path, name: str, out: str | Path) -> dict:
   """One run into the directory `out`; returns its result record."""
+  return play_measured(opeu, name, out).result
+
+
+def play_measured(opeu: str | Path, name: str, out: str | Path) -> Played:
+  """One run into the directory `out`, with its peak resident memory."""
   spec, out = RUNS[name], Path(out)
   prepare(spec, out)
   # cwd and OPEU_LOG inside `out`: nothing lands in the caller's directory.
   env = dict(os.environ, OPEU_LOG=str(out / 'port.log'))
   env.pop('OPEU_TRACE', None)
-  proc = subprocess.run(command_line(Path(opeu), spec, out), cwd=out, env=env, capture_output=True, timeout=600)
-  return recorded(spec, out, proc.returncode)
+  exit_code, peak = waited(subprocess.Popen(command_line(Path(opeu), spec, out), cwd=out, env=env,
+                                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+  return Played(recorded(spec, out, exit_code), peak)
+
+
+def waited(proc: subprocess.Popen) -> tuple[int, float]:
+  """(exit code, peak RSS in MB) of a process, reaped with os.wait4 so the rusage is its own whatever else runs in
+  parallel; killed after RUN_TIMEOUT_S."""
+  timer = threading.Timer(RUN_TIMEOUT_S, proc.kill)
+  timer.start()
+  try:
+    _, status, usage = os.wait4(proc.pid, 0)
+  finally:
+    timer.cancel()
+  proc.returncode = os.waitstatus_to_exitcode(status)
+  return proc.returncode, rss_mb(usage.ru_maxrss)
+
+
+def rss_mb(maxrss: int) -> float:
+  """ru_maxrss in MB: bytes on macOS, kilobytes on Linux."""
+  return maxrss / 2**20 if sys.platform == 'darwin' else maxrss / 2**10
 
 
 def differences(expected: dict, actual: dict) -> list[str]:

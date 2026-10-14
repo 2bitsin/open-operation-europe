@@ -22,13 +22,15 @@ seconds in Debug. Here:
                            everything (a demo, a save, a command-dialog run,
                            a scenario played to its end).
 
+The runs are played play.default_workers() at a time (min(cores, 4), or
+OPEU_TEST_WORKERS).
+
 On a failure the run's outputs (input.txt, shots/, final.png, saves/, the
 WAV and OPL log) stay in pytest's tmp directory, named in the message, and
 the expected saved game is written beside the actual one.
 """
 from __future__ import annotations
 
-import os
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -54,18 +56,19 @@ def opeu() -> str:
 
 
 @pytest.fixture(scope='session')
-def played(tmp_path_factory: pytest.TempPathFactory) -> dict[tuple[str, int], tuple[dict, Path]]:
-  """{(name, pass): (result, output dir)} for every run, played in parallel, the longest first."""
+def played(tmp_path_factory: pytest.TempPathFactory) -> dict[tuple[str, int], tuple[dict, Path, float]]:
+  """{(name, pass): (result, output dir, peak RSS in MB)} for every run, played in parallel, the longest first."""
   root = tmp_path_factory.mktemp('play')
   jobs = sorted([(name, 1) for name in play.RUNS] + [(name, 2) for name in TWICE], key=lambda job: -play.RUNS[job[0]].ms)
   binary = opeu()
 
-  def one(job: tuple[str, int]) -> tuple[tuple[str, int], tuple[dict, Path]]:
+  def one(job: tuple[str, int]) -> tuple[tuple[str, int], tuple[dict, Path, float]]:
     name, round_ = job
     out = root / (name if round_ == 1 else f'{name}-again')
-    return job, (play.run(binary, name, out), out)
+    measured = play.play_measured(binary, name, out)
+    return job, (measured.result, out, measured.peak_rss_mb)
 
-  with ThreadPoolExecutor(max_workers=os.cpu_count() or 4) as pool:
+  with ThreadPoolExecutor(max_workers=play.default_workers()) as pool:
     return dict(pool.map(one, jobs))
 
 
@@ -89,7 +92,7 @@ def saved_game_problem(name: str, out: Path) -> list[str]:
 
 @pytest.mark.parametrize('name', list(play.RUNS))
 def test_run(name: str, played: dict) -> None:
-  actual, out = played[(name, 1)]
+  actual, out, _ = played[(name, 1)]
   problems = play.differences(play.load_goldens()[name], actual)
   if name in play.SAVED_GAMES:
     problems += saved_game_problem(name, out)
@@ -97,7 +100,7 @@ def test_run(name: str, played: dict) -> None:
 
 
 def test_load_save_round_trip(played: dict) -> None:
-  _, out = played[('load-save', 1)]
+  _, out, _ = played[('load-save', 1)]
   loaded = play.saved_game('save-new')
   saved = (out / 'saves' / 'SAVEDATA').read_bytes()
   assert saved == loaded, f'loading and saving at once changed the saved game; outputs in {out}'
@@ -113,7 +116,7 @@ def changed_slots(before: bytes, after: bytes) -> list[int]:
 
 @pytest.mark.parametrize('name', list(ONE_SLOT_SAVES))
 def test_save_touches_one_slot(name: str, played: dict) -> None:
-  _, out = played[(name, 1)]
+  _, out, _ = played[(name, 1)]
   before = play.saved_game(play.RUNS[name].saves_in)
   after = (out / 'saves' / 'SAVEDATA').read_bytes()
   assert len(after) == len(before) == SAVEDATA_HEADER + SLOTS * SLOT
@@ -123,14 +126,15 @@ def test_save_touches_one_slot(name: str, played: dict) -> None:
 
 def test_slot_record_names_the_game(played: dict) -> None:
   """Slot 2's record after load-play-save: scenario, delivery, year, month, day, hour, ...: France, 5/10 09:00."""
-  _, out = played[('load-play-save', 1)]
+  _, out, _ = played[('load-play-save', 1)]
   after = (out / 'saves' / 'SAVEDATA').read_bytes()
   assert after[12] == 0 and after[15:18] == bytes([5, 10, 9]), after[12:24].hex()
 
 
 @pytest.mark.parametrize('name', TWICE)
 def test_deterministic(name: str, played: dict) -> None:
-  (first, out1), (second, out2) = played[(name, 1)], played[(name, 2)]
+  (first, out1, _), (second, out2, _) = played[(name, 1)], played[(name, 2)]
   problems = play.differences(first, second)
   assert not problems, f'{name}: two plays of one script differ; outputs in {out1} and {out2}\n  ' + '\n  '.join(
     problems)
+

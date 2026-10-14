@@ -9,6 +9,9 @@ What is measured:
            run goes as fast as the CPU allows and its time is the game's throughput. A run's cost is the CPU time
            (user + system) of its `opeu` process; the wall time is recorded beside it.
   benches  every google-benchmark case of the `*-benches` executables (BENCH_TARGETS): CPU time per iteration.
+  memory   the peak resident memory of a run's `opeu` process (ru_maxrss of that child, play.play_measured): for the
+           three smokes (SMOKES) by their own gate (test_smoke_memory.py), and for every run the perf session plays,
+           from those same plays (no extra executions).
 
 `../fixtures/perf/baseline.json` holds, per machine (CPU model, core count, OS family, architecture, Python) and per
 build type, the numbers of one revision, and the v1.0.1 runs as the reference the refactor is measured against.
@@ -33,6 +36,13 @@ How the gates decide (the evidence is in docs/building.md, "Benchmarks and profi
            that calibration gives at that moment (a neighbour job that slows a benchmark for a while slows its
            calibration too). The budget stays the same. Noise only ever slows a benchmark down, so the fastest
            repetition estimates its true cost and a real regression fails every attempt.
+  memory   a run passes when the median peak RSS of its plays is within its budget, recorded in the machine's
+           baseline entry (`memory`, one set per machine, measured with a Release build and holding for every build
+           type) beside the peak it was measured at: MEMORY_FACTOR times that peak, at least MEMORY_FLOOR_MB. A smoke
+           over it is played RUN_RETRY_SAMPLES more times and judged on the median of all, as the CPU times are; the
+           perf session's runs are judged on the plays the session made. Memory does not scale with the machine's
+           load, so a machine the baseline does not list uses the closest listed machine's budgets as they are. A leak
+           that grows per frame fails here long before it fills a machine.
   budget   OPEU_PERF_BUDGET percent (default BUDGET_PERCENT) over the baseline of the same machine; on a machine the
            baseline does not list, FOREIGN_BUDGET_PERCENT unless OPEU_PERF_BUDGET says otherwise: one calibration
            ratio cannot capture every difference between two machines.
@@ -41,6 +51,8 @@ How the gates decide (the evidence is in docs/building.md, "Benchmarks and profi
     python3 perf.py reference <opeu> [NAME] [--samples N]   record another build's runs as a reference (v1.0.1)
     python3 perf.py measure <build dir> [--samples N]       print the numbers without writing them
     python3 perf.py add-runs <build dir> [--samples N]      baseline the runs the entry lacks, the rest kept (add_runs)
+    python3 perf.py memory <build dir> [--measure]          the smokes' peak RSS against their budgets; --measure
+                                                            records them as the budgets (2 plays each), the rest kept
 
 `<build dir>` is a buildutil build tree (`_build/<profile>`): its `bin/opeu` is the game, and its benchmark
 executables are built there (BUILD_BENCHMARKING is configured on for them; buildutil passes the switch on every
@@ -85,6 +97,10 @@ BENCH_RETRY_SECONDS = 20  # how long a bench gate keeps re-measuring the benchma
 BENCH_ATTEMPTS = 3  # then: attempts beside a fresh calibration for the benchmarks still over
 BENCH_ATTEMPT_PAUSE_S = 5  # the pause before each attempt, to step out of a neighbour job's burst
 BASELINE_SAMPLES = 7
+MEMORY_SAMPLES = 2  # plays per smoke when the memory budgets are recorded: headless play is deterministic
+SMOKES = ['smoke-input', 'smoke-turn', 'smoke-intro']  # the runs the memory gate of `./buildutil test` plays
+MEMORY_FACTOR = 1.5
+MEMORY_FLOOR_MB = 150
 # A Debug build plays about 50 times slower than Release (the demos take a minute of CPU each), so there the gate
 # times only the runs that stay under 3 s of CPU: enough to see a regression, inside ctest's 60 s for the module.
 DEBUG_RUNS = ['smoke-input', 'save-new', 'load-play-save', 'load-save']
@@ -182,6 +198,7 @@ def run_checked(command: list[str]) -> str:
 class Sample:
     cpu: float  # seconds of user + system time of the opeu process
     wall: float
+    rss_mb: float = 0.0  # peak resident memory of the opeu process
 
 
 @dataclass
@@ -204,13 +221,14 @@ def time_run(opeu: str, name: str, out: str) -> Sample:
     rusage is exactly the run's."""
     before = resource.getrusage(resource.RUSAGE_CHILDREN)
     start = time.perf_counter()
-    result = play.run(opeu, name, out)
+    played = play.play_measured(opeu, name, out)
     wall = time.perf_counter() - start
     after = resource.getrusage(resource.RUSAGE_CHILDREN)
+    result = played.result
     expected = play.load_goldens().get(name, result)['exit']  # a run without goldens yet: play.test reports it
     if result['exit'] != expected:
         raise RuntimeError(f'{name}: exit {result["exit"]} instead of {expected}, outputs in {out}')
-    return Sample(after.ru_utime - before.ru_utime + after.ru_stime - before.ru_stime, wall)
+    return Sample(after.ru_utime - before.ru_utime + after.ru_stime - before.ru_stime, wall, played.peak_rss_mb)
 
 
 def calibrate() -> float:
@@ -238,15 +256,11 @@ def session_jobs(opeu: str, names: list[str], rounds: int, scratch: str) -> list
     return jobs
 
 
-def default_workers() -> int:
-    return max(1, (os.cpu_count() or 2) // 2)
-
-
 def sample_runs(opeu: Path, names: list[str], rounds: int) -> Session:
-    """`rounds` plays of each named run, half the cores' worth at a time, with the calibration processes among them."""
+    """`rounds` plays of each named run, play.default_workers() at a time, with the calibration processes among them."""
     session = Session({name: [] for name in names})
     with tempfile.TemporaryDirectory(prefix='opeu-perf-') as scratch, \
-            ThreadPoolExecutor(max_workers=default_workers()) as pool:
+            ThreadPoolExecutor(max_workers=play.default_workers()) as pool:
         jobs = session_jobs(str(Path(opeu).resolve()), names, rounds, scratch)
         for job, found in zip(jobs, pool.map(subprocess_job, jobs)):
             if job[0] == 'calibrate':
@@ -358,8 +372,8 @@ def revision(build: Build) -> str:
     return run_checked(['git', '-C', str(HERE), 'rev-parse', '--short=8', 'HEAD']).strip()
 
 
-def measure(build: Build, rounds: int) -> dict:
-    session = sample_runs(build.opeu, gated_runs(build.build_type), rounds)
+def measure(build: Build, rounds: int, session: Session | None = None) -> dict:
+    session = session or sample_runs(build.opeu, gated_runs(build.build_type), rounds)
     executables = build.benches()
     benches: dict[str, list[float]] = {}
     for _ in range(rounds):
@@ -375,7 +389,10 @@ def stamp(build: Build) -> dict:
 def record_baseline(build: Build, rounds: int) -> dict:
     baseline = load_baseline()
     entry = machine_entry(baseline, machine())
-    entry['builds'][build.build_type] = {**stamp(build), **measure(build, rounds)}
+    session = sample_runs(build.opeu, gated_runs(build.build_type), rounds)
+    entry['builds'][build.build_type] = {**stamp(build), **measure(build, rounds, session)}
+    if build.build_type == 'release':
+        merge_memory(entry, build, session)
     save_baseline(baseline)
     return entry
 
@@ -413,6 +430,52 @@ def add_runs(build: Build, rounds: int) -> dict:
     return {'scale': round(scale, 4), 'added': added}
 
 
+def memory_budget(peak_mb: float) -> float:
+    """The budget of a run that peaked at `peak_mb`."""
+    return round(max(peak_mb * MEMORY_FACTOR, MEMORY_FLOOR_MB), 1)
+
+
+def median_rss(samples: list[Sample]) -> float:
+    return statistics.median(s.rss_mb for s in samples)
+
+
+def merge_memory(entry: dict, build: Build, session: Session) -> None:
+    """Writes the session's runs into a machine entry's memory section: per run its peak RSS (the median of its plays)
+    and its budget; the runs the session did not play are kept."""
+    runs = entry.get('memory', {}).get('runs', {})
+    runs.update({name: {'peak_mb': round(median_rss(samples), 1), 'budget_mb': memory_budget(median_rss(samples))}
+                 for name, samples in session.runs.items()})
+    entry['memory'] = {**stamp(build), 'runs': dict(sorted(runs.items()))}
+
+
+def play_smokes(opeu: Path, rounds: int) -> dict[str, list[float]]:
+    """{smoke: peak RSS of each of `rounds` plays}, play.default_workers() plays at a time."""
+    with tempfile.TemporaryDirectory(prefix='opeu-memory-') as scratch, \
+            ThreadPoolExecutor(max_workers=play.default_workers()) as pool:
+        jobs = [(name, Path(scratch) / f'{name}-{i}') for i in range(rounds) for name in SMOKES]
+        peaks = pool.map(lambda job: play.play_measured(opeu, *job).peak_rss_mb, jobs)
+        found: dict[str, list[float]] = {name: [] for name in SMOKES}
+        for (name, _), peak in zip(jobs, peaks):
+            found[name].append(peak)
+    return found
+
+
+def smoke_memory(build: Build, measure: bool) -> dict:
+    """The smokes' peaks (MEMORY_SAMPLES plays each); with `measure`, recorded as this machine's budgets (Release
+    only: the budgets hold for every build type)."""
+    peaks = play_smokes(build.opeu, MEMORY_SAMPLES)
+    if not measure:
+        return {name: {'peak_mb': round(statistics.median(p), 1)} for name, p in peaks.items()}
+    if build.build_type != 'release':
+        raise ValueError(f'{build.root} is a {build.build_type} build; the memory budgets are measured with Release')
+    baseline = load_baseline()
+    entry = machine_entry(baseline, machine())
+    session = Session({name: [Sample(0.0, 0.0, peak) for peak in p] for name, p in peaks.items()})
+    merge_memory(entry, build, session)
+    save_baseline(baseline)
+    return entry['memory']
+
+
 def scaled_summary(samples: list[Sample], scale: float) -> dict:
     """run_summary of samples whose times are multiplied by `scale`."""
     return run_summary([Sample(s.cpu * scale, s.wall * scale) for s in samples])
@@ -427,6 +490,7 @@ class Standard:
     budget: float   # a fraction: 0.10 allows 10 % over the baseline
     source: str     # which baseline, for the failure messages
     foreign: bool   # the numbers are another machine's
+    memory: dict = field(default_factory=dict)  # {run: {'peak_mb', 'budget_mb'}}: the machine's memory budgets
 
     @classmethod
     def here(cls, build_type: str) -> 'Standard':
@@ -440,10 +504,11 @@ class Standard:
                               f'`python3 perf.py baseline <build dir>` (docs/building.md)')
         same = [e for e in entries if e['machine'] == identity]
         if same:
-            return cls(same[0]['builds'][build_type], budget(BUDGET_PERCENT), describe(same[0], build_type), False)
+            return cls(same[0]['builds'][build_type], budget(BUDGET_PERCENT), describe(same[0], build_type), False,
+                       memory_budgets(same[0]))
         entry = closest_entry(entries, identity)
         return cls(entry['builds'][build_type], budget(FOREIGN_BUDGET_PERCENT),
-                   describe(entry, build_type) + f', scaled to this {identity["cpu"]}', True)
+                   describe(entry, build_type) + f', scaled to this {identity["cpu"]}', True, memory_budgets(entry))
 
     def run_slowdown(self, session: Session) -> float:
         """How much slower than at the baseline the session's calibration processes ran: the factor every run limit
@@ -474,9 +539,27 @@ class Standard:
         return [n for n, ns in fastest.items()
                 if n in self.numbers['benches'] and ns > self.bench_limit(n, fastest)]
 
+    def memory_limit(self, name: str) -> float:
+        """A run's memory budget in MB (KeyError when the baseline has none for it)."""
+        return self.memory[name]['budget_mb']
+
+    def memory_over(self, session: Session) -> list[str]:
+        """The runs of a session whose median peak RSS is over their budget."""
+        return [name for name, samples in session.runs.items()
+                if name in self.memory and median_rss(samples) > self.memory_limit(name)]
+
     def baselined_benches(self, executable: str) -> list[str]:
         """Every benchmark of an executable the baseline names, the calibration included."""
         return sorted(n for n in self.numbers['benches'] if n.startswith(executable + '/'))
+
+
+def memory_budgets(entry: dict) -> dict:
+    return entry.get('memory', {}).get('runs', {})
+
+
+def memory_budgeted_names() -> list[str]:
+    """Every run any machine's memory section budgets: what test_run_memory is parametrized over."""
+    return sorted({name for entry in load_baseline().get('machines', []) for name in memory_budgets(entry)})
 
 
 def closest_entry(entries: list[dict], identity: dict) -> dict:
@@ -520,19 +603,24 @@ def describe(entry: dict, build_type: str) -> str:
 def main() -> None:
     if len(sys.argv) == 5 and sys.argv[1] == 'sample':
         sample = time_run(*sys.argv[2:])
-        print(json.dumps({'cpu': sample.cpu, 'wall': sample.wall}))
+        print(json.dumps({'cpu': sample.cpu, 'wall': sample.wall, 'rss_mb': sample.rss_mb}))
         return
     if sys.argv[1:] == ['calibrate']:
         print(json.dumps({'cpu': calibrate()}))
         return
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
-    parser.add_argument('command', choices=['baseline', 'measure', 'reference', 'add-runs'])
+    parser.add_argument('command', choices=['baseline', 'measure', 'reference', 'add-runs', 'memory'])
     parser.add_argument('target', help='a build tree, or for reference the opeu binary')
     parser.add_argument('label', nargs='?', default='v1.0.1', help='reference: the name it is recorded under')
-    parser.add_argument('--samples', type=int, default=BASELINE_SAMPLES)
+    parser.add_argument('--samples', type=int)
+    parser.add_argument('--measure', action='store_true', help='memory: record the smokes\' peaks as their budgets')
     args = parser.parse_args()
     target = Path(args.target).resolve()
-    if args.command == 'reference':
+    if args.samples is None:
+        args.samples = BASELINE_SAMPLES
+    if args.command == 'memory':
+        found = smoke_memory(Build(target), args.measure)
+    elif args.command == 'reference':
         found = record_reference(target, args.label, args.samples)
     elif args.command == 'add-runs':
         found = add_runs(Build(target), args.samples)

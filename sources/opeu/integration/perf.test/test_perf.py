@@ -8,6 +8,9 @@ have their own gates, one per module (sources/opeu/<module>/<module>.bench/bench
   test_suite_cost          the total of all baselined runs is within budget of the baseline total
   test_baseline_covers_every_run  the baseline names exactly the runs the gate times, so a new run cannot go
                            unmeasured
+  test_run_memory[<run>]   every run with a memory budget: its peak RSS (median of the session's plays, no extra
+                           play) is within the budget (its measured peak x 1.5, at least 150 MB); the smokes have their
+                           own gate with re-attempts, test_smoke_memory.py
 
 A Debug build times perf.DEBUG_RUNS (the runs short enough there) against the Debug baseline.
 
@@ -38,8 +41,7 @@ def standard(build):
 
 @pytest.fixture(scope='session')
 def session(build, standard):
-    """RUN_SAMPLES plays of every gated run with their calibration processes; the runs over their limit are played
-    RUN_RETRY_SAMPLES more times (with calibrations again) and judged on all their plays."""
+    """RUN_SAMPLES plays of every gated run with their calibration processes; the runs over their CPU limit are played RUN_RETRY_SAMPLES more times (with calibrations again) and judged on all their plays."""
     found = perf.sample_runs(build.opeu, GATED_RUNS, perf.RUN_SAMPLES)
     slowdown = standard.run_slowdown(found)
     over = [name for name, samples in found.runs.items()
@@ -78,3 +80,11 @@ def test_suite_cost(session, standard):
     slowdown, why = judged(standard, session)
     limit = standard.suite_limit(slowdown)
     assert cost <= limit, f'the functional suite got slower: {cost:.3f} s of CPU in all, limit {limit:.3f} s ({why})'
+
+
+
+@pytest.mark.parametrize('name', [name for name in perf.memory_budgeted_names() if name in GATED_RUNS])
+def test_run_memory(name, session, standard):
+    peak, limit = perf.median_rss(session.runs[name]), standard.memory_limit(name)
+    assert peak <= limit, (f'{name} uses too much memory: peak RSS {peak:.1f} MB (median of {len(session.runs[name])} '
+                           f'plays), budget {limit:.1f} MB (measured {standard.memory[name]["peak_mb"]:.1f} MB)')
