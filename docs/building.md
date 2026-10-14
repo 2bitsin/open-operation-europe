@@ -130,8 +130,10 @@ python3 tools/tidy/tidy.py --baseline tools/tidy/baseline.json      # the gate o
 python3 tools/tidy/tidy.py --worktree --unit platform               # preview one unit's uncommitted work
 ```
 
-`./buildutil test` runs the gate (`tools/tidy/pytest.ini`), and the `tidy` CI
-job publishes the scoreboard. It needs clang-tidy 19 or newer (on macOS
+`./buildutil test` runs the gate (`tools/tidy/pytest.ini`), so every Linux CI
+job that runs it installs the newest of `clang-tidy-20`/`clang-tidy-19` from
+Ubuntu's universe (the image's default `clang-tidy` 18 is too old); the `tidy`
+CI job publishes the scoreboard. It needs clang-tidy 19 or newer (on macOS
 `brew install llvm`). For `-fix` on one module, LLVM's runner over the
 compile database still works:
 `/opt/homebrew/opt/llvm/bin/run-clang-tidy -fix -p _build/armv8-macos-apple-clang-release 'sources/opeu/platform/'`.
