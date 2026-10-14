@@ -18,7 +18,7 @@ namespace opeu::services {
 namespace {
 
 // Every byte value, as image data for any format.
-auto const PATTERN{ [] {
+constexpr auto PATTERN{ [] {
   std::array<std::uint8_t, 2048> bytes{};
   std::iota(bytes.begin(), bytes.end(), std::uint8_t{ 7 });
   return bytes;
