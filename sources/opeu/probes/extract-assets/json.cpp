@@ -24,7 +24,7 @@ auto Quoted(std::string_view const text) -> std::string {
 }
 
 auto Object::Raw(std::string_view const name, std::string_view const encoded) -> Object& {
-  if (!_fields.empty()) _fields += ",";
+  if (!_fields.empty()) _fields += ',';
   _fields += Quoted(name) + ":" + std::string{ encoded };
   return *this;
 }

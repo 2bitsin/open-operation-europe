@@ -15,14 +15,14 @@ namespace opeu::probes::extract_assets::detail::json {
 // A range of numbers or of already-encoded values as a JSON array.
 template <std::ranges::input_range _Values>
 [[nodiscard]] auto Array(_Values&& values) -> std::string {
-  auto items{ std::forward<_Values>(values) | std::views::transform([](auto const& value) {
-                if constexpr (std::convertible_to<decltype(value), std::string_view>) {
-                  return std::string{ value };
-                } else {
-                  return std::format("{}", +value);
-                }
-              })
-              | std::views::join_with(std::string_view{ "," }) | std::ranges::to<std::string>() };
+  auto const items{ std::forward<_Values>(values) | std::views::transform([](auto const& value) {
+                      if constexpr (std::convertible_to<decltype(value), std::string_view>) {
+                        return std::string{ value };
+                      } else {
+                        return std::format("{}", +value);
+                      }
+                    })
+                    | std::views::join_with(std::string_view{ "," }) | std::ranges::to<std::string>() };
   return "[" + items + "]";
 }
 

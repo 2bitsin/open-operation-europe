@@ -15,9 +15,18 @@ namespace opeu::probes::extract_assets::detail::png {
 
 namespace {
 
-auto Write(std::filesystem::path const& path, std::size_t const width, std::size_t const height, int const channels, std::span<std::byte const> const bytes) -> std::expected<void, std::string> {
+// Pixels to write: rows of `width` pixels of `channels` bytes each.
+struct Raster {
+  std::size_t                width;
+  std::size_t                height;
+  int                        channels;
+  std::span<std::byte const> bytes;
+};
+
+auto Write(std::filesystem::path const& path, Raster const& raster) -> std::expected<void, std::string> {
   std::filesystem::create_directories(path.parent_path());
-  if (stbi_write_png(path.string().c_str(), static_cast<int>(width), static_cast<int>(height), channels, bytes.data(), static_cast<int>(width) * channels) == 0) {
+  auto const width{ static_cast<int>(raster.width) };
+  if (stbi_write_png(path.string().c_str(), width, static_cast<int>(raster.height), raster.channels, raster.bytes.data(), width * raster.channels) == 0) {
     return std::unexpected{ std::format("extract-assets: cannot write {}", path.string()) };
   }
   return {};
@@ -26,7 +35,7 @@ auto Write(std::filesystem::path const& path, std::size_t const width, std::size
 }
 
 auto WriteTexture(std::filesystem::path const& path, assets::Texture const& texture) -> std::expected<void, std::string> {
-  return Write(path, texture.Width(), texture.Height(), 4, texture.Pixels());
+  return Write(path, { .width = texture.Width(), .height = texture.Height(), .channels = 4, .bytes = texture.Pixels() });
 }
 
 auto WriteIndices(std::filesystem::path const& path, assets::Image const& image) -> std::expected<void, std::string> {
@@ -35,7 +44,7 @@ auto WriteIndices(std::filesystem::path const& path, assets::Image const& image)
                      return drawn ? std::byte{ image.Pixels()[n] } : std::byte{ 0xFF };
                    })
                    | std::ranges::to<std::vector>() };
-  return Write(path, image.Width(), image.Height(), 1, grey);
+  return Write(path, { .width = image.Width(), .height = image.Height(), .channels = 1, .bytes = grey });
 }
 
 }
