@@ -67,8 +67,8 @@ void opeu_supply_load_objective(Game& game, uint16_t objective) {
 
 // Exchanges supplies between two units; the units' names are formatted into the routine's two 32-byte buffers.
 void opeu_supply_exchange_units(Game& game, uint16_t first, uint16_t second) {
-  auto&                      data{ Data(game) };
-  TextBuffer<2 * NAME_BYTES> names;
+  auto&                                     data{ Data(game) };
+  TextBuffer<std::size_t{ NAME_BYTES } * 2> names;
   data.supply_objective = NO_OBJECTIVE;
   opeu_supply_load_unit(game, first, 0);
   opeu_supply_load_unit(game, second, 1);

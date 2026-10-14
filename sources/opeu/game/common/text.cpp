@@ -25,26 +25,34 @@ struct Spec {
   return c >= 'a' && c <= 'z' ? static_cast<char>(c - 32) : c;
 }
 
+// The character of one digit, upper case.
+[[nodiscard]] constexpr auto DigitCharacter(std::uint32_t digit) noexcept -> char {
+  return static_cast<char>(digit < 10 ? digit + '0' : digit + '7');
+}
+
+// The digits of a value in a base, most significant first; returns their count.
+auto PutDigits(std::string& text, std::uint32_t value, std::uint32_t base) -> std::int16_t {
+  std::string digits;
+  do {
+    digits.insert(digits.begin(), DigitCharacter(value % base));
+    value /= base;
+  } while (value != 0);
+  text += digits;
+  return static_cast<std::int16_t>(digits.size());
+}
+
 // The digits of an unsigned word in a base, upper case.
 auto PutUnsigned(std::string& text, std::uint16_t value, std::uint16_t base) -> std::int16_t {
-  if (value < base) {
-    text += static_cast<char>(value < 10 ? value + '0' : value + '7');
-    return 1;
-  }
-  auto const count{ PutUnsigned(text, value / base, base) };
-  PutUnsigned(text, value % base, base);
-  return static_cast<std::int16_t>(count + 1);
+  return PutDigits(text, value, base);
 }
 
 // The digits of a signed long in a base: a negative value prints as one character, as the game's formatter does.
 auto PutLong(std::string& text, std::int32_t value, std::int16_t base) -> std::int16_t {
-  if (value < base) {
-    text += static_cast<char>(value < 10 ? static_cast<char>(value) + '0' : static_cast<char>(value) + '7');
+  if (value < 0) {
+    text += static_cast<char>(static_cast<char>(value) + '0');
     return 1;
   }
-  auto const count{ PutLong(text, value / base, base) };
-  PutLong(text, value % base, base);
-  return static_cast<std::int16_t>(count + 1);
+  return PutDigits(text, static_cast<std::uint32_t>(value), static_cast<std::uint32_t>(base));
 }
 
 class Formatter {
@@ -52,7 +60,7 @@ public:
   Formatter(DataSegment const& data, std::string_view format, std::span<FormatArgument const> words) noexcept : _data{ data }, _format{ format }, _words{ words } { }
 
   auto Run() -> std::string {
-    for (char c; (c = Next()) != '\0';) {
+    for (char c{ Next() }; c != '\0'; c = Next()) {
       if (c != '%') {
         _output += c;
       } else if (auto const literal{ Convert() }; literal) {
@@ -75,8 +83,9 @@ private:
   }
   // The unsigned decimal at the format position, in 16-bit arithmetic that wraps.
   auto Decimal() noexcept -> std::int16_t {
+    auto const    digit{ [this] { return static_cast<std::uint16_t>(static_cast<std::uint8_t>(Peek()) - '0'); } };
     std::uint16_t value{ 0 };
-    for (std::uint16_t digit; (digit = static_cast<std::uint16_t>(static_cast<std::uint8_t>(Peek()) - '0')) < 10; ++_at) value = static_cast<std::uint16_t>(digit + value * 10);
+    for (auto next{ digit() }; next < 10; ++_at, next = digit()) value = static_cast<std::uint16_t>(next + (value * 10));
     return static_cast<std::int16_t>(value);
   }
   auto NextWord() -> std::uint16_t {
@@ -87,7 +96,7 @@ private:
     auto const index{ _argument++ };
     return index < _words.size() ? _words[index].AsText().View(_data) : CString(_data, 0);
   }
-  auto NextLong() noexcept -> std::int32_t {
+  auto NextLong() -> std::int32_t {
     auto const low{ NextWord() };
     return static_cast<std::int32_t>(static_cast<std::uint32_t>(NextWord()) << 16 | low);
   }
@@ -139,11 +148,11 @@ private:
     if (directive.is_long) {
       auto value{ NextLong() };
       if (is_signed) value = Sign(directive, conversion, value);
-      directive.width -= PutLong(conversion, value, base);
+      directive.width = static_cast<std::int16_t>(directive.width - PutLong(conversion, value, base));
     } else {
       auto value{ static_cast<std::int16_t>(NextWord()) };
       if (is_signed) value = static_cast<std::int16_t>(Sign(directive, conversion, value));
-      directive.width -= PutUnsigned(conversion, static_cast<std::uint16_t>(value), static_cast<std::uint16_t>(base));
+      directive.width = static_cast<std::int16_t>(directive.width - PutUnsigned(conversion, static_cast<std::uint16_t>(value), static_cast<std::uint16_t>(base)));
     }
     directive.has_precision = false;
     Pad(directive, conversion);

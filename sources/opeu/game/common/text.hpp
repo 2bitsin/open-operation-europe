@@ -47,10 +47,10 @@ namespace opeu::game::detail::text {
 // as filled.
 class Text {
 public:
-  Text(std::uint16_t near) noexcept : _near{ near } { }                           // NOLINT(misc-explicit-constructor): a near text
-  Text(std::span<char const> characters) noexcept : _characters{ characters } { } // NOLINT(misc-explicit-constructor): characters
-  Text(std::span<char> characters) noexcept : _characters{ characters } { }       // NOLINT(misc-explicit-constructor): characters
-  Text(std::string_view text) noexcept : _characters{ std::span{ text } } { }     // NOLINT(misc-explicit-constructor): characters
+  Text(std::uint16_t near) noexcept : _near{ near } { }                           // implicit: a near text
+  Text(std::span<char const> characters) noexcept : _characters{ characters } { } // implicit: characters
+  Text(std::span<char> characters) noexcept : _characters{ characters } { }       // implicit: characters
+  Text(std::string_view text) noexcept : _characters{ std::span{ text } } { }     // implicit: characters
 
   // The string up to its terminator.
   [[nodiscard]] auto View(DataSegment const& data) const noexcept -> std::string_view {
@@ -74,8 +74,8 @@ private:
 // Where a routine writes a text with its terminator: the data segment from a near address on, or a buffer.
 class TextTarget {
 public:
-  TextTarget(std::uint16_t near) noexcept : _near{ near } { }                     // NOLINT(misc-explicit-constructor): a near buffer
-  TextTarget(std::span<char> characters) noexcept : _characters{ characters } { } // NOLINT(misc-explicit-constructor): a buffer
+  TextTarget(std::uint16_t near) noexcept : _near{ near } { }                     // implicit: a near buffer
+  TextTarget(std::span<char> characters) noexcept : _characters{ characters } { } // implicit: a buffer
 
   [[nodiscard]] auto Characters(DataSegment& data) const noexcept -> std::span<char> {
     return _characters ? *_characters : SegmentCharacters(data, _near);
@@ -84,7 +84,7 @@ public:
   [[nodiscard]] auto Written() const noexcept -> Text {
     return _characters ? Text{ std::span<char const>{ *_characters } } : Text{ _near };
   }
-  operator Text() const noexcept { // NOLINT(misc-explicit-constructor): a target is read back as a text
+  operator Text() const noexcept { // implicit: a target is read back as a text
     return Written();
   }
 
@@ -103,10 +103,10 @@ public:
   [[nodiscard]] auto View() const noexcept -> std::string_view {
     return CString(_characters);
   }
-  operator Text() const noexcept { // NOLINT(misc-explicit-constructor): a buffer is read as a text
+  operator Text() const noexcept { // implicit: a buffer is read as a text
     return Text{ std::span<char const>{ _characters } };
   }
-  operator TextTarget() noexcept { // NOLINT(misc-explicit-constructor): a buffer is written as a text
+  operator TextTarget() noexcept { // implicit: a buffer is written as a text
     return TextTarget{ std::span<char>{ _characters } };
   }
   // The text `offset` bytes into the buffer, for a routine whose texts share one buffer as they shared its frame in the
@@ -123,13 +123,13 @@ private:
 // address, or characters).
 class FormatArgument {
 public:
-  template <typename T>
-    requires std::integral<T> || std::is_enum_v<T>
-  FormatArgument(T word) noexcept : _word{ static_cast<std::uint16_t>(word) } { } // NOLINT(misc-explicit-constructor): a word
-  FormatArgument(Text text) noexcept : _text{ text } { }                          // NOLINT(misc-explicit-constructor): a text
-  FormatArgument(TextTarget target) noexcept : _text{ target.Written() } { }      // NOLINT(misc-explicit-constructor): a text written
+  template <typename _Word>
+    requires std::integral<_Word> || std::is_enum_v<_Word>
+  FormatArgument(_Word word) noexcept : _word{ static_cast<std::uint16_t>(word) } { } // implicit: a word
+  FormatArgument(Text text) noexcept : _text{ text } { }                              // implicit: a text
+  FormatArgument(TextTarget target) noexcept : _text{ target.Written() } { }          // implicit: a text written
   template <std::size_t SIZE>
-  FormatArgument(TextBuffer<SIZE> const& buffer) noexcept : _text{ buffer } { } // NOLINT(misc-explicit-constructor): a buffer
+  FormatArgument(TextBuffer<SIZE> const& buffer) noexcept : _text{ buffer } { } // implicit: a buffer
 
   // The word: a number, or the near address of a near text.
   [[nodiscard]] auto Word() const -> std::uint16_t {
@@ -148,7 +148,7 @@ private:
 // The game's printf formatting of argument words: %[-][+][0][width][.precision][l](d|u|x|o|s|c), case insensitive,
 // digits upper case; %s takes a text, %ld two words (low, high); any other character after % is copied as it is. A word
 // the format asks for beyond the list reads as 0.
-[[nodiscard]] auto FormatText(DataSegment const& data, std::string_view format, std::span<FormatArgument const> arguments) -> std::string;
+[[nodiscard]] auto FormatText(DataSegment const& data, std::string_view format, std::span<FormatArgument const> words) -> std::string;
 
 // Writes the text with its terminator to the target.
 inline auto StoreText(DataSegment& data, TextTarget target, std::string_view text) -> void {

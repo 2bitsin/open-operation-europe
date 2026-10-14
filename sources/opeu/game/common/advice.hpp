@@ -112,13 +112,7 @@ enum class AdviceText : std::uint16_t {
 // The near pointer of a topic's advice buffer.
 [[nodiscard]] inline auto AdviceBuffer(Game& game, AdviceTopic topic) -> std::uint16_t {
   auto& data{ Data(game) };
-  return Near(data, data.advice_messages[static_cast<std::uint8_t>(topic)]);
-}
-
-// Formats into `destination` through request_format.
-template <typename... Words>
-inline void FormatAdvice(Game& game, TextTarget destination, Text format, Words... words) {
-  opeu_request_format(game, destination, std::array<FormatArgument, 1 + sizeof...(Words)>{ format, words... });
+  return Near(data, data.advice_messages.at(std::to_underlying(topic)));
 }
 
 // Shows a text in a control message in the person of the staff officer giving the advice (context_record2).
@@ -151,24 +145,24 @@ struct Advisor {
     opeu_string_copy_far(game, destination, far_text.subspan(std::to_underlying(text)));
   }
   // Formats into the topic's buffer.
-  template <typename... Words>
-  void Format(Text format, Words... words) const {
-    FormatAdvice(game, Buffer(), format, words...);
+  template <typename... _Words>
+  void Format(Text format, _Words... words) const {
+    opeu_request_format(game, Buffer(), std::array<FormatArgument, 1 + sizeof...(_Words)>{ format, words... });
   }
   // Shows the topic's buffer.
   void Show() const {
     ShowAdvice(game, Buffer());
   }
   // Gives the advice text as it stands; returns 1, the check's "advice given".
-  auto Say(AdviceText text) const -> std::uint16_t {
+  [[nodiscard]] auto Say(AdviceText text) const -> std::uint16_t {
     Copy(Buffer(), text);
     Show();
     return 1;
   }
   // Gives the advice text formatted with the words; the formatting service reads the text from the data segment.
   // Returns 1.
-  template <typename... Words>
-  auto SayFormatted(AdviceText text, Words... words) const -> std::uint16_t {
+  template <typename... _Words>
+  [[nodiscard]] auto SayFormatted(AdviceText text, _Words... words) const -> std::uint16_t {
     TextBuffer<ADVICE_TEXT_BYTES> format;
     Copy(format, text);
     Format(format, words...);
@@ -176,8 +170,8 @@ struct Advisor {
     return 1;
   }
   // Gives the advice text formatted with the unit's name and the further words; returns 1.
-  template <typename... Words>
-  auto SayAboutUnit(AdviceText text, std::uint16_t unit, Words... words) const -> std::uint16_t {
+  template <typename... _Words>
+  [[nodiscard]] auto SayAboutUnit(AdviceText text, std::uint16_t unit, _Words... words) const -> std::uint16_t {
     TextBuffer<UNIT_NAME_BYTES> name;
     return SayFormatted(text, opeu_unit_name(game, unit, name), words...);
   }
@@ -192,7 +186,6 @@ using detail::advice::AdviceText;
 using detail::advice::AdviceTexts;
 using detail::advice::AdviceTopic;
 using detail::advice::Advisor;
-using detail::advice::FormatAdvice;
 using detail::advice::ShowAdvice;
 using detail::advice::UNIT_NAME_BYTES;
 using detail::advice::CITY_LEVEL;
