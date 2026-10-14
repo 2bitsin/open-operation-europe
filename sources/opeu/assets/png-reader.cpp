@@ -1,8 +1,9 @@
 // census: raii — stb_image hands out its pixels as a malloc'd unsigned char*, owned here by a unique_ptr whose
-// deleter is stbi_image_free, and takes the PNG as a pointer and length from the caller's span.
+// deleter is stbi_image_free, and takes the PNG as a pointer and length from a copy in its own byte type.
 #include "opeu/assets/png-reader.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <memory>
 #include <ranges>
 #include <span>
@@ -31,7 +32,8 @@ auto Decode(Bytes const png, int const channels) -> Packed<Decoded8> {
   auto       width{ 0 };
   auto       height{ 0 };
   auto       found{ 0 };
-  auto const pixels{ std::unique_ptr<stbi_uc, StbFree>{ stbi_load_from_memory(reinterpret_cast<stbi_uc const*>(png.data()), static_cast<int>(png.size()), &width, &height, &found, channels) } };
+  auto const encoded{ png | std::views::transform([](std::byte const b) { return std::to_integer<stbi_uc>(b); }) | std::ranges::to<std::vector>() };
+  auto const pixels{ std::unique_ptr<stbi_uc, StbFree>{ stbi_load_from_memory(encoded.data(), static_cast<int>(encoded.size()), &width, &height, &found, channels) } };
   if (!pixels) return Fail(PackFault::BAD_IMAGE, stbi_failure_reason());
   auto const count{ static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * static_cast<std::size_t>(channels) };
   auto const samples{
