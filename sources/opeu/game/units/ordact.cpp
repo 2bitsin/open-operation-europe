@@ -1,12 +1,10 @@
 // The map cursor's unit action: a ready, selectable regiment becomes the listed row; the order menu repeats until an
 // order is chosen (a repair needs repair crews), then a target cell is picked and checked like in the Orders command.
 // The accepted order is announced and stored, the side's daily context refreshed and the screen waits; leaving the
-// menu cancels pending orders after confirmation. Both exits but a cancelled pick reset the cached control cell. The
-// picked cell and the message text stay in the data segment, where the services read and write them.
+// menu cancels pending orders after confirmation. Both exits but a cancelled pick reset the cached control cell.
 #include "units/ordact.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
-#include "common/memory.hpp"
 #include "common/order.hpp"
 #include "core/people.hpp"
 #include "core/recindex.hpp"
@@ -32,14 +30,13 @@
 #include "services.hpp"
 #include "units/ordissue.hpp"
 
+#include <cstddef>
+
 using namespace opeu::game;
 
 namespace {
-// The locals the services read and write, as offsets below the top of the routine's reserve.
-constexpr std::uint16_t LOCALS_BYTES{ 0x74 };
-enum ServiceLocal : std::uint16_t {
-  BUFFER = 0x74, // the message text
-};
+// The message text the services format: the room it had in the routine's frame.
+constexpr std::size_t MESSAGE_BYTES{ 0x74 };
 // Where the order menu's speaker is shown.
 constexpr std::uint16_t MENU_X{ 0x36 };
 constexpr std::uint16_t MENU_Y{ 0x144 };
@@ -52,12 +49,10 @@ constexpr std::uint8_t NO_CELL{ 0xff };
 
 // unit: the regiment under the cursor.
 void opeu_unit_action(Game& game, uint16_t unit, uint16_t /*unused*/) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ LOCALS_BYTES };
-  auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };
-  GridCell            cell{};
-  auto const          buffer{ local(BUFFER) };
-  auto&               regiment{ Record<Unit>(data, unit) };
+  auto&                     data{ Data(game) };
+  GridCell                  cell{};
+  TextBuffer<MESSAGE_BYTES> buffer;
+  auto&                     regiment{ Record<Unit>(data, unit) };
   if (!(regiment.flags & Bits(UnitFlag::READY)) || !opeu_unit_selection_eligible(game, unit)) return;
   auto const person{ opeu_find_group_record(game, data.current_side, opeu_unit_group_index(unit)) };
   data.list_row = opeu_unit_index(unit);

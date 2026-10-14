@@ -9,7 +9,6 @@
 #include "common/battle-field.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
-#include "common/memory.hpp"
 #include "common/side-color.hpp"
 #include "core/memory.hpp"
 #include "core/numeric.hpp"
@@ -41,15 +40,10 @@ constexpr uint8_t  CELLS{ BATTLE_WIDTH * BATTLE_WIDTH };
 // The flood's mode bits: stop on reaching the other cell, ignore occupants.
 constexpr uint8_t FLOOD_TO_CELL{ 1 };
 constexpr uint8_t FLOOD_THROUGH{ 2 };
-// The DS reserves of the locals the battle services receive by address, and their offsets in them: the two bytes
-// path_step keeps when no neighbour is reachable (never written: whatever the reserve holds); report_sighted's name and
-// message buffers.
-constexpr uint16_t STEP_RESERVE{ 0x0a };
-constexpr uint16_t STEP_STALE_X_AT{ 8 };
-constexpr uint16_t STEP_STALE_Y_AT{ 0 };
-constexpr uint16_t SIGHTED_RESERVE{ 0x86 };
-constexpr uint16_t NAME_AT{ 0 };
-constexpr uint16_t MESSAGE_AT{ 0x20 };
+// report_sighted's name and message, sharing one buffer as they shared the routine's frame.
+constexpr std::size_t SIGHTED_BYTES{ 0x86 };
+constexpr std::size_t NAME_AT{ 0 };
+constexpr std::size_t MESSAGE_AT{ 0x20 };
 // Spotting: the chance per terrain mode step, the cover of forest, bridge and town cells, and the weather's toll.
 constexpr uint8_t SPOT_STEPS{ 6 };
 constexpr uint8_t SPOT_STEP{ 20 };
@@ -103,9 +97,7 @@ auto DownhillStep(Game const& game, GridCell from) -> PathStep {
 } // namespace opeu::game::detail::btlpath
 
 uint16_t opeu_battle_path_step(Game& game, uint16_t x, uint16_t y) {
-  ServiceLocals const locals{ STEP_RESERVE };
-  auto                step{ DownhillStep(game, { Byte(game, x), Byte(game, y) }) };
-  if (step.cost == UNREACHED) step.cell = { Byte(game, locals.At(STEP_STALE_X_AT)), Byte(game, locals.At(STEP_STALE_Y_AT)) };
+  auto const step{ DownhillStep(game, { Byte(game, x), Byte(game, y) }) };
   Byte(game, x) = step.cell.x;
   Byte(game, y) = step.cell.y;
   return step.cost;
@@ -153,13 +145,13 @@ uint16_t opeu_battle_path_flood(Game& game, uint8_t x, uint8_t y, uint8_t to_x, 
 
 // Redraws a newly spotted element and tells the other side "<name> sighted!".
 void opeu_battle_report_sighted(Game& game, uint16_t element) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ SIGHTED_RESERVE };
-  auto const          message{ locals.At(MESSAGE_AT) };
-  auto const          name_at{ locals.At(NAME_AT) };
-  auto const&         position{ PositionOf(data, element) };
-  auto const          side{ static_cast<uint8_t>(opeu_battle_element_side(game, element)) };
-  auto const          mode{ static_cast<uint8_t>(opeu_battle_mode(game, element)) };
+  auto&                     data{ Data(game) };
+  TextBuffer<SIGHTED_BYTES> locals;
+  auto const                message{ locals.At(MESSAGE_AT) };
+  auto const                name_at{ locals.At(NAME_AT) };
+  auto const&               position{ PositionOf(data, element) };
+  auto const                side{ static_cast<uint8_t>(opeu_battle_element_side(game, element)) };
+  auto const                mode{ static_cast<uint8_t>(opeu_battle_mode(game, element)) };
   opeu_battle_draw_element_at(game, { position.x, position.y }, { element, mode });
   auto const name{ opeu_element_name(game, element, name_at) };
   opeu_request_format(game, message, std::array<FormatArgument, 3>{ Near(data, data.battle_fmt_sighted), SideColorCode(side), name });

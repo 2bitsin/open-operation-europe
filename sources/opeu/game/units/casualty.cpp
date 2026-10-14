@@ -5,7 +5,6 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/forces.hpp"
-#include "common/memory.hpp"
 #include "common/side-color.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
@@ -48,7 +47,7 @@ constexpr std::uint8_t GROUP_EMPTIED{ 3 };
 // No side shown in the overview or tactical view: the next view redraws.
 constexpr std::uint8_t NO_VIEW{ 0xff };
 
-// The routine's locals whose near addresses reach services, at their places below the top of its reserve.
+// The routine's texts, sharing one buffer at their places below its top as they shared the routine's frame.
 constexpr std::uint16_t LOCALS_BYTES{ 0xee };
 enum Locals : std::uint16_t {
   UNIT_NAME_TEXT    = 0x2a, // 32 bytes
@@ -68,21 +67,21 @@ auto MoraleLoss(Game& game, std::uint16_t losses, Element const& element) -> std
 
 void opeu_unit_casualties(Game& game, uint16_t unit, CasualtyRoll const& roll) {
   auto const [percent, kind, c, d, e]{ roll };
-  auto&               data{ Data(game) };
-  auto&               regiment{ Record<Unit>(data, unit) };
-  ServiceLocals const locals{ LOCALS_BYTES };
-  auto const          local{ [&](Locals offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };
-  auto const          name{ local(UNIT_NAME_TEXT) };
-  auto const          element_name{ local(ELEMENT_NAME_TEXT) };
-  auto const          text{ local(REPORT_TEXT) };
-  auto const          loss_text{ local(LOSS_TEXT) };
-  std::uint8_t const  x{ regiment.x };
-  std::uint8_t const  y{ regiment.y };
-  auto const          side{ static_cast<std::uint8_t>(opeu_unit_side(unit)) };
-  auto const          group{ static_cast<std::uint8_t>(opeu_unit_group_index(unit)) };
-  auto const          division{ Near(data, GroupOf(data, side, group)) };
-  bool const          side_selected{ opeu_find_side_selected_unit(game, static_cast<uint8_t>(side)) == unit };
-  bool const          group_selected{ opeu_find_group_selected_unit(game, division) == unit };
+  auto&                    data{ Data(game) };
+  auto&                    regiment{ Record<Unit>(data, unit) };
+  TextBuffer<LOCALS_BYTES> locals;
+  auto const               local{ [&](Locals offset) { return locals.At(LOCALS_BYTES - offset); } };
+  auto const               name{ local(UNIT_NAME_TEXT) };
+  auto const               element_name{ local(ELEMENT_NAME_TEXT) };
+  auto const               text{ local(REPORT_TEXT) };
+  auto const               loss_text{ local(LOSS_TEXT) };
+  std::uint8_t const       x{ regiment.x };
+  std::uint8_t const       y{ regiment.y };
+  auto const               side{ static_cast<std::uint8_t>(opeu_unit_side(unit)) };
+  auto const               group{ static_cast<std::uint8_t>(opeu_unit_group_index(unit)) };
+  auto const               division{ Near(data, GroupOf(data, side, group)) };
+  bool const               side_selected{ opeu_find_side_selected_unit(game, static_cast<uint8_t>(side)) == unit };
+  bool const               group_selected{ opeu_find_group_selected_unit(game, division) == unit };
   opeu_unit_name(game, unit, name);
   // The side that watches: the enemy when a player commands it and may see the regiment, else its own side when a
   // player commands it and the regiment may be selected.

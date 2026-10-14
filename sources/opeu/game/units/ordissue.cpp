@@ -2,12 +2,10 @@
 // division (from its last selected regiment). The order menu repeats until an order is chosen (a repair needs repair
 // crews); then a target cell is picked (rest in division mode keeps each regiment's own cell) and checked against the
 // order. A refused target explains why and is picked again; an accepted order is announced and stored in the regiment,
-// or in every ready, selectable regiment of the division. The picked cell and the message text stay in the data
-// segment, where the services read and write them.
+// or in every ready, selectable regiment of the division.
 #include "units/ordissue.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
-#include "common/memory.hpp"
 #include "common/order.hpp"
 #include "core/dialogs.hpp"
 #include "core/people.hpp"
@@ -29,14 +27,13 @@
 #include "services.hpp"
 #include "units/ordact.hpp"
 
+#include <cstddef>
+
 using namespace opeu::game;
 
 namespace {
-// The locals the services read and write, as offsets below the top of the routine's reserve.
-constexpr std::uint16_t LOCALS_BYTES{ 0x7c };
-enum ServiceLocal : std::uint16_t {
-  BUFFER = 0x7c, // the message text
-};
+// The message text the services format: the room it had in the routine's frame.
+constexpr std::size_t MESSAGE_BYTES{ 0x7c };
 // The order menu of a whole division.
 constexpr std::uint8_t DIVISION_MENU{ 3 };
 // Where the order menu's speaker is shown.
@@ -51,15 +48,13 @@ constexpr std::uint8_t NO_CELL{ 0xff };
 
 // group: the division (of the current side) the order is for.
 void opeu_unit_order_menu(Game& game, uint8_t group) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ LOCALS_BYTES };
-  auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - offset)); } };
-  GridCell            cell{};
-  auto const          buffer{ local(BUFFER) };
-  auto const          side{ data.current_side };
-  auto const          whole{ data.unit_order_active != 0 };
-  auto const          division_units{ [&](std::uint8_t index) -> Unit& { return data.units[(side * GROUPS_PER_SIDE + group) * 8 + index]; } };
-  auto                unit{ data.row_units[data.list_row] };
+  auto&                     data{ Data(game) };
+  GridCell                  cell{};
+  TextBuffer<MESSAGE_BYTES> buffer;
+  auto const                side{ data.current_side };
+  auto const                whole{ data.unit_order_active != 0 };
+  auto const                division_units{ [&](std::uint8_t index) -> Unit& { return data.units[(side * GROUPS_PER_SIDE + group) * 8 + index]; } };
+  auto                      unit{ data.row_units[data.list_row] };
   if (whole) {
     // The last regiment with the selection flag; without one, the listed regiment.
     for (std::uint8_t index{ 0 }; index < 8; ++index)

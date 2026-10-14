@@ -6,8 +6,8 @@
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
 #include "common/map-grid.hpp"
-#include "common/memory.hpp"
 #include "common/menu.hpp"
+#include "common/view-service.hpp"
 #include "core/textout.hpp"
 #include "types.hpp"
 
@@ -47,26 +47,21 @@ constexpr std::uint8_t LIST_FIRST{ 7 };
 constexpr std::uint8_t LIST_AGAIN{ 6 };
 constexpr std::uint8_t ALLOC_FIRST{ 11 };
 constexpr std::uint8_t ALLOC_AGAIN{ 10 };
-// The list dialog's state from list_window on, saved around each nested list.
-constexpr std::uint16_t LIST_STATE_SIZE{ 7 };
 // Element slots of a regiment: six in an armoured class, four otherwise; and the stock items of an objective.
 constexpr std::uint8_t ARMOURED_SLOTS{ 6 };
 constexpr std::uint8_t OTHER_SLOTS{ 4 };
 constexpr std::uint8_t STOCK_ITEMS{ 6 };
 
-// The command's locals whose near addresses reach services, at their places below the top of its reserve.
-enum Locals : std::uint16_t {
-  UNIT_LIST   = 0x2e, // the saved list states
-  SLOT_LIST   = 0x9e,
-  TYPE_LIST   = 0xa8,
-  PROMPT_TEXT = 0x92,
-};
-constexpr std::uint16_t LOCALS_BYTES{ TYPE_LIST };
+// The prompt the format service writes for the amount to take (the room it had in the command's frame).
+constexpr std::size_t PROMPT_BYTES{ 0x64 };
 
-// The near address of one of the command's locals in its reserve.
-auto LocalAt(ServiceLocals const& locals, Locals local) -> std::uint16_t {
-  return locals.At(static_cast<std::uint16_t>(LOCALS_BYTES - local));
-}
+// The command's lists' window states, each saved after its list and restored before it is shown again, and its prompt.
+struct Locals {
+  ListWindowState          units{};
+  ListWindowState          slots{};
+  ListWindowState          types{};
+  TextBuffer<PROMPT_BYTES> prompt;
+};
 
 auto SlotsOf(Game& game, std::uint16_t unit) -> std::uint8_t {
   return opeu_category_0_to_3(opeu_unit_index(unit)) ? ARMOURED_SLOTS : OTHER_SLOTS;
@@ -81,10 +76,8 @@ auto Refresh(Game& game) -> void {
 }
 
 // Runs the allocation dialog until the player completes or cancels it; a completed allocation delays the side.
-auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> void {
-  auto&      data{ Data(game) };
-  auto const state{ Near(data, data.list_window) };
-  auto const text{ LocalAt(locals, PROMPT_TEXT) };
+auto Allocate(Game& game, Locals& locals, Allocation const& a) -> void {
+  auto& data{ Data(game) };
   data.supply_count          = a.slots;
   data.supply_slot_list.rows = static_cast<std::uint8_t>(a.slots + a.other_slots + a.spare_slots + 1);
   data.supply_type_list.rows = static_cast<std::uint8_t>(a.types + 1);
@@ -98,7 +91,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
   auto flags{ ALLOC_FIRST };
   for (;;) {
     opeu_ops_chief_text(game, Near(data, data.organize_dispatch));
-    opeu_copy_bytes(game, LocalAt(locals, SLOT_LIST), state, LIST_STATE_SIZE);
+    RestoreListWindow(game, locals.slots);
     if (!opeu_list_dialog(game, data.supply_slot_list, { 1, static_cast<std::uint8_t>(flags) })) {
       if (!data.supply_total && opeu_alloc_groups_nonempty(game, static_cast<uint8_t>(a.slots), static_cast<uint8_t>(a.other_slots)) == 1) {
         if (!opeu_ops_chief_wait(game, Near(data, data.organize_complete))) {
@@ -118,15 +111,15 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
       back_to_map();
       return;
     }
-    opeu_copy_bytes(game, state, LocalAt(locals, SLOT_LIST), LIST_STATE_SIZE);
+    locals.slots = SaveListWindow(game);
     std::uint8_t const slot{ data.list_row };
     auto const         item{ Near(data, data.alloc_slots[slot]) };
     std::uint8_t       next{ ALLOC_FIRST };
     for (;;) {
       opeu_ops_chief_text(game, Near(data, data.organize_select));
-      opeu_copy_bytes(game, LocalAt(locals, TYPE_LIST), state, LIST_STATE_SIZE);
+      RestoreListWindow(game, locals.types);
       if (!opeu_list_dialog(game, data.supply_type_list, { 1, static_cast<std::uint8_t>(flags) })) break;
-      opeu_copy_bytes(game, state, LocalAt(locals, TYPE_LIST), LIST_STATE_SIZE);
+      locals.types = SaveListWindow(game);
       std::uint8_t const row{ data.list_row };
       auto const&        type{ data.element_types[data.supply_types[row]] };
       opeu_alloc_type_panel(game, static_cast<uint8_t>(row), Near(data, type));
@@ -134,8 +127,8 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
       std::uint16_t const capacity{ data.request_capacities[type.category] };
       std::uint16_t const limit{ static_cast<std::uint16_t>(!a.other_slots && a.slots - 1 < slot ? capacity * 3 : capacity) };
       std::uint16_t const most{ limit < data.supply_amounts[row] ? limit : data.supply_amounts[row] };
-      opeu_request_format(game, text, std::array<FormatArgument, 1>{ Near(data, data.organize_number) });
-      auto const amount{ opeu_ops_chief_number(game, text, 1, most, 1, 0) };
+      opeu_request_format(game, locals.prompt, std::array<FormatArgument, 1>{ Near(data, data.organize_number) });
+      auto const amount{ opeu_ops_chief_number(game, locals.prompt, 1, most, 1, 0) };
       if (amount == MENU_CANCELLED) continue;
       opeu_alloc_take(game, { .entry = item, .slot = row, .amount = amount }, a.types);
       next = ALLOC_AGAIN;
@@ -147,17 +140,16 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
 } // namespace
 
 void opeu_turn_action_6(Game& game) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ LOCALS_BYTES };
-  auto const          state{ Near(data, data.list_window) };
-  auto const          text{ LocalAt(locals, PROMPT_TEXT) };
-  auto const          person{ [&] { return data.context_record2; } };
-  auto const          units{ Near(data, data.row_units) };
+  auto&      data{ Data(game) };
+  Locals     locals;
+  auto&      text{ locals.prompt };
+  auto const person{ [&] { return data.context_record2; } };
+  auto const units{ Near(data, data.row_units) };
   opeu_title_panel_begin(game);
   auto flags{ LIST_FIRST };
   Refresh(game);
   for (;;) {
-    opeu_copy_bytes(game, LocalAt(locals, UNIT_LIST), state, LIST_STATE_SIZE);
+    RestoreListWindow(game, locals.units);
     data.organize_list.rows = static_cast<std::uint8_t>(opeu_side_supported_units(game, static_cast<uint8_t>(data.current_side), units)) + 1;
     if (data.organize_list.rows == 1) {
       opeu_control_message(game, Near(data, data.organize_none), person());
@@ -166,7 +158,7 @@ void opeu_turn_action_6(Game& game) {
     SetListPredicate(data.organize_list, ListSelect::SUPPLY_UNIT_ELIGIBLE);
     opeu_control_message(game, Near(data, data.organize_which), person());
     if (!opeu_list_dialog(game, data.organize_list, { 1, static_cast<std::uint8_t>(flags) })) break;
-    opeu_copy_bytes(game, state, LocalAt(locals, UNIT_LIST), LIST_STATE_SIZE);
+    locals.units = SaveListWindow(game);
     auto const unit{ data.row_units[data.list_row] };
     opeu_unit_announce(game, flags);
     auto const   elements{ static_cast<std::uint8_t>(opeu_list_length(game, unit)) };

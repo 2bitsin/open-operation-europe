@@ -70,8 +70,8 @@ auto OrderCount(std::array<std::uint8_t, 8> const& codes) -> std::uint8_t {
   return count;
 }
 
-auto CheckOrderTarget(Game& game, OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint16_t unit, std::uint8_t x, std::uint8_t y, std::uint8_t& kind,
-                      std::uint16_t& target) -> bool {
+auto CheckOrderTarget(Game& game, OrderPrompts const& prompts, TextTarget buffer, std::uint16_t person, std::uint16_t unit, std::uint8_t x, std::uint8_t y, std::uint8_t& kind, std::uint16_t& target)
+    -> bool {
   auto&      data{ Data(game) };
   auto const side{ data.current_side };
   auto const enemy{ opeu_opposite_side(side) };
@@ -135,7 +135,7 @@ auto CheckOrderTarget(Game& game, OrderPrompts const& prompts, std::uint16_t buf
   }
 }
 
-auto AnnounceOrder(Game& game, OrderPrompts const& prompts, std::uint16_t buffer, std::uint16_t person, std::uint8_t kind) -> void {
+auto AnnounceOrder(Game& game, OrderPrompts const& prompts, TextTarget buffer, std::uint16_t person, std::uint8_t kind) -> void {
   auto& data{ Data(game) };
   opeu_request_format(game, buffer, std::array<FormatArgument, 2>{ Near(data, prompts.understood), data.order_names[kind + 3] });
   auto const engineering{ [&](OrderMessage message) { opeu_request_format(game, buffer, std::array<FormatArgument, 1>{ opeu_message_lookup(game, static_cast<int16_t>(message)) }); } };

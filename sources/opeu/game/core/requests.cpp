@@ -30,11 +30,11 @@ constexpr uint8_t TEMPLATE_KIND{ 5 }; // the person template that speaks the req
 // For each side: the request booked in its configuration counts its delay down and, when it runs out, is carried out
 // if it is still valid; then the first filed request that the hour's one-in-six roll picks reaches headquarters and is
 // accepted when its kind is enabled, no other request is booked and a roll in 0..255 falls below the acceptance
-// threshold of its kind. The threshold of an unknown kind is the caller's stale_threshold (the game reads an
-// uninitialised word there).
-void opeu_hourly_c_stage_b(Game& game, uint16_t stale_threshold) {
-  auto& data{ Data(game) };
-  auto  threshold{ stale_threshold };
+// threshold of its kind. An unknown kind keeps the last threshold, 0 before the first (the original read an
+// uninitialised word of its caller's frame there).
+void opeu_hourly_c_stage_b(Game& game) {
+  auto&    data{ Data(game) };
+  uint16_t threshold{ 0 };
   for (uint8_t side = 0; side < SIDE_COUNT; ++side) {
     auto&      config{ data.request_configs[side] };
     auto const config_at{ Near(data, config) };

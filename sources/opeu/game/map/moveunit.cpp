@@ -5,7 +5,6 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 #include "common/map-grid.hpp"
-#include "common/memory.hpp"
 #include "core/limits.hpp"
 #include "core/numeric.hpp"
 #include "core/recindex.hpp"
@@ -39,11 +38,6 @@ constexpr uint8_t  POINTS_LIMIT{ 99 };
 constexpr uint8_t  NEAR_DESTINATION{ 3 }; // cells: replan the route from closer than this
 constexpr uint8_t  ROUTE_STEPS{ 10 };     // the farthest a planned waypoint lies
 constexpr uint16_t STUCK{ 0xffff };       // the step toward found no cell
-// The DS reserve whose bytes receive the unit's order destination: where the unit has none they keep what they held.
-// It is held for the whole move, so the services the move calls reserve theirs below it.
-constexpr uint16_t GOAL_RESERVE{ 0x1a };
-constexpr uint16_t GOAL_X_AT{ 2 };
-constexpr uint16_t GOAL_Y_AT{ 0 };
 
 // The cell up to ROUTE_STEPS steps from a cell toward the goal along the path grid.
 [[nodiscard]] auto Waypoint(PathGrid const& path, GridCell from, GridCell goal) -> GridCell {
@@ -60,7 +54,7 @@ class UnitMove {
 public:
   UnitMove(Game& game, bool repeat)
       : _game{ game }, _data{ Data(game) }, _current{ _data.current_unit_ptr }, _unit{ Record<Unit>(_data, _current) }, _path{ FarPathGrid() }, _repeat{ repeat }, _next{ _unit.x, _unit.y },
-        _goal_reserve{ GOAL_RESERVE }, _rating{ static_cast<uint8_t>(opeu_move_rating(game)) } { }
+        _rating{ static_cast<uint8_t>(opeu_move_rating(game)) } { }
 
   void Run() {
     _unit.moved = AddByte(_unit.moved, _rating, POINTS_LIMIT);
@@ -127,15 +121,11 @@ private:
     return Verdict::GO;
   }
 
-  // The order destination, read through the DS bytes that keep their stale value for an order without a place.
+  // The order destination; an order without a place keeps the last one of the move, (0, 0) before the first (the
+  // original kept whatever its frame held).
   [[nodiscard]] auto Destination() -> GridCell {
-    auto const x_at{ _goal_reserve.At(GOAL_X_AT) };
-    auto const y_at{ _goal_reserve.At(GOAL_Y_AT) };
-    if (auto const cell{ UnitOrderDestination(_game, _current).cell }) {
-      Byte(_game, x_at) = cell->x;
-      Byte(_game, y_at) = cell->y;
-    }
-    return { Byte(_game, x_at), Byte(_game, y_at) };
+    if (auto const cell{ UnitOrderDestination(_game, _current).cell }) _goal = *cell;
+    return _goal;
   }
 
   // Whether an enemy objective or unit holds the cell.
@@ -194,18 +184,18 @@ private:
     return Verdict::GO;
   }
 
-  Game&               _game;
-  DataSegment&        _data;
-  uint16_t const      _current;
-  Unit&               _unit;
-  PathGrid const      _path;
-  bool const          _repeat;
-  GridCell            _next;
-  ServiceLocals const _goal_reserve;
-  uint8_t const       _rating;
-  bool                _shown{ false };     // the arrival view has been shown
-  bool                _committed{ false }; // the route is planned or confirmed
-  uint16_t            _remaining{ 0 };
+  Game&          _game;
+  DataSegment&   _data;
+  uint16_t const _current;
+  Unit&          _unit;
+  PathGrid const _path;
+  bool const     _repeat;
+  GridCell       _next;
+  uint8_t const  _rating;
+  bool           _shown{ false };     // the arrival view has been shown
+  bool           _committed{ false }; // the route is planned or confirmed
+  uint16_t       _remaining{ 0 };
+  GridCell       _goal{}; // the last order destination
 };
 } // namespace
 

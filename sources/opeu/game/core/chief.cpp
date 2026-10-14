@@ -49,7 +49,7 @@ void opeu_ops_chief_text(Game& game, Text text) {
 }
 
 // Shows the text and the range "(low-high)" formatted into a buffer of its own, then reads a number in the range.
-uint16_t opeu_number_prompt(Game& game, uint16_t text, uint16_t low, uint16_t high, uint16_t value, uint16_t d) {
+uint16_t opeu_number_prompt(Game& game, Text text, uint16_t low, uint16_t high, uint16_t value, uint16_t d) {
   TextBuffer<RANGE_TEXT_BYTES> buffer;
   opeu_request_format(game, buffer, std::array<FormatArgument, 3>{ RANGE_FORMAT, low, high });
   opeu_text_feed(game, text);
@@ -58,12 +58,12 @@ uint16_t opeu_number_prompt(Game& game, uint16_t text, uint16_t low, uint16_t hi
 }
 
 // The operations chief asks for a number in low..high.
-uint16_t opeu_ops_chief_number(Game& game, uint16_t text, uint16_t low, uint16_t high, uint16_t value, uint16_t d) {
+uint16_t opeu_ops_chief_number(Game& game, Text text, uint16_t low, uint16_t high, uint16_t value, uint16_t d) {
   opeu_ops_chief_show(game);
   return opeu_number_prompt(game, text, low, high, value, d);
 }
 
-uint16_t opeu_ops_chief_wait(Game& game, uint16_t text) {
+uint16_t opeu_ops_chief_wait(Game& game, Text text) {
   opeu_ops_chief_show(game);
   return opeu_confirm_prompt(game, text);
 }

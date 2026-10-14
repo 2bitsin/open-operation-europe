@@ -13,14 +13,12 @@
 
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
-#include "common/memory.hpp"
 #include "core/dialogs.hpp"
 #include "io/sound.hpp"
 #include "io/waitkey.hpp"
 #include "port.hpp"
 #include "services.hpp"
 
-#include <array>
 #include <cstddef>
 
 using namespace opeu::game;
@@ -34,14 +32,16 @@ constexpr std::uint16_t DEATH_CONTEXT{ 0x10 };
 constexpr std::uint8_t  ADVISER{ 3 };      // the side record kind of the adviser
 constexpr std::uint8_t  GENERAL_ROLE{ 1 }; // the role that becomes a deputy instead of dying
 
-// The death notice in the dying general's reserve (the message service shows it): "Commander " + name + suffix, and the side right after it.
-// A name of seven or more characters runs the text into the side byte, and the second status test then reads the
-// overwritten side.
-struct DeathNotice {
-  std::array<char, 50> text;
-  std::uint8_t         side;
-};
-constexpr std::uint16_t NOTICE_BYTES{ 0x34 };
+// The death notice the message service shows, "Commander " + name + suffix, built in one buffer with the side right
+// after the text's room. A name of seven or more characters runs the text into the side byte, and the second status
+// test then reads the overwritten side.
+constexpr std::size_t NOTICE_BYTES{ 0x34 };
+constexpr std::size_t NOTICE_SIDE{ 50 }; // the side's byte in the notice
+
+// The side kept in the notice's side byte, as the second status test reads it.
+auto NoticeSide(TextBuffer<NOTICE_BYTES>& notice) -> std::uint8_t {
+  return static_cast<std::uint8_t>(notice.Characters()[NOTICE_SIDE]);
+}
 } // namespace
 
 // The presentation (Presenter::DEATH): a pause.
@@ -51,22 +51,21 @@ void opeu_death_present(Game& game) {
 
 // Replaces the dead general with a new deputy; a side the player watches is told by its adviser.
 void opeu_commander_death(Game& game, uint16_t person) {
-  ServiceLocals const locals{ NOTICE_BYTES };
-  auto&               data{ Data(game) };
-  auto const          at{ locals.At(0) };
-  auto&               notice{ Record<DeathNotice>(data, at) };
-  notice.side = opeu_person_lacks_side0_flag(game, person);
-  if (data.side_status[notice.side] == SIDE_PLAYED) {
-    opeu_string_copy(game, at, DEATH_PREFIX);
-    opeu_string_append(game, at, person);
-    opeu_string_append(game, at, DEATH_SUFFIX);
+  TextBuffer<NOTICE_BYTES> notice;
+  auto&                    data{ Data(game) };
+  notice.Characters()[NOTICE_SIDE] = static_cast<char>(opeu_person_lacks_side0_flag(game, person));
+  if (data.side_status[NoticeSide(notice)] == SIDE_PLAYED) {
+    opeu_string_copy(game, notice, DEATH_PREFIX);
+    opeu_string_append(game, notice, person);
+    opeu_string_append(game, notice, DEATH_SUFFIX);
   }
   opeu_initialize_deputy(game, person);
-  if (data.side_status[notice.side] == SIDE_PLAYED) {
+  std::uint8_t const side{ NoticeSide(notice) };
+  if (data.side_status[side] == SIDE_PLAYED) {
     opeu_set_turn_context(game, DEATH_CONTEXT);
     opeu_finish_side_initialization(game, 0);
-    opeu_daily_show(game, DEATH_SHOW, notice.side, Presenter::DEATH);
-    opeu_control_message(game, at, opeu_find_side_record(game, notice.side, ADVISER));
+    opeu_daily_show(game, DEATH_SHOW, side, Presenter::DEATH);
+    opeu_control_message(game, notice, opeu_find_side_record(game, side, ADVISER));
   }
 }
 

@@ -4,7 +4,6 @@
 #include "map/influenc.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
-#include "common/memory.hpp"
 #include "core/arrivals.hpp"
 #include "core/requests.hpp"
 #include "map/power.hpp"
@@ -22,9 +21,6 @@
 using namespace opeu::game;
 
 namespace {
-// The request stage's stale-request threshold is a DS stack word its caller never sets: the bottom word of a reserve
-// this size, as the stack held it.
-constexpr uint16_t STALE_THRESHOLD_RESERVE{ 0x10 };
 constexpr unsigned UNIT_COUNT{ 2 * UNITS_PER_SIDE };
 constexpr uint8_t  BLOCK{ 4 }; // cells per influence square
 } // namespace
@@ -74,16 +70,8 @@ void opeu_update_influence_map(Game& game) {
     }
 }
 
-namespace {
-// The hour's requests, with the stale threshold the game reads from an uninitialised word of the routine's frame.
-void RunRequests(Game& game) {
-  ServiceLocals const locals{ STALE_THRESHOLD_RESERVE };
-  opeu_hourly_c_stage_b(game, Word(game, locals.At(0)));
-}
-} // namespace
-
 void opeu_turn_hourly_c(Game& game) {
   opeu_update_influence_map(game);
-  RunRequests(game);
+  opeu_hourly_c_stage_b(game);
   opeu_hourly_c_stage_c(game);
 }

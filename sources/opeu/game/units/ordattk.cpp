@@ -1,11 +1,9 @@
 // The occupy and attack orders. Next to its target the regiment lowers the order's progress by a loss roll; when it
 // runs out, an empty enemy objective is taken, otherwise the regiment opens a battle (after the player confirms it for
-// a player's division that the computer does not run). The locals the services write through their addresses stay in
-// the data segment, each routine's in its own reserve.
+// a player's division that the computer does not run). Each routine formats its texts into a buffer of its own.
 #include "units/ordattk.hpp"
 #include "common/data-segment.hpp"
 #include "common/events.hpp"
-#include "common/memory.hpp"
 #include "common/order.hpp"
 #include "core/dialogs.hpp"
 #include "core/limits.hpp"
@@ -38,14 +36,15 @@
 using namespace opeu::game;
 
 namespace {
-// The locals the services read and write, as offsets below the top of the routine's reserve.
-enum ServiceLocal : std::uint16_t {
+// The texts the services format, as offsets below the top of each routine's buffer: one buffer per routine, shared
+// as its texts shared the routine's frame.
+enum Local : std::uint16_t {
   OCCUPY_TEXT = 0x6a, // occupy: the report
   ATTACK_NAME = 0x10, // attack: the target's name
   ATTACK_TEXT = 0x2e, // attack: the target's label
   START_TEXT  = 0x66, // attack_start: the confirmation and report text
 };
-// The reserves: each routine's deepest local.
+// The buffers: each routine's deepest text.
 constexpr std::uint16_t START_BYTES{ START_TEXT };
 constexpr std::uint16_t OCCUPY_BYTES{ 0x6c };
 constexpr std::uint16_t ATTACK_BYTES{ 0x30 };
@@ -128,7 +127,7 @@ void opeu_order_attack_present(Game& game) {
 
 // Starts the battle against `name` at x, y: needs supplies and ammunition; a player's division the computer does not
 // run asks for confirmation; otherwise the attack must be allowed and is reported.
-uint16_t opeu_order_attack_start(Game& game, uint16_t name, uint8_t x, uint8_t y) {
+uint16_t opeu_order_attack_start(Game& game, Text name, uint8_t x, uint8_t y) {
   auto& data{ Data(game) };
   if (!opeu_move_supplied(game)) {
     opeu_unit_report(game, data.current_unit_ptr, Near(data, data.order_no_fuel));
@@ -140,9 +139,9 @@ uint16_t opeu_order_attack_start(Game& game, uint16_t name, uint8_t x, uint8_t y
     Restore(game);
     return 0;
   }
-  ServiceLocals const locals{ START_BYTES };
-  auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(START_BYTES - offset)); } };
-  auto const          text{ local(START_TEXT) };
+  TextBuffer<START_BYTES> locals;
+  auto const              local{ [&](Local offset) { return locals.At(START_BYTES - offset); } };
+  auto const              text{ local(START_TEXT) };
   if (data.side_control[data.current_side] == SIDE_PLAYED && !(Record<Group>(data, data.current_group_ptr).flags & Bits(GroupFlag::AI_MARK))
       && opeu_unit_selection_eligible(game, data.current_unit_ptr)) {
     opeu_unit_report(game, data.current_unit_ptr, Near(data, data.order_prepared));
@@ -168,10 +167,10 @@ void opeu_order_occupied_present(Game& game) {
 // The occupy order against the enemy objective of the order. An objective without arms changes hands when the regiment
 // moves in (its owner bit is flipped for the move and flipped back when the cell did not become the side's).
 uint16_t opeu_order_occupy_run(Game& game) {
-  auto&               data{ Data(game) };
-  auto const          enemy{ static_cast<std::uint8_t>(opeu_opposite_side(static_cast<uint8_t>(data.current_side))) };
-  ServiceLocals const locals{ OCCUPY_BYTES };
-  auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(OCCUPY_BYTES - offset)); } };
+  auto&                    data{ Data(game) };
+  auto const               enemy{ static_cast<std::uint8_t>(opeu_opposite_side(static_cast<uint8_t>(data.current_side))) };
+  TextBuffer<OCCUPY_BYTES> locals;
+  auto const               local{ [&](Local offset) { return locals.At(OCCUPY_BYTES - offset); } };
   auto const [objective, cell]{ opeu_move_objective_target(game, static_cast<uint8_t>(enemy)) };
   if (!objective) return 1;
   if (!opeu_move_adjacent(game, cell.x, cell.y)) return 0;
@@ -204,9 +203,9 @@ uint8_t opeu_order_attack_loss(Game& game) {
 
 // The attack order against the enemy regiment of the order, labelled with its side and name.
 uint16_t opeu_order_attack_run(Game& game) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ ATTACK_BYTES };
-  auto const          local{ [&](ServiceLocal offset) { return locals.At(static_cast<std::uint16_t>(ATTACK_BYTES - offset)); } };
+  auto&                    data{ Data(game) };
+  TextBuffer<ATTACK_BYTES> locals;
+  auto const               local{ [&](Local offset) { return locals.At(ATTACK_BYTES - offset); } };
   auto const [unit, cell]{ opeu_move_unit_target(game) };
   if (!unit) return 1;
   if (!opeu_move_adjacent(game, cell.x, cell.y)) return 0;

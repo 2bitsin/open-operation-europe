@@ -753,7 +753,8 @@ template <typename E>
 }
 
 // The whole segment, DS:0000..ffff. Padding bytes are unnamed; the few gaps nothing touches are unknown_XXXX with the
-// reason; stack is the DS stack from DS:ebe0.
+// reason; stack is the DS stack from DS:ebe0, which the game no longer uses as a stack: the dialogs' buffers sit at
+// its bottom and the personnel menu's post labels near its top.
 struct DataSegment {
   std::array<std::uint8_t, 66> null_area; // DS:0000: the C runtime's null-pointer area; a battalion delivery to an objective with no free item slot writes its Item here (core/reqequip)
   union {
@@ -2985,6 +2986,11 @@ struct DataSegment {
   union { // DS:ebe0
     std::array<std::uint8_t, 5152> stack;
     std::array<std::uint8_t, 5152> end;
+    struct {
+      std::array<std::uint8_t, 4828>      dialog_scratch;    // DS:ebe0: the dialogs' buffers (common/host.hpp)
+      std::array<std::array<char, 30>, 6> assign_post_texts; // DS:febc: the personnel menu's post labels (core/persmenu)
+      std::array<std::uint8_t, 144>       stack_top;         // DS:ff70
+    };
   };
 };
 
@@ -5018,6 +5024,9 @@ static_assert(offsetof(DataSegment, battle_path_costs) == 0xea52);
 static_assert(offsetof(DataSegment, battle_path_costs_bytes) == 0xea52);
 static_assert(offsetof(DataSegment, stack) == 0xebe0);
 static_assert(offsetof(DataSegment, end) == 0xebe0);
+static_assert(offsetof(DataSegment, dialog_scratch) == 0xebe0);
+static_assert(offsetof(DataSegment, assign_post_texts) == 0xfebc);
+static_assert(offsetof(DataSegment, stack_top) == 0xff70);
 
 // Counts and strides of the record tables.
 inline constexpr auto SIDE_COUNT{ 2u }; // the two sides

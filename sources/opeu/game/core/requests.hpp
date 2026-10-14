@@ -5,4 +5,4 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_hourly_c_stage_b(Game& game, uint16_t stale_threshold);
+void opeu_hourly_c_stage_b(Game& game);

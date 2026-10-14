@@ -5,7 +5,6 @@
 #include "common/dispatch.hpp"
 #include "common/events.hpp"
 #include "common/forces.hpp"
-#include "common/memory.hpp"
 #include "common/menu.hpp"
 #include "core/counter.hpp"
 #include "core/people.hpp"
@@ -37,10 +36,9 @@ constexpr uint8_t  REST_LAST{ 10 };  // the most days of leave less one
 constexpr uint8_t  ORDERS_LAST{ 3 }; // reassign, appoint, rest
 constexpr uint8_t  BUSY_ROLES{ Bits(PersonRole::ROLE_MASK) | Bits(PersonRole::DEPUTY) };
 
-// The texts the format service writes for the assignment menu (one 30-byte line per post) and its prompt, in the
-// routine's reserve. The menu keeps the labels' near addresses after the routine returns; a later list draw reads
-// what is left there (#13 gives the labels a home of their own).
-constexpr uint16_t POST_TEXT_BYTES{ 0x1e };
+// The assignment menu's prompt, which the format service writes. The post labels (one 30-byte line per post) live in
+// the data segment's assign_post_texts: the menu keeps their near addresses after the routine returns, and a later
+// list draw reads what is left there (M4 gives the menus typed labels).
 constexpr uint16_t ASSIGN_PROMPT_BYTES{ 0x6c };
 // The leave prompt, which the format service writes.
 constexpr uint16_t REST_PROMPT_BYTES{ 0x6a };
@@ -129,12 +127,11 @@ void opeu_commander_assign(Game& game) {
     holders[4] = opeu_find_side_record(game, data.current_side, std::to_underlying(StaffRole::OPERATIONS_CHIEF));
     holders[5] = opeu_find_side_record(game, data.current_side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF));
     // A division's line: its label, or a dash when it is not in the field, and its commander's name if any.
-    uint16_t const      no_holder[GROUPS_PER_SIDE]{ Near(data, data.no_holder_1), Near(data, data.no_holder_2), Near(data, data.no_holder_3), Near(data, data.no_holder_4) };
-    uint16_t const      formats[POSTS]{ Near(data, data.post_format_1), Near(data, data.post_format_2), Near(data, data.post_format_3),
-                                        Near(data, data.post_format_4), Near(data, data.post_format_5), Near(data, data.post_format_6) };
-    ServiceLocals const texts{ POSTS * POST_TEXT_BYTES + ASSIGN_PROMPT_BYTES };
+    uint16_t const no_holder[GROUPS_PER_SIDE]{ Near(data, data.no_holder_1), Near(data, data.no_holder_2), Near(data, data.no_holder_3), Near(data, data.no_holder_4) };
+    uint16_t const formats[POSTS]{ Near(data, data.post_format_1), Near(data, data.post_format_2), Near(data, data.post_format_3),
+                                   Near(data, data.post_format_4), Near(data, data.post_format_5), Near(data, data.post_format_6) };
     for (uint8_t post = 0; post < POSTS; post++) {
-      auto const text{ texts.At(static_cast<uint16_t>(post * POST_TEXT_BYTES)) };
+      auto const text{ Near(data, data.assign_post_texts.at(post)) };
       if (post < GROUPS_PER_SIDE) {
         auto const fielded{ GroupOf(data, data.current_side, post).flags & Bits(GroupFlag::READY) };
         opeu_request_format(
@@ -146,7 +143,7 @@ void opeu_commander_assign(Game& game) {
       data.assign_menu[post].label = text;
     }
     opeu_title_panel_begin(game);
-    auto const prompt{ texts.At(POSTS * POST_TEXT_BYTES) };
+    TextBuffer<ASSIGN_PROMPT_BYTES> prompt;
     opeu_request_format(game, prompt, std::array<FormatArgument, 2>{ Near(data, data.assign_where_prompt), general });
     for (;;) {
       uint16_t choice{ opeu_delay_dialog(game, prompt, POSTS, data.context_record2, Near(data, data.assign_menu)) };
