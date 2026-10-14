@@ -3,8 +3,6 @@
 // the planes leave the side's bombers, the enemy air defence shoots some down, the map centres on the target and the
 // bomber flies down the screen; at the target row it bombs the unit (casualties) and the objective (damage) there,
 // or reports that every bomber was lost. The survivors come back to the side at midnight.
-//
-// A local whose address reaches a service lives in the routine's ServiceLocals reserve.
 #include "core/airstrk.hpp"
 #include "common/air-flight.hpp"
 #include "common/events.hpp"

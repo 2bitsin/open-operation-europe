@@ -1,8 +1,6 @@
 // The air-raid event: from 13 June in scenario 3, by day in fair weather, each ready special regiment of side 1 may be
 // bombed (1 in 150 - 20 x level, level the delivery level when side 1 is the computer's, else 2). The side the player
 // watches gets a notice, a falling bomb over the regiment and the result; the regiment then takes casualties.
-//
-// A local whose address reaches a service lives in the routine's ServiceLocals reserve.
 #include "core/evbomb.hpp"
 #include "common/air-flight.hpp"
 #include "common/events.hpp"
