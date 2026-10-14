@@ -44,9 +44,11 @@ public:
   }
   // The value of `id`, no longer kept; none when it was not.
   [[nodiscard]] auto Release(_Id const id) -> std::optional<_Value> {
-    auto found{ _kept.extract(id) };
-    if (found.empty()) return std::nullopt;
-    return std::move(found.mapped());
+    auto const found{ _kept.find(id) };
+    if (found == _kept.end()) return std::nullopt;
+    auto value{ std::move(found->second) };
+    _kept.erase(found);
+    return value;
   }
 
 private:
