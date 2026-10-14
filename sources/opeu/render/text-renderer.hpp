@@ -26,11 +26,11 @@ inline constexpr auto ENDING_FONT{ std::string_view{ "ending-glyph" } };        
 inline constexpr auto GAME_FONT{ std::string_view{ "game-glyph" } };                     // 16x14: the Chinese edition's main font
 
 struct TextRun {
-  std::string             font;            // a font of the pack (TEXT_FONT, ...)
-  std::vector<GlyphIndex> glyphs;          // in the font's code order
+  std::string             font{};          // a font of the pack (TEXT_FONT, ...)
+  std::vector<GlyphIndex> glyphs{};        // in the font's code order
   Rgba                    colour{ WHITE }; // the pen
   Point                   at{};            // the first cell's top left corner
-  std::optional<Rgba>     paper;           // the cells filled with it first: text drawn opaque
+  std::optional<Rgba>     paper{};         // the cells filled with it first: text drawn opaque
 
   auto operator==(TextRun const&) const -> bool = default;
 };

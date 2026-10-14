@@ -10,6 +10,7 @@
 #include "opeu/assets/pack.hpp"
 #include "opeu/assets/texture.hpp"
 #include "opeu/render/display.hpp"
+#include "opeu/render/recognised-images.hpp"
 #include "opeu/render/source-layer.hpp"
 #include "opeu/services/kept-handles.hpp"
 #include "opeu/services/machine-display.hpp"
@@ -18,7 +19,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <map>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -30,14 +30,6 @@ inline constexpr auto PALETTE_LEVELS{ 768uz }; // three 8-bit levels per palette
 
 // The drawing library's 16-bit argument word (a coordinate, a count, a colour or pen word).
 using Word = decltype(services::Point::x);
-
-// How the images the game handed over were found in the pack.
-struct ByteStatistics {
-  std::size_t recognised{}; // known by their bytes and in the pack: their cells name it
-  std::size_t unpacked{};   // known by their bytes, but the pack lacks the id: their cells are raw
-
-  auto operator==(ByteStatistics const&) const -> bool = default;
-};
 
 class RenderDisplay final : public services::Display {
 public:
@@ -107,7 +99,7 @@ public:
   // the previous call.
   auto               RenderIndexed(std::span<std::uint8_t, FRAME_PIXELS> frame, std::span<std::uint8_t, PALETTE_LEVELS> palette) -> bool;
   [[nodiscard]] auto Statistics() const noexcept -> ByteStatistics {
-    return _statistics;
+    return _images.Statistics();
   }
   // Where the frame's cells came from.
   [[nodiscard]] auto Sources() const noexcept -> SourceLayer const& {
@@ -119,9 +111,9 @@ public:
 private:
   // An image the game handed over as bytes, laid at `area` (frame pixels).
   struct Handed {
-    assets::ContentKey key;
-    Rect               area;
-    std::uint8_t       colours{};
+    std::optional<std::string_view> id; // the pack image, when the bytes are one
+    Rect                            area;
+    std::uint8_t                    colours{};
   };
   // The last XOR highlight: drawn again over the same place, it puts its cells back.
   struct Highlighted {
@@ -131,28 +123,23 @@ private:
   };
 
   // The source of `handed`'s cells: its pack image when recognised and packed, else none (the cells it touches raw).
-  auto               Lay(Handed const& handed) -> void;
-  [[nodiscard]] auto Recognised(assets::ContentKey const& key) -> std::optional<ImageNumber>;
-  auto               LayCut(Handed const& handed, std::span<std::uint8_t const> cut) -> void;
-  auto               ToggleHighlight(services::Area area, Word colour) -> void;
-  auto               LayPicture(services::Point at, std::span<std::uint8_t const> stream, assets::Layout layout) -> void;
+  auto Lay(Handed const& handed) -> void;
+  auto LayCut(Handed const& handed, std::span<std::uint8_t const> cut) -> void;
+  auto ToggleHighlight(services::Area area, Word colour) -> void;
+  auto LayPicture(services::Point at, std::span<std::uint8_t const> stream, assets::Layout layout) -> void;
 
   render::Display                                          _display;
-  std::reference_wrapper<assets::AssetPack const>          _pack;
-  std::reference_wrapper<assets::ContentIndex const>       _index;
+  RecognisedImages                                         _images;
   services::NativeDisplay                                  _native;
   SourceLayer                                              _sources;
   services::KeptHandles<services::SnapshotId, KeptSources> _kept{ services::KEPT_SNAPSHOTS };
   services::KeptHandles<services::OverlayId, Toggled>      _overlays{ services::KEPT_OVERLAYS };
-  std::map<std::string_view, bool, std::less<>>            _packed; // whether the pack holds each recognised id
   std::optional<Highlighted>                               _highlighted;
-  ByteStatistics                                           _statistics;
 };
 
 }
 
 namespace opeu::render {
-using detail::render_display::ByteStatistics;
 using detail::render_display::FRAME_PIXELS;
 using detail::render_display::PALETTE_LEVELS;
 using detail::render_display::RenderDisplay;

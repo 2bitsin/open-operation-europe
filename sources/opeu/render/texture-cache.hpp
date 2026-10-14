@@ -24,9 +24,9 @@
 namespace opeu::render::detail::texture_cache {
 
 struct TextureKey {
-  std::string                           asset;
-  std::string                           palette;                  // empty: the asset's own image, as the pack holds it
-  std::optional<assets::PaletteColours> colours;                  // colours rather than a named palette: they win
+  std::string                           asset{};
+  std::string                           palette{};                // empty: the asset's own image, as the pack holds it
+  std::optional<assets::PaletteColours> colours{};                // colours rather than a named palette: they win
   Keying                                keying{ Keying::OPAQUE }; // whether colour 0 lets the screen show
 
   auto operator<=>(TextureKey const&) const = default;

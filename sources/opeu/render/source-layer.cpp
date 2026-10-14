@@ -3,8 +3,10 @@
 #include "opeu/contract.hpp"
 
 #include <algorithm>
+#include <iterator>
 #include <numeric>
 #include <ranges>
+#include <span>
 #include <utility>
 
 namespace opeu::render::detail::source_layer {
@@ -41,8 +43,8 @@ struct CellRange {
 [[nodiscard]] constexpr auto Touched(Rect const area) noexcept -> CellRange {
   if (Empty(area)) return {};
   return OnTheFrame({
-      .first = { .x = CellBelow(area.x),              .y = CellBelow(area.y)               },
-        .last = { .x = CellAbove(area.x + area.width), .y = CellAbove(area.y + area.height) }
+      .first = { .x = CellBelow(area.x),              .y = CellBelow(area.y - CELL_TOP)               },
+        .last = { .x = CellAbove(area.x + area.width), .y = CellAbove(area.y - CELL_TOP + area.height) }
   });
 }
 
@@ -50,8 +52,8 @@ struct CellRange {
 [[nodiscard]] constexpr auto Covered(Rect const area) noexcept -> CellRange {
   if (Empty(area)) return {};
   return OnTheFrame({
-      .first = { .x = CellAbove(area.x),              .y = CellAbove(area.y)               },
-        .last = { .x = CellBelow(area.x + area.width), .y = CellBelow(area.y + area.height) }
+      .first = { .x = CellAbove(area.x),              .y = CellAbove(area.y - CELL_TOP)               },
+        .last = { .x = CellBelow(area.x + area.width), .y = CellBelow(area.y - CELL_TOP + area.height) }
   });
 }
 
@@ -83,8 +85,20 @@ struct CellRange {
   return static_cast<std::size_t>(((cell.y - range.first.y) * Across(range)) + (cell.x - range.first.x));
 }
 
+// A non-empty rectangle of whole cells of the grid.
+[[nodiscard]] constexpr auto WholeCells(Rect const area) noexcept -> bool {
+  auto const top{ area.y - CELL_TOP };
+  auto const on_the_grid{ area.x >= 0 && top >= 0 && area.x + area.width <= CELL_COLUMNS * CELL && top + area.height <= CELL_ROWS * CELL };
+  return on_the_grid && !Empty(area) && area.x % CELL == 0 && top % CELL == 0 && area.width % CELL == 0 && area.height % CELL == 0;
+}
+
+// The grid cell whose top-left corner is frame pixel `at` (a corner of the grid).
+[[nodiscard]] constexpr auto CellAt(Point const at) noexcept -> Point {
+  return Point{ .x = at.x / CELL, .y = (at.y - CELL_TOP) / CELL };
+}
+
 [[nodiscard]] constexpr auto Corner(Point const cell) noexcept -> Point {
-  return Point{ .x = cell.x * CELL, .y = cell.y * CELL };
+  return Point{ .x = cell.x * CELL, .y = (cell.y * CELL) + CELL_TOP };
 }
 
 constexpr auto GRID{ static_cast<std::size_t>(CELL_COLUMNS * CELL_ROWS) };
@@ -108,21 +122,31 @@ auto SourceLayer::Name(ImageNumber const image) const -> std::optional<std::stri
 }
 
 auto SourceLayer::Place(Rect const area, Placed const placed) -> void {
-  ++_write;
+  Clear(area);
   auto const covered{ Covered(area) };
-  std::ranges::for_each(CellsOf(Touched(area)), [&](Point const cell) {
-    if (!Contains(covered, cell)) return Write(cell, Source{});
-    auto const corner{ Corner(cell) };
-    Write(cell, Source{
-                    .image = placed.image, .offset = { .x = corner.x - placed.at.x, .y = corner.y - placed.at.y },
-                         .colours = placed.colours
-    });
+  auto const across{ static_cast<std::size_t>(Across(covered)) };
+  std::ranges::for_each(std::views::iota(covered.first.y, covered.last.y), [&](int const row) {
+    auto const first{ GridIndex({ .x = covered.first.x, .y = row }) };
+    auto const named{ [&](int const column) {
+      auto const corner{ Corner({ .x = column, .y = row }) };
+      return Source{
+        .image = placed.image, .offset = { .x = corner.x - placed.at.x, .y = corner.y - placed.at.y },
+             .colours = placed.colours
+      };
+    } };
+    std::ranges::transform(std::views::iota(covered.first.x, covered.last.x), std::span{ _cells }.subspan(first, across).begin(), named);
   });
 }
 
 auto SourceLayer::Clear(Rect const area) -> void {
   ++_write;
-  std::ranges::for_each(CellsOf(Touched(area)), [this](Point const cell) { Write(cell, Source{}); });
+  auto const range{ Touched(area) };
+  auto const across{ static_cast<std::size_t>(Across(range)) };
+  std::ranges::for_each(std::views::iota(range.first.y, range.last.y), [&](int const row) {
+    auto const first{ GridIndex({ .x = range.first.x, .y = row }) };
+    std::ranges::fill(std::span{ _cells }.subspan(first, across), Source{});
+    std::ranges::fill(std::span{ _writes }.subspan(first, across), _write);
+  });
 }
 
 auto SourceLayer::ClearAll() -> void {
@@ -138,14 +162,48 @@ auto SourceLayer::Put(KeptSources const& kept, Point const at) -> void {
   auto const shift{
     Point{ .x = at.x - kept.area.x, .y = at.y - kept.area.y }
   };
-  auto const whole{ shift.x % CELL == 0 && shift.y % CELL == 0 };
-  auto const from{ Touched(kept.area) };
   auto const destination{ geometry::At(at, Dimensions(kept.area)) };
+  if (shift.x % CELL != 0 || shift.y % CELL != 0) return Clear(destination); // no cell moved whole
+  auto const from{ Touched(kept.area) };
   auto const covered{ Covered(destination) };
   std::ranges::for_each(CellsOf(Touched(destination)), [&](Point const cell) {
-    auto const index{ whole && Contains(covered, cell) ? KeptIndex(from, { .x = cell.x - (shift.x / CELL), .y = cell.y - (shift.y / CELL) }) : std::nullopt };
+    auto const index{ Contains(covered, cell) ? KeptIndex(from, { .x = cell.x - (shift.x / CELL), .y = cell.y - (shift.y / CELL) }) : std::nullopt };
     Write(cell, index ? kept.cells[*index] : Source{});
   });
+}
+
+auto SourceLayer::Move(Rect const from, Point const to) -> void {
+  auto const destination{ geometry::At(to, Dimensions(from)) };
+  if ((to.x - from.x) % CELL != 0 || (to.y - from.y) % CELL != 0) return Clear(destination); // no cell moved whole
+  if (WholeCells(from) && WholeCells(destination)) return MoveCells(from, to);
+  _moving.area = from;
+  _moving.cells.clear();
+  std::ranges::transform(CellsOf(Touched(from)), std::back_inserter(_moving.cells), [this](Point const cell) { return At(cell); });
+  Put(_moving, to);
+}
+
+// A copy from cell corner to cell corner, on the frame: each row of cells copied as it was (through the scratch, so an
+// overlapping copy reads the cells before they are written).
+// Row by row in the direction memmove would take, so an overlapping copy reads each cell before it is written.
+auto SourceLayer::MoveCells(Rect const from, Point const to) -> void {
+  ++_write;
+  auto const across{ static_cast<std::size_t>(from.width / CELL) };
+  auto const source{ GridIndex(CellAt({ .x = from.x, .y = from.y })) };
+  auto const target{ GridIndex(CellAt(to)) };
+  auto const rows{ std::views::iota(0uz, static_cast<std::size_t>(from.height / CELL)) };
+  auto const row{ [&](std::size_t const n) {
+    auto const cells{ std::span{ _cells } };
+    auto const at{ n * static_cast<std::size_t>(CELL_COLUMNS) };
+    if (target < source)
+      std::ranges::copy(cells.subspan(source + at, across), cells.subspan(target + at).begin());
+    else
+      std::ranges::copy_backward(cells.subspan(source + at, across), cells.subspan(target + at, across).end());
+    std::ranges::fill(std::span{ _writes }.subspan(target + at, across), _write);
+  } };
+  if (target < source)
+    std::ranges::for_each(rows, row);
+  else
+    std::ranges::for_each(rows | std::views::reverse, row);
 }
 
 auto SourceLayer::Toggle(Rect const area) -> Toggled {

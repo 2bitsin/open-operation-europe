@@ -10,17 +10,20 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace opeu::render::detail::source_layer {
 
 inline constexpr auto CELL{ 8 };
+// The first row of cells starts at frame line 4: the map view's 24-line tiles lie at line 4 mod 8, so each covers 3 x 3
+// whole cells. The four lines above and below the grid are outside the game area (lines 40 to 439) and always raw.
+inline constexpr auto CELL_TOP{ 4 };
 inline constexpr auto CELL_COLUMNS{ LOGICAL_SIZE.width / CELL };
-inline constexpr auto CELL_ROWS{ LOGICAL_SIZE.height / CELL };
+inline constexpr auto CELL_ROWS{ (LOGICAL_SIZE.height - CELL_TOP) / CELL };
 
 // An image of the layer's names (1 up; 0 is raw numbers).
 enum class ImageNumber : std::uint32_t {
@@ -74,6 +77,8 @@ public:
   // The kept pixels put back with their top-left corner at `at`: a cell they cover whole, moved by whole cells, takes
   // its kept source; every other cell they touch is raw.
   auto Put(KeptSources const& kept, Point at) -> void;
+  // `from` copied with its top-left corner at `to`: Put(Keep(from), to) without keeping anything.
+  auto Move(Rect from, Point to) -> void;
   // An XOR over `area`: its cells raw, and what puts them back when the same XOR undoes it.
   [[nodiscard]] auto Toggle(Rect area) -> Toggled;
   auto               Untoggle(Toggled const& toggled) -> void;
@@ -83,13 +88,24 @@ public:
   [[nodiscard]] auto Footprint() const noexcept -> std::size_t;
 
 private:
-  auto Write(Point cell, Source source) -> void;
+  // Names looked up by any string type.
+  struct NameHash {
+    using is_transparent = void;
 
-  std::vector<Source>                             _cells;
-  std::vector<std::uint32_t>                      _writes; // the write that last set each cell
-  std::uint32_t                                   _write{};
-  std::vector<std::string>                        _names;
-  std::map<std::string, ImageNumber, std::less<>> _numbers;
+    auto operator()(std::string_view const name) const noexcept -> std::size_t {
+      return std::hash<std::string_view>{}(name);
+    }
+  };
+
+  auto Write(Point cell, Source source) -> void;
+  auto MoveCells(Rect from, Point to) -> void;
+
+  std::vector<Source>                                                     _cells;
+  std::vector<std::uint32_t>                                              _writes; // the write that last set each cell
+  std::uint32_t                                                           _write{};
+  std::vector<std::string>                                                _names;
+  std::unordered_map<std::string, ImageNumber, NameHash, std::equal_to<>> _numbers;
+  KeptSources                                                             _moving; // what Move copies, its storage reused
 };
 
 }
@@ -98,6 +114,7 @@ namespace opeu::render {
 using detail::source_layer::CELL;
 using detail::source_layer::CELL_COLUMNS;
 using detail::source_layer::CELL_ROWS;
+using detail::source_layer::CELL_TOP;
 using detail::source_layer::ImageNumber;
 using detail::source_layer::KeptSources;
 using detail::source_layer::Placed;

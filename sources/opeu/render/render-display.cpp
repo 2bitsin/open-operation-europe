@@ -1,6 +1,5 @@
 #include "opeu/render/render-display.hpp"
 
-#include "opeu/assets/fingerprint.hpp"
 #include "opeu/contract.hpp"
 #include "opeu/render/texture.hpp"
 #include "opeu/services/canvas.hpp"
@@ -86,20 +85,11 @@ constexpr auto AND_PEN{ 2 };
 
 // The smallest frame rectangle holding both ends.
 [[nodiscard]] constexpr auto Bounds(services::Corners const ends) noexcept -> Rect {
-  auto const [left, right]{ std::minmax(int{ ends.from.x }, int{ ends.to.x }) };
-  auto const [top, bottom]{ std::minmax(int{ ends.from.y }, int{ ends.to.y }) };
+  auto const left{ std::min(int{ ends.from.x }, int{ ends.to.x }) };
+  auto const right{ std::max(int{ ends.from.x }, int{ ends.to.x }) };
+  auto const top{ std::min(int{ ends.from.y }, int{ ends.to.y }) };
+  auto const bottom{ std::max(int{ ends.from.y }, int{ ends.to.y }) };
   return At(FramePoint(left, top), Size{ .width = right - left + 1, .height = bottom - top + 1 });
-}
-
-[[nodiscard]] auto BytesOf(std::span<std::uint8_t const> const bytes, std::size_t const count) -> std::optional<assets::Bytes> {
-  if (bytes.size() < count) return std::nullopt;
-  return std::as_bytes(bytes.first(count));
-}
-
-// The key of a raw image of `shape` from `bytes`; none when the bytes end first.
-[[nodiscard]] auto KeyOf(assets::RawShape const& shape, std::span<std::uint8_t const> const bytes) -> std::optional<assets::ContentKey> {
-  auto const planes{ shape.layout == assets::Layout::PLANES_4 ? 4uz : shape.layout == assets::Layout::PLANES_3 ? 3uz : 1uz };
-  return BytesOf(bytes, shape.width_bytes * shape.height * planes).transform([&shape](assets::Bytes const raw) { return assets::RawKey(shape, raw); });
 }
 
 [[nodiscard]] auto ColumnShape(assets::Layout const layout, services::Area const area) -> assets::RawShape {
@@ -128,30 +118,16 @@ constexpr auto AND_PEN{ 2 };
 
 }
 
-RenderDisplay::RenderDisplay(render::Display display, assets::AssetPack const& pack, assets::ContentIndex const& index) : _display{ std::move(display) }, _pack{ pack }, _index{ index } { }
+RenderDisplay::RenderDisplay(render::Display display, assets::AssetPack const& pack, assets::ContentIndex const& index) : _display{ std::move(display) }, _images{ pack, index } { }
 
 // ---- recognition ----------------------------------------------------------------------------------------------------
 
-auto RenderDisplay::Recognised(assets::ContentKey const& key) -> std::optional<ImageNumber> {
-  auto const id{ _index.get().Recognise(key) };
-  if (!id) return std::nullopt;
-  auto packed{ _packed.find(*id) };
-  if (packed == _packed.end()) packed = _packed.emplace(*id, _pack.get().Find(*id).has_value()).first; // the pack is asked once per id
-  if (!packed->second) {
-    ++_statistics.unpacked;
-    return std::nullopt;
-  }
-  ++_statistics.recognised;
-  return _sources.Number(*id);
-}
-
 auto RenderDisplay::Lay(Handed const& handed) -> void {
-  auto const image{ Recognised(handed.key) };
-  if (!image) return _sources.Clear(handed.area);
-  _sources.Place(handed.area, Placed{
-                                  .image = *image, .at = { .x = handed.area.x, .y = handed.area.y },
-                                       .colours = handed.colours
-  });
+  if (!handed.id) return _sources.Clear(handed.area);
+  auto const placed{
+    Placed{ .image = _sources.Number(*handed.id), .at = { .x = handed.area.x, .y = handed.area.y }, .colours = handed.colours }
+  };
+  _sources.Place(handed.area, placed);
 }
 
 // The image over a cut: laid where it is recognised, then each cell whose cut keeps any pixel of the screen raw.
@@ -200,12 +176,9 @@ auto RenderDisplay::LoadPalette(std::uint8_t const first, std::span<std::uint8_t
 auto RenderDisplay::DrawColumns(services::Area const area, services::Image const image) -> bool {
   if (!_native.DrawColumns(area, image)) return false;
   auto       drawn{ ColumnRect(area) };
-  auto const key{ (image.mode & 0x7FFF) == 0 ? KeyOf(ColumnShape(assets::Layout::PLANES_4, area), image.bytes) : std::nullopt };
+  auto const plain{ (image.mode & 0x7FFF) == 0 };
   if ((image.mode & DOUBLED_ROWS) != 0) drawn.height *= 2;
-  if (key && (image.mode & DOUBLED_ROWS) == 0)
-    Lay(Handed{ .key = *key, .area = drawn, .colours = 0 });
-  else
-    _sources.Clear(drawn);
+  Lay(Handed{ .id = plain ? _images.Raw(ColumnShape(assets::Layout::PLANES_4, area), image.bytes) : std::nullopt, .area = drawn, .colours = 0 });
   return true;
 }
 
@@ -214,12 +187,8 @@ auto RenderDisplay::DrawThreeByteColumns(services::Area const area, services::Im
   if (!_native.DrawThreeByteColumns(area, image)) return false;
   auto       drawn{ ColumnRect(area) };
   auto const plain{ (image.mode & 0x3FFF) == 0 && (image.mode & (SETS_BIT_3 | DOUBLED_ROWS)) == 0 };
-  auto const key{ plain ? KeyOf(ColumnShape(assets::Layout::PLANES_3, area), image.bytes) : std::nullopt };
   if ((image.mode & DOUBLED_ROWS) != 0) drawn.height *= 2;
-  if (key)
-    Lay(Handed{ .key = *key, .area = drawn, .colours = 0 });
-  else
-    _sources.Clear(drawn);
+  Lay(Handed{ .id = plain ? _images.Raw(ColumnShape(assets::Layout::PLANES_3, area), image.bytes) : std::nullopt, .area = drawn, .colours = 0 });
   return true;
 }
 
@@ -228,21 +197,17 @@ auto RenderDisplay::DrawBits(services::Area const area, services::Image const im
   if (!_native.DrawBits(area, image)) return false;
   auto       drawn{ ColumnRect(area) };
   auto const opaque{ (image.mode & 0x7F00) == 0 && (image.mode & DOUBLED_ROWS) == 0 };
-  auto const key{ opaque ? KeyOf(ColumnShape(assets::Layout::BITMAP, area), image.bytes) : std::nullopt };
+  auto const id{ opaque ? _images.Raw(ColumnShape(assets::Layout::BITMAP, area), image.bytes) : std::nullopt };
   if ((image.mode & DOUBLED_ROWS) != 0) drawn.height *= 2;
-  if (key)
-    Lay(Handed{ .key = *key, .area = drawn, .colours = static_cast<std::uint8_t>(image.mode & 0x0F) });
-  else
-    _sources.Clear(drawn);
+  Lay(Handed{ .id = id, .area = drawn, .colours = static_cast<std::uint8_t>(image.mode & 0x0F) });
   return true;
 }
 
 auto RenderDisplay::DrawBitsOnPaper(services::Area const area, services::Image const image) -> void {
   _native.DrawBitsOnPaper(area, image);
   if (!Inside(area)) return;
-  auto const key{ KeyOf(ColumnShape(assets::Layout::BITMAP, area), image.bytes) };
-  if (!key) return _sources.Clear(ColumnRect(area));
-  Lay(Handed{ .key = *key, .area = ColumnRect(area), .colours = static_cast<std::uint8_t>((image.mode & 0x0F) | ((image.mode >> 4) & 0xF0)) });
+  Lay(Handed{
+      .id = _images.Raw(ColumnShape(assets::Layout::BITMAP, area), image.bytes), .area = ColumnRect(area), .colours = static_cast<std::uint8_t>((image.mode & 0x0F) | ((image.mode >> 4) & 0xF0)) });
 }
 
 auto RenderDisplay::DrawShiftedBits(services::Area const area, services::Image const image) -> bool {
@@ -267,7 +232,7 @@ auto RenderDisplay::CopyColumns(services::Area const from, services::Point const
   auto const source{ ColumnRect(from) };
   auto const destination{ At(ColumnPoint(to), Dimensions(source)) };
   if (!OnTheFrame(source) || !OnTheFrame(destination)) return _sources.Clear(Reach(destination));
-  _sources.Put(_sources.Keep(source), ColumnPoint(to));
+  _sources.Move(source, ColumnPoint(to));
 }
 
 auto RenderDisplay::DecodePicture(services::Point const at, PictureByteReader const& reader) -> bool {
@@ -291,7 +256,7 @@ auto RenderDisplay::LayPicture(services::Point const at, std::span<std::uint8_t 
   auto const height{ stream[2] | (stream[3] << 8) };
   auto const corner{ FramePoint(at.x & ~3, at.y) };
   _sources.Clear(At(corner, Size{ .width = ((width + 3) >> 2) * 4, .height = height }));
-  Lay(Handed{ .key = assets::StreamKey(layout, assets::FingerprintOf(std::as_bytes(stream))), .area = At(corner, Size{ .width = width, .height = height }), .colours = 0 });
+  Lay(Handed{ .id = _images.Stream(layout, stream), .area = At(corner, Size{ .width = width, .height = height }), .colours = 0 });
 }
 
 // ---- shapes --------------------------------------------------------------------------------------------------------
@@ -361,7 +326,7 @@ auto RenderDisplay::CopyCellBlock(services::Point const from, services::Point co
   auto const source{ At(ColumnPoint(from), BLOCK_SIZE) };
   auto const destination{ At(ColumnPoint(to), BLOCK_SIZE) };
   if (!OnTheFrame(source) || !OnTheFrame(destination)) return _sources.Clear(Reach(destination));
-  _sources.Put(_sources.Keep(source), ColumnPoint(to));
+  _sources.Move(source, ColumnPoint(to));
 }
 
 auto RenderDisplay::OverlayCell(services::Cell const cell, services::CellImage const image) -> void {
@@ -448,9 +413,9 @@ auto RenderDisplay::DrawSprite(services::Area const area, services::SpriteImage 
   _native.DrawSprite(area, sprite);
   auto const drawn{ Reach(ColumnRect(area)) };
   auto const layout{ (sprite.flags & 1) != 0 ? assets::Layout::PLANES_4 : assets::Layout::PLANES_3 };
-  auto const key{ OnTheFrame(drawn) ? KeyOf(ColumnShape(layout, area), sprite.or_image) : std::nullopt };
-  if (!key) return _sources.Clear(drawn);
-  LayCut(Handed{ .key = *key, .area = drawn, .colours = 0 }, sprite.and_mask);
+  auto const id{ OnTheFrame(drawn) ? _images.Raw(ColumnShape(layout, area), sprite.or_image) : std::nullopt };
+  if (!id) return _sources.Clear(drawn);
+  LayCut(Handed{ .id = id, .area = drawn, .colours = 0 }, sprite.and_mask);
 }
 
 auto RenderDisplay::DrawShiftedSprite(services::Area const area, services::SpriteImage const& sprite) -> void {
@@ -462,9 +427,9 @@ auto RenderDisplay::DrawShiftedSprite(services::Area const area, services::Sprit
 auto RenderDisplay::DrawStamp(services::Area const area, services::Stamp const& stamp) -> void {
   _native.DrawStamp(area, stamp);
   if (!Inside(area)) return;
-  auto const key{ KeyOf(ColumnShape(assets::Layout::BITMAP, area), stamp.ink) };
-  if (stamp.ink.empty() || !key) return _sources.Clear(ColumnRect(area));
-  LayCut(Handed{ .key = *key, .area = ColumnRect(area), .colours = static_cast<std::uint8_t>(stamp.colour & 0x0F) }, stamp.cut);
+  auto const id{ stamp.ink.empty() ? std::nullopt : _images.Raw(ColumnShape(assets::Layout::BITMAP, area), stamp.ink) };
+  if (!id) return _sources.Clear(ColumnRect(area));
+  LayCut(Handed{ .id = id, .area = ColumnRect(area), .colours = static_cast<std::uint8_t>(stamp.colour & 0x0F) }, stamp.cut);
 }
 
 auto RenderDisplay::DrawShiftedStamp(services::Area const area, services::Stamp const& stamp) -> void {

@@ -41,7 +41,7 @@ enum class Blending : std::uint8_t {
 // How a texture lands on the target.
 struct Blit {
   Rect                destination{};              // scaled to fit when its size is not the source's
-  std::optional<Rect> source;                     // the whole texture when empty
+  std::optional<Rect> source{};                   // the whole texture when empty
   Flip                flip{ Flip::NONE };         //
   Rgba                modulation{ WHITE };        // every pixel's colour and alpha are multiplied by it
   Blending            blending{ Blending::OVER }; //
