@@ -1,7 +1,25 @@
-# clang-tidy for the finished modules (docs/building.md "clang-tidy"). The three groups the roadmap names, with the
-# owning-memory, bounds, loop-convert and C-array checks among them; they are noisy on legacy code and apply to
-# finished modules. A legacy directory relaxes checks in its own .clang-tidy (InheritParentConfig), each with a reason.
-# House exceptions:
+# clang-tidy, the semantic gate (docs/tidy.md): tools/tidy/tidy.py runs these checks over the whole tree from the
+# compile database and gates the counts per unit against tools/tidy/baseline.json (a count never rises; a finished
+# unit reads zero). The census greps catch spellings; these catch the same rules with the compiler's understanding.
+# No directory relaxes them: legacy code is measured against the same rules and the baseline holds its distance.
+#
+# The groups, each with what it enforces of the house rules (docs/roadmap.md "Design principles: Clean Code"):
+#   bugprone-*          real defects: narrowing, swapped parameters, unchecked results, dangling views, misuse of std
+#   performance-*       copies, moves and allocations the code does not need
+#   misc-*              const-correctness, private state, internal linkage, no recursion, include hygiene
+#   modernize-*         C++23 spellings: std::array, ranges, std::print/format, trailing returns, using, nullptr, concepts
+#   cppcoreguidelines-* ownership (owning-memory, no-malloc), no globals, no goto, no varargs, no C casts, no pointer
+#                       arithmetic, no array decay, no macros
+#   readability-*       names (docs/naming.md), function size (40 lines, 3 parameters), std::min/max, contains
+#   concurrency-*       thread-unsafe C library calls (getenv, strtok, rand, ...)
+#   cert-err33-c        the C library calls whose result must be checked (CERT's list: fclose, fwrite, ...); every other
+#                       cert-* check is an alias of a check enabled above, so it is left off
+# hicpp-* is all aliases and stays off. Aliases inside the groups are off, so each finding carries one name:
+#   cppcoreguidelines-avoid-c-arrays (modernize-avoid-c-arrays), -c-copy-assignment-signature (misc-unconventional-
+#   assign-operator), -explicit-virtual-functions (modernize-use-override), -macro-to-enum (modernize-macro-to-enum),
+#   -narrowing-conversions (bugprone-narrowing-conversions), -noexcept-* (performance-noexcept-*),
+#   -non-private-member-variables-in-classes (misc-), -use-default-member-init (modernize-).
+# House exceptions (the user's style, not legacy relief):
 #   readability-identifier-length          x, y, i, n are the game's coordinates and counters
 #   readability-magic-numbers,
 #   cppcoreguidelines-avoid-magic-numbers  the game's numbers are its data (screen positions, table sizes, codes)
@@ -11,14 +29,40 @@
 #   modernize-use-designated-initializers  data tables are positional rows, one record per line
 #   cppcoreguidelines-pro-type-union-access unions stay where the data overlaps (docs/roadmap.md M4)
 #   cppcoreguidelines-avoid-do-while       a loop that runs once before its test reads best as do-while
+#   cppcoreguidelines-avoid-const-or-ref-data-members
+#                                          a class holds its injected dependencies by reference (docs/roadmap.md)
+#   cppcoreguidelines-pro-bounds-avoid-unchecked-container-access
+#                                          `a[i]` on std::array and std::span is the house subscript; bounds are
+#                                          contracts (opeu/contract.hpp), never `.at()` exceptions
+#   bugprone-signed-bitwise                integer promotion makes every byte expression `int`; the warnings gate
+#                                          (-Wconversion -Wsign-conversion) checks the sign changes that matter
+# Listed, not yet on: misc-include-cleaner (include what you use) reads 477 in render alone, a finished module: SDL's
+# umbrella header and the modules' aggregate headers; it joins when an include pass makes the finished modules clean.
+# modernize-use-trailing-return-type leaves lambdas alone: a lambda's return type is deduced in the house style.
+# bugprone-reserved-identifier allows docs/naming.md's `_CamelCase` (type template parameters, detail helpers).
 # readability-identifier-naming carries the house naming convention, docs/naming.md (authoritative; the rename tool
 # reads the same rules from its convention.json). Ignored names are the protocols C++, the standard library, oxbox and
 # SDL fix (begin/end, value_type, await_*, reflect_scheme, SDL_App*) and `_Detail` helpers left out of a re-export.
 Checks: >
   -*,
-  modernize-*,
+  bugprone-*,
+  concurrency-*,
   cppcoreguidelines-*,
+  misc-*,
+  modernize-*,
+  performance-*,
   readability-*,
+  cert-err33-c,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-c-copy-assignment-signature,
+  -cppcoreguidelines-explicit-virtual-functions,
+  -cppcoreguidelines-macro-to-enum,
+  -cppcoreguidelines-narrowing-conversions,
+  -cppcoreguidelines-noexcept-destructor,
+  -cppcoreguidelines-noexcept-move-operations,
+  -cppcoreguidelines-noexcept-swap,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-use-default-member-init,
   -readability-identifier-length,
   -readability-magic-numbers,
   -cppcoreguidelines-avoid-magic-numbers,
@@ -27,11 +71,21 @@ Checks: >
   -readability-trailing-comma,
   -modernize-use-designated-initializers,
   -cppcoreguidelines-pro-type-union-access,
-  -cppcoreguidelines-avoid-do-while
+  -cppcoreguidelines-avoid-do-while,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -bugprone-signed-bitwise,
+  -misc-include-cleaner
 WarningsAsErrors: ''
 HeaderFilterRegex: 'sources/opeu/'
+ExcludeHeaderFilterRegex: 'sources/opeu/ymfm/'
 FormatStyle: file
 CheckOptions:
+  readability-function-size.LineThreshold:                       40
+  readability-function-size.ParameterThreshold:                  3
+  misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic: true
+  bugprone-reserved-identifier.AllowedIdentifiers:               '^_[A-Z][A-Za-z0-9]*$'
+  modernize-use-trailing-return-type.TransformLambdas:           none
   readability-identifier-naming.NamespaceCase:                   lower_case
   readability-identifier-naming.InlineNamespaceCase:             lower_case
   readability-identifier-naming.ClassCase:                       CamelCase

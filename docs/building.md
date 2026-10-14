@@ -116,36 +116,25 @@ a few more casts.
 
 ## clang-tidy
 
-`.clang-tidy` at the root enables `modernize-*`, `cppcoreguidelines-*` and
-`readability-*` (with the owning-memory, bounds, C-array and loop-convert
-checks among them) less the house exceptions it lists with their reasons
-(short coordinate names, the game's numbers, clang-format's brace and
-table layout, lower-case literal suffixes, unions, do-while). The checks
-are noisy on legacy code; they apply to finished modules. A legacy
-directory may relax checks in its own `.clang-tidy`
-(`InheritParentConfig: true`) with the reason: `glue/` and `intro/` turn
-off the checks that name the 16-bit memory model (globals, C arrays,
-pointer arithmetic, unchecked indexing, reinterpret casts, the
-printf-shaped trace, `goto`) until M2 deletes it, and `port.hpp` carries
-the same exceptions in a `NOLINTBEGIN` block for the modules that include
-it. Every other remaining finding has a `NOLINT` with its reason.
-
-Run it over a module from the compile database of a build (LLVM's
-clang-tidy; on macOS `brew install llvm`):
+`bugprone-*`, `performance-*`, `misc-*`, `modernize-*`,
+`cppcoreguidelines-*`, `readability-*` (with `readability-identifier-naming`
+the house exceptions and aliases it lists with their reasons. No directory
+relaxes it; the whole tree is measured against the same rules, and
+`tools/tidy/tidy.py` gates the findings per unit per check against
+`tools/tidy/baseline.json` (a count never rises, a finished unit reads zero),
+caching each translation unit's result under `_local/tidy/`:
 
 ```
 ./buildutil build
-/opt/homebrew/opt/llvm/bin/run-clang-tidy -quiet \
-    -p _build/armv8-macos-apple-clang-release \
-    -header-filter='sources/opeu/platform/' 'sources/opeu/platform/'
+python3 tools/tidy/tidy.py --baseline tools/tidy/baseline.json      # the gate over HEAD
+python3 tools/tidy/tidy.py --worktree --unit platform               # preview one unit's uncommitted work
 ```
 
-The positional argument is a regular expression over the source paths,
-so `'sources/opeu/(glue|platform|intro|opeu)/'` runs the finished modules
-together; `-fix` applies the automatic fixes. Since
-glue, platform, intro and opeu report 126, 23, 153 and 5 identifier
-findings: all legacy names that the rename tool (`tools/rename/`, #17)
-renames. They report nothing else.
+`./buildutil test` runs the gate (`tools/tidy/pytest.ini`), and the `tidy` CI
+job publishes the scoreboard. It needs clang-tidy 19 or newer (on macOS
+`brew install llvm`). For `-fix` on one module, LLVM's runner over the
+compile database still works:
+`/opt/homebrew/opt/llvm/bin/run-clang-tidy -fix -p _build/armv8-macos-apple-clang-release 'sources/opeu/platform/'`.
 
 ## Benchmarks and profiling
 
