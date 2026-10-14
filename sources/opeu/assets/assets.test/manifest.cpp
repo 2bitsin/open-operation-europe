@@ -1,5 +1,6 @@
 // pack.json: the entries, palettes, animations and fonts, and the manifests that are refused.
 #include "packs.hpp"
+#include "present.hpp"
 
 #include "opeu/assets/manifest.hpp"
 
@@ -11,6 +12,8 @@
 namespace opeu::assets {
 
 namespace {
+
+using test::Present;
 
 using test::ClassicFile;
 using test::ToBytes;
@@ -40,24 +43,24 @@ TEST(Manifest, ReadsEveryFieldOfAnEntry) {
   ASSERT_TRUE(manifest) << Describe(manifest.error());
   auto const eye{ manifest->Find("eye/0") };
   ASSERT_TRUE(eye);
-  EXPECT_EQ(eye->asset_class, "sprites");
-  EXPECT_EQ(eye->width, 2U);
-  EXPECT_EQ(eye->height, 3U);
-  EXPECT_TRUE(eye->mask);
-  EXPECT_EQ(eye->recolour, "ink");
-  EXPECT_EQ(eye->indexed, "sprites/eye/0.index.png");
-  EXPECT_EQ(eye->animation, "blink");
-  EXPECT_EQ(eye->frame, 1U);
-  EXPECT_EQ(eye->use, "an eye");
+  EXPECT_EQ(Present(eye).asset_class, "sprites");
+  EXPECT_EQ(Present(eye).width, 2U);
+  EXPECT_EQ(Present(eye).height, 3U);
+  EXPECT_TRUE(Present(eye).mask);
+  EXPECT_EQ(Present(eye).recolour, "ink");
+  EXPECT_EQ(Present(eye).indexed, "sprites/eye/0.index.png");
+  EXPECT_EQ(Present(eye).animation, "blink");
+  EXPECT_EQ(Present(eye).frame, 1U);
+  EXPECT_EQ(Present(eye).use, "an eye");
 }
 
 TEST(Manifest, LeavesOptionalFieldsEmpty) {
   auto const eye{ Manifest::Parse(ToBytes(TINY))->Find("eye/1") };
   ASSERT_TRUE(eye);
-  EXPECT_FALSE(eye->recolour);
-  EXPECT_FALSE(eye->indexed);
-  EXPECT_TRUE(eye->animation.empty());
-  EXPECT_TRUE(eye->variant_of.empty());
+  EXPECT_FALSE(Present(eye).recolour);
+  EXPECT_FALSE(Present(eye).indexed);
+  EXPECT_TRUE(Present(eye).animation.empty());
+  EXPECT_TRUE(Present(eye).variant_of.empty());
 }
 
 TEST(Manifest, ListsIdsSortedAndKnowsTheScale) {
@@ -74,7 +77,7 @@ TEST(Manifest, KeepsPalettesAndAnimations) {
   ASSERT_TRUE(manifest);
   auto const grey{ manifest->Palette("grey") };
   ASSERT_TRUE(grey);
-  EXPECT_EQ((*grey)[15], (Colour{ .r = 120, .g = 120, .b = 120 }));
+  EXPECT_EQ(Present(grey)[15], (Colour{ .r = 120, .g = 120, .b = 120 }));
   EXPECT_FALSE(manifest->Palette("sepia"));
   EXPECT_EQ(manifest->Frames("blink"), (std::vector<std::string>{ "eye/1", "eye/0" }));
 }
@@ -83,8 +86,8 @@ TEST(Manifest, ListsItsFontsWithTheirFirstCode) {
   auto const manifest{ Manifest::Parse(ToBytes(TINY)) };
   ASSERT_TRUE(manifest);
   EXPECT_EQ(manifest->FontNames(), (std::vector<std::string>{ "eyes", "plain" }));
-  EXPECT_EQ(manifest->FontNamed("eyes")->first_code, 48U);
-  EXPECT_EQ(manifest->FontNamed("plain")->first_code, 0U); // no "first": the glyph numbers are the codes
+  EXPECT_EQ(Present(manifest->FontNamed("eyes")).first_code, 48U);
+  EXPECT_EQ(Present(manifest->FontNamed("plain")).first_code, 0U); // no "first": the glyph numbers are the codes
 }
 
 TEST(Manifest, KeepsTheClassicPacksFonts) {
@@ -92,11 +95,11 @@ TEST(Manifest, KeepsTheClassicPacksFonts) {
   ASSERT_TRUE(manifest);
   auto const font{ manifest->FontNamed("game-glyph") };
   ASSERT_TRUE(font);
-  EXPECT_EQ(font->cell_width, 16U);
-  EXPECT_EQ(font->cell_height, 14U);
-  EXPECT_EQ(font->glyphs.size(), 1'080U);
-  EXPECT_EQ(font->glyphs[42], "game-glyph/0042");
-  EXPECT_EQ(manifest->Frames("battle-blast/large")->size(), 4U);
+  EXPECT_EQ(Present(font).cell_width, 16U);
+  EXPECT_EQ(Present(font).cell_height, 14U);
+  EXPECT_EQ(Present(font).glyphs.size(), 1'080U);
+  EXPECT_EQ(Present(font).glyphs[42], "game-glyph/0042");
+  EXPECT_EQ(Present(manifest->Frames("battle-blast/large")).size(), 4U);
 }
 
 TEST(Manifest, RefusesWhatIsNotAManifest) {

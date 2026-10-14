@@ -12,18 +12,25 @@ namespace {
 constexpr auto HEADER{ 0x01uz };
 constexpr auto SIDES{ 0x1D8uz };
 constexpr auto SIDE_BYTES{ 65uz };
-constexpr auto PEOPLE{ 0x25Auz };
-constexpr auto PERSON_BYTES{ 31uz };
-constexpr auto PERSON_COUNT{ 40uz };
-constexpr auto ELEMENTS{ 0x7BAuz };
-constexpr auto ELEMENT_BYTES{ 13uz };
-constexpr auto ELEMENT_COUNT{ 256uz };
-constexpr auto UNITS{ 0x14BAuz };
-constexpr auto UNIT_BYTES{ 22uz };
-constexpr auto UNIT_COUNT{ 64uz };
-constexpr auto OBJECTIVES{ 0x1A3Auz };
-constexpr auto OBJECTIVE_BYTES{ 68uz };
-constexpr auto OBJECTIVE_COUNT{ 21uz };
+// Where a table of records sits in a set-up: its offset, the size of a record and the number of records.
+struct TableAt {
+  std::size_t at;
+  std::size_t size;
+  std::size_t count;
+};
+
+constexpr auto PEOPLE{
+  TableAt{ .at = 0x25A, .size = 31, .count = 40 }
+};
+constexpr auto ELEMENTS{
+  TableAt{ .at = 0x7BA, .size = 13, .count = 256 }
+};
+constexpr auto UNITS{
+  TableAt{ .at = 0x14BA, .size = 22, .count = 64 }
+};
+constexpr auto OBJECTIVES{
+  TableAt{ .at = 0x1A3A, .size = 68, .count = 21 }
+};
 
 // The NUL-terminated text of a fixed-size field.
 auto Text(Bytes const field) -> std::string {
@@ -55,9 +62,9 @@ auto Objective(Bytes const r) -> scenario::Objective {
   return { .name = Text(r.first(0x15)), .x = Byte(r, 0x15), .y = Byte(r, 0x16), .garrison = Byte(r, 0x23), .points = Byte(r, 0x24), .flags = Byte(r, 0x43) };
 }
 
-template <class Read>
-auto Table(Bytes const setup, std::size_t const at, std::size_t const size, std::size_t const count, Read read) {
-  return Records(setup.subspan(at), size, count) | std::views::transform(read) | std::ranges::to<std::vector>();
+template <class _Read>
+auto Table(Bytes const setup, TableAt const& table, _Read read) {
+  return Records(setup.subspan(table.at), table.size, table.count) | std::views::transform(read) | std::ranges::to<std::vector>();
 }
 
 auto DecodeSetup(Bytes const s) -> Setup {
@@ -70,14 +77,14 @@ auto DecodeSetup(Bytes const s) -> Setup {
           .weather    = Byte(s, HEADER + 5),
           .difficulty = Byte(s, HEADER + 8),
           .sides{},
-          .people     = Table(s, PEOPLE, PERSON_BYTES, PERSON_COUNT, Person),
-          .elements   = Table(s, ELEMENTS, ELEMENT_BYTES, ELEMENT_COUNT, Element),
-          .units      = Table(s, UNITS, UNIT_BYTES, UNIT_COUNT, Unit),
-          .objectives = Table(s, OBJECTIVES, OBJECTIVE_BYTES, OBJECTIVE_COUNT, Objective) }
+          .people     = Table(s, PEOPLE, Person),
+          .elements   = Table(s, ELEMENTS, Element),
+          .units      = Table(s, UNITS, Unit),
+          .objectives = Table(s, OBJECTIVES, Objective) }
   };
   for (auto const side : Indices(2)) {
-    auto const at{ SIDES + side * SIDE_BYTES };
-    setup.sides[side] = Side{ .stock = Words3(s, at), .income = Words3(s, at + 6) };
+    auto const at{ SIDES + (side * SIDE_BYTES) };
+    setup.sides.at(side) = Side{ .stock = Words3(s, at), .income = Words3(s, at + 6) };
   }
   return setup;
 }
@@ -106,12 +113,12 @@ auto DecodeScenarioFile(Bytes const bytes) -> Decoded<ScenarioFile> {
   auto           setups{ ScenarioFile::Setups{} };
   constexpr auto HALF{ TEXT_BYTES / 2 };
   for (auto const n : Indices(SCENARIOS)) {
-    descriptions[n] = Text(bytes.subspan(n * TEXT_BYTES, TEXT_BYTES));
+    descriptions.at(n) = Text(bytes.subspan(n * TEXT_BYTES, TEXT_BYTES));
     for (auto const side : Indices(2)) {
-      conditions[n][side] = Text(bytes.subspan((SCENARIOS + n) * TEXT_BYTES + side * HALF, HALF));
+      conditions.at(n).at(side) = Text(bytes.subspan(((SCENARIOS + n) * TEXT_BYTES) + (side * HALF), HALF));
     }
   }
-  for (auto const n : Indices(SETUPS)) setups[n] = DecodeSetup(bytes.subspan(SETUPS_AT + n * SETUP_BYTES, SETUP_BYTES));
+  for (auto const n : Indices(SETUPS)) setups.at(n) = DecodeSetup(bytes.subspan(SETUPS_AT + (n * SETUP_BYTES), SETUP_BYTES));
   return ScenarioFile{ std::move(descriptions), std::move(conditions), std::move(setups) };
 }
 

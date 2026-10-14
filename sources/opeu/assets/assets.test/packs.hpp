@@ -91,12 +91,18 @@ inline constexpr auto SAMPLE_IDS{ std::to_array<std::string_view>({
   return bytes;
 }
 
+// Where a file's bytes lie in an archive's body.
+struct Stored {
+  std::size_t at;
+  std::size_t bytes;
+};
+
 // One file's line of an archive's directory.
-[[nodiscard]] inline auto Listed(std::string const& path, std::size_t const at, std::size_t const bytes) -> nlohmann::json {
+[[nodiscard]] inline auto Listed(std::string const& path, Stored const stored) -> nlohmann::json {
   auto line     = nlohmann::json::object(); // not braces: a braced json is an array holding it
   line["path"]  = path;
-  line["at"]    = at;
-  line["bytes"] = bytes;
+  line["at"]    = stored.at;
+  line["bytes"] = stored.bytes;
   return line;
 }
 
@@ -108,7 +114,7 @@ inline constexpr auto SAMPLE_IDS{ std::to_array<std::string_view>({
   auto body{ std::vector<std::byte>{} };
   std::ranges::for_each(SamplePaths(), [&](std::string const& path) {
     auto const file{ ClassicFile(path) };
-    directory["files"].push_back(Listed(path, body.size(), file.size()));
+    directory["files"].push_back(Listed(path, Stored{ .at = body.size(), .bytes = file.size() }));
     std::ranges::copy(file, std::back_inserter(body));
   });
   return ArchiveOf(directory.dump(), body);

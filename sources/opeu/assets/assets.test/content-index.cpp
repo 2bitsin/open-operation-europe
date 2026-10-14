@@ -1,5 +1,6 @@
 // The generic plane decoder and its encoder (the renderer saves screen rectangles into the game's memory through it),
 // and the content index that tells the renderer which shipped asset a run of the game's bytes is.
+#include "present.hpp"
 #include "shipped.hpp"
 
 #include "opeu/assets/catalogue.hpp"
@@ -18,10 +19,16 @@ namespace opeu::assets {
 
 namespace {
 
+constexpr auto VIEW_TILE{
+  RawShape{ .layout = Layout::PLANES_4, .width_bytes = 3, .height = 24 }
+};
+
+using test::Present;
+
 [[nodiscard]] auto Noise(std::size_t const count) -> std::vector<std::byte> {
   auto state{ std::uint32_t{ 11 } };
   return std::views::iota(0uz, count) | std::views::transform([&state](std::size_t) {
-           state = state * 1664525U + 1013904223U;
+           state = (state * 1664525U) + 1013904223U;
            return std::byte{ static_cast<std::uint8_t>(state >> 24) };
          })
          | std::ranges::to<std::vector>();
@@ -69,17 +76,17 @@ private:
 };
 
 TEST_F(ShippedContent, RecognisesATileFromItsBytes) {
-  auto const tile{ Catalogued().Find("view-tile/map-2/10").value() };
+  auto const tile{ Present(Catalogued().Find("view-tile/map-2/10")) };
   auto const bytes{ Catalogued().File(tile.file).value().subspan(tile.at, 3uz * 24 * 4) };
-  auto const id{ Index().Recognise(RawKey(Layout::PLANES_4, 3, 24, bytes)) };
+  auto const id{ Index().Recognise(RawKey(VIEW_TILE, bytes)) };
   ASSERT_TRUE(id.has_value());
-  EXPECT_EQ(Catalogued().Find(*id).value().at, tile.at); // the tile, or the first asset with the same bytes
+  EXPECT_EQ(Present(Catalogued().Find(Present(id))).at, tile.at); // the tile, or the first asset with the same bytes
 }
 
 TEST_F(ShippedContent, RecognisesNothingTheGameComposed) {
   EXPECT_GT(Index().Size(), 1000U);
-  EXPECT_FALSE(Index().Recognise(RawKey(Layout::PLANES_4, 3, 24, Noise(288))).has_value());
-  EXPECT_FALSE(ContentIndex{}.Recognise(RawKey(Layout::PLANES_4, 3, 24, Noise(288))).has_value());
+  EXPECT_FALSE(Index().Recognise(RawKey(VIEW_TILE, Noise(288))).has_value());
+  EXPECT_FALSE(ContentIndex{}.Recognise(RawKey(VIEW_TILE, Noise(288))).has_value());
 }
 
 }

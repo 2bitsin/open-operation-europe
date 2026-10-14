@@ -17,7 +17,7 @@ inline constexpr auto SETUPS{ std::size_t{ 7 } }; // set-up 0 is an unreachable 
 inline constexpr auto TEXT_BYTES{ std::size_t{ 800 } };
 inline constexpr auto SETUP_BYTES{ std::size_t{ 0x1FCF } };
 inline constexpr auto SETUPS_AT{ 2 * SCENARIOS * TEXT_BYTES };
-inline constexpr auto FILE_BYTES{ SETUPS_AT + SETUPS * SETUP_BYTES };
+inline constexpr auto FILE_BYTES{ SETUPS_AT + (SETUPS * SETUP_BYTES) };
 
 struct Side {
   std::array<unsigned, 3> stock{};

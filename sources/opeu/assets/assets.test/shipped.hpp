@@ -30,7 +30,10 @@ class ShippedCatalogue {
 public:
   ShippedCatalogue()                                           = default;
   ShippedCatalogue(ShippedCatalogue const&)                    = delete;
+  ShippedCatalogue(ShippedCatalogue&&)                         = delete;
   auto operator=(ShippedCatalogue const&) -> ShippedCatalogue& = delete;
+  auto operator=(ShippedCatalogue&&) -> ShippedCatalogue&      = delete;
+  ~ShippedCatalogue()                                          = default;
 
   [[nodiscard]] auto Catalogued() const -> Catalogue const& {
     return _catalogue;
@@ -46,7 +49,10 @@ class ShippedPack {
 public:
   ShippedPack()                                      = default;
   ShippedPack(ShippedPack const&)                    = delete;
+  ShippedPack(ShippedPack&&)                         = delete;
   auto operator=(ShippedPack const&) -> ShippedPack& = delete;
+  auto operator=(ShippedPack&&) -> ShippedPack&      = delete;
+  ~ShippedPack()                                     = default;
 
   [[nodiscard]] auto Decoders() const -> CataloguePack const& {
     return _pack;

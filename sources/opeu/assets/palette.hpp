@@ -41,7 +41,7 @@ struct NamedPalette {
 [[nodiscard]] constexpr auto Colours(Levels const& levels) noexcept -> std::array<Colour, 16> {
   auto colours{ std::array<Colour, 16>{} };
   std::ranges::transform(Indices(colours.size()), colours.begin(),
-                         [&levels](std::size_t const n) { return Colour{ .r = Intensity(levels[3 * n + 1]), .g = Intensity(levels[3 * n + 2]), .b = Intensity(levels[3 * n]) }; });
+                         [bgr = std::span{ levels }](std::size_t const n) { return Colour{ .r = Intensity(bgr[(3 * n) + 1]), .g = Intensity(bgr[(3 * n) + 2]), .b = Intensity(bgr[3 * n]) }; });
   return colours;
 }
 

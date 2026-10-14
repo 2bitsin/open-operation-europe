@@ -26,10 +26,10 @@ public:
     return _height;
   }
   [[nodiscard]] auto At(std::size_t const x, std::size_t const y) const -> std::uint8_t {
-    return _pixels[y * _width + x];
+    return _pixels[(y * _width) + x];
   }
   [[nodiscard]] auto Drawn(std::size_t const x, std::size_t const y) const -> bool {
-    return _opaque.empty() || _opaque[y * _width + x] != 0;
+    return _opaque.empty() || _opaque[(y * _width) + x] != 0;
   }
   [[nodiscard]] auto HasMask() const noexcept -> bool {
     return !_opaque.empty();
@@ -43,8 +43,8 @@ public:
   }
 
   // The same picture with every index passed through `map` (a recolouring); the mask is kept.
-  template <class Map>
-  [[nodiscard]] auto Recoloured(Map map) const -> Image {
+  template <class _Map>
+  [[nodiscard]] auto Recoloured(_Map map) const -> Image {
     auto copy{ *this };
     for (auto& index : copy._pixels) index = static_cast<std::uint8_t>(map(index));
     return copy;
@@ -67,8 +67,8 @@ enum class DecodeError : std::uint8_t {
   MISSING_FILE, // the source has no file of that name
 };
 
-template <class T>
-using Decoded = std::expected<T, DecodeError>;
+template <class _Value>
+using Decoded = std::expected<_Value, DecodeError>;
 
 [[nodiscard]] constexpr auto Describe(DecodeError const error) noexcept -> std::string_view {
   switch (error) {

@@ -51,22 +51,27 @@ private:
   Fingerprint                            _fingerprint;
 };
 
+// A command byte of a stream.
+struct Command {
+  std::uint8_t bits;
+};
+
 // The value of pixel `x` of a unit (nibble p = plane p, bit 3 the leftmost pixel) as a palette index.
 [[nodiscard]] auto IndexOf(unsigned const unit, std::size_t const x) -> std::uint8_t {
   return std::ranges::fold_left(Indices(4), std::uint8_t{ 0 },
-                                [&](std::uint8_t const index, auto const plane) { return static_cast<std::uint8_t>(index | (unit >> (4 * plane + 3 - x % 4) & 1) << plane); });
+                                [&](std::uint8_t const index, auto const plane) { return static_cast<std::uint8_t>(index | (unit >> ((4 * plane) + 3 - (x % 4)) & 1) << plane); });
 }
 
 // Draws one stream into a screen-wide unit buffer as the game's decoder does, then reads the picture back.
-template <class Reader>
+template <class _Reader>
 class StreamDecoder {
 public:
-  StreamDecoder(Reader& reader, Colours const colours) : _reader{ reader }, _colours{ colours } { }
+  StreamDecoder(_Reader& reader, Colours const colours) : _reader{ reader }, _colours{ colours } { }
 
   auto Run(Room const room) -> Decoded<Picture> {
     if (auto const header{ Header(room) }; !header) return std::unexpected{ header.error() };
     if (_colours == Colours::SIXTEEN) std::ranges::generate(_runs, [this] { return _reader.NextWord(); });
-    _units.assign(TOP + (_height + 1uz) * LINE_UNITS + 16, 0);
+    _units.assign(TOP + ((_height + 1uz) * LINE_UNITS) + 16, 0);
     _extents.assign(_height, 0);
     for (auto const row : Indices(_height)) {
       if (!DecodeRow(row)) return std::unexpected{ DecodeError::TRUNCATED };
@@ -80,7 +85,7 @@ public:
     auto       pixels{ std::vector<std::uint8_t>{} };
     auto       opaque{ std::vector<std::uint8_t>{} };
     for (auto const [row, x] : Grid(_height, units * 4)) {
-      pixels.push_back(IndexOf(_units[TOP + row * LINE_UNITS + x / 4], x));
+      pixels.push_back(IndexOf(_units[TOP + (row * LINE_UNITS) + (x / 4)], x));
       opaque.push_back(x / 4 < _extents[row] ? 1 : 0);
     }
     return Image{ units * 4, _height, std::move(pixels), std::move(opaque) };
@@ -107,13 +112,13 @@ private:
   // Commands until the row's units are covered (the last may run past its end, never past the screen line) or the
   // stream runs out.
   auto DecodeRow(std::size_t const row) -> bool {
-    auto const start{ TOP + row * LINE_UNITS };
-    auto const end{ start + (std::size_t{ _width } + 3) / 4 };
+    auto const start{ TOP + (row * LINE_UNITS) };
+    auto const end{ start + ((std::size_t{ _width } + 3) / 4) };
     auto       at{ start };
     auto const commands{ std::views::iota(0uz) | std::views::take_while([&](std::size_t) { return at < end && !_reader.Overrun(); }) };
     std::ranges::for_each(commands, [&](std::size_t) {
       auto const command{ _reader.Next() };
-      at += (command & 0x80) != 0 ? Copy(command, at) : Literal(command, at);
+      at += (command & 0x80) != 0 ? Copy(Command{ command }, at) : Literal(Command{ command }, at);
     });
     _extents[row] = std::min(at - start, LINE_UNITS);
     return !_reader.Overrun();
@@ -121,16 +126,16 @@ private:
 
   // 1 s d d c c c c: c + 1 units from d + 1 units back (s = 0) or d + 1 rows up (s = 1), unit by unit, so an
   // overlapping source repeats a pattern.
-  auto Copy(std::uint8_t const command, std::size_t const at) -> std::size_t {
-    auto const count{ (command & 0x0Fuz) + 1 };
-    auto const distance{ ((command >> 4 & 0x03uz) + 1) * ((command & 0x40) != 0 ? LINE_UNITS : 1) };
+  auto Copy(Command const command, std::size_t const at) -> std::size_t {
+    auto const count{ (command.bits & 0x0Fuz) + 1 };
+    auto const distance{ ((command.bits >> 4 & 0x03uz) + 1) * ((command.bits & 0x40) != 0 ? LINE_UNITS : 1) };
     for (auto const unit : std::views::iota(at, at + count)) _units[unit] = _units[unit - distance];
     return count;
   }
 
-  auto Literal(std::uint8_t const command, std::size_t const at) -> std::size_t {
-    auto const count{ _colours == Colours::EIGHT ? (command >> 4 & 0x07uz) + 1 : (command & 0x07uz) + 1 };
-    auto const value{ _colours == Colours::EIGHT ? static_cast<unsigned>((command & 0x0F) << 8 | _reader.Next()) : SixteenColourValue(command) };
+  auto Literal(Command const command, std::size_t const at) -> std::size_t {
+    auto const count{ _colours == Colours::EIGHT ? (command.bits >> 4 & 0x07uz) + 1 : (command.bits & 0x07uz) + 1 };
+    auto const value{ _colours == Colours::EIGHT ? static_cast<unsigned>((command.bits & 0x0F) << 8 | _reader.Next()) : SixteenColourValue(command.bits) };
     std::ranges::fill_n(_units.begin() + static_cast<std::ptrdiff_t>(at), static_cast<std::ptrdiff_t>(count), value);
     return count;
   }
@@ -140,7 +145,7 @@ private:
   auto SixteenColourValue(std::uint8_t const command) -> unsigned {
     auto const mode{ static_cast<unsigned>(command >> 3 & 0x0F) };
     if (mode == 0) return 0;
-    if ((mode & 0x08) != 0) return _runs[mode & 0x07];
+    if ((mode & 0x08) != 0) return _runs.at(mode & 0x07);
     if (mode == 0x07) {
       auto const high{ _reader.Next() };
       return static_cast<unsigned>(high << 8 | _reader.Next());
@@ -156,11 +161,11 @@ private:
   [[nodiscard]] auto Pixels() const -> Image {
     auto pixels{ std::vector<std::uint8_t>{} };
     pixels.reserve(std::size_t{ _width } * _height);
-    for (auto const [row, x] : Grid(_height, _width)) pixels.push_back(IndexOf(_units[TOP + row * LINE_UNITS + x / 4], x));
+    for (auto const [row, x] : Grid(_height, _width)) pixels.push_back(IndexOf(_units[TOP + (row * LINE_UNITS) + (x / 4)], x));
     return Image{ _width, _height, std::move(pixels) };
   }
 
-  Reader&                  _reader;
+  _Reader&                 _reader;
   Colours                  _colours;
   unsigned                 _width{};
   unsigned                 _height{};

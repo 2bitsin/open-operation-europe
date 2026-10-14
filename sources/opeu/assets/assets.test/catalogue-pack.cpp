@@ -1,6 +1,7 @@
 // The decoders' pack: every asset and variant, the animations, fonts and palettes. That it equals a built pack entry
 // for entry and pixel for pixel is classic-pack.cpp.
 #include "packs.hpp"
+#include "present.hpp"
 #include "shipped.hpp"
 
 #include "opeu/assets/catalogue-pack.hpp"
@@ -14,6 +15,8 @@
 namespace opeu::assets {
 
 namespace {
+
+using test::Present;
 
 using test::ClassicEmbedded;
 using test::ShippedPack;
@@ -37,10 +40,10 @@ TEST(CataloguePack, KnowsTheAnimationsFontsPalettesAndScale) {
   EXPECT_EQ(decoders.FontNames(), classic.FontNames());
   auto const text{ decoders.FontNamed("text-glyph") };
   ASSERT_TRUE(text);
-  EXPECT_EQ(text->first_code, 0x20U);
-  EXPECT_EQ(text->glyphs.size(), 96U);
-  EXPECT_EQ(text->glyphs[0x41 - 0x20], "text-glyph/065");
-  EXPECT_EQ(decoders.FontNamed("game-glyph")->glyphs.size(), 1080U);
+  EXPECT_EQ(Present(text).first_code, 0x20U);
+  EXPECT_EQ(Present(text).glyphs.size(), 96U);
+  EXPECT_EQ(Present(text).glyphs[0x41 - 0x20], "text-glyph/065");
+  EXPECT_EQ(Present(decoders.FontNamed("game-glyph")).glyphs.size(), 1080U);
   EXPECT_EQ(decoders.Palette("open/047"), classic.Palette("open/047"));
   EXPECT_EQ(decoders.Scale(), 1U);
 }

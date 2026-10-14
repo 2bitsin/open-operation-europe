@@ -4,6 +4,7 @@
 #include "opeu/assets/planar.hpp"
 #include "opeu/assets/runs.hpp"
 #include "opeu/assets/texture.hpp"
+#include "present.hpp"
 
 #include <gtest/gtest.h>
 
@@ -15,8 +16,10 @@ namespace opeu::assets {
 
 namespace {
 
-template <class... Values>
-constexpr auto Of(Values... values) -> std::array<std::byte, sizeof...(Values)> {
+using test::Present;
+
+template <class... _Values>
+constexpr auto Of(_Values... values) -> std::array<std::byte, sizeof...(_Values)> {
   return { std::byte(values)... };
 }
 
@@ -24,7 +27,7 @@ constexpr auto Of(Values... values) -> std::array<std::byte, sizeof...(Values)> 
 
 TEST(Planar, InterleavedPlanesMakeTheIndexBits) {
   auto const bytes{ Of(0x80, 0x80, 0x00, 0x80, 0x01, 0x00, 0x01, 0x00) }; // pixel 0: planes 0,1,3; pixel 15: planes 0,2
-  auto const image{ DecodeInterleaved(bytes, 2, 1, 4) };
+  auto const image{ DecodePlanes(bytes, InterleavedLayout(2, 1, 4)) };
   ASSERT_TRUE(image);
   EXPECT_EQ(image->Width(), 16);
   EXPECT_EQ(image->Height(), 1);
@@ -34,7 +37,7 @@ TEST(Planar, InterleavedPlanesMakeTheIndexBits) {
 
 TEST(Planar, RefuseTooFewBytes) {
   auto const bytes{ Of(0, 0, 0) };
-  EXPECT_EQ(DecodeInterleaved(bytes, 1, 1, 4).error(), DecodeError::TRUNCATED);
+  EXPECT_EQ(DecodePlanes(bytes, InterleavedLayout(1, 1, 4)).error(), DecodeError::TRUNCATED);
   EXPECT_EQ(DecodeCell(bytes).error(), DecodeError::TRUNCATED);
 }
 
@@ -67,11 +70,11 @@ TEST(Palette, LevelsBecomeTheScreensColours) {
   EXPECT_EQ(Intensity(15), 243);
   auto const day{ FindPalette("main/day") };
   ASSERT_TRUE(day);
-  auto const colours{ Colours(day->levels) };
+  auto const colours{ Colours(Present(day).levels) };
   EXPECT_EQ(colours[7], (Colour{ 243, 243, 243 }));
   EXPECT_EQ(colours[1].b, Intensity(9)); // index bit 0 is blue
   EXPECT_EQ(ClassicPalettes().size(), 121U);
-  EXPECT_EQ(FindPalette("open/112")->use, "the opening's alternative fade target");
+  EXPECT_EQ(Present(FindPalette("open/112")).use, "the opening's alternative fade target");
   EXPECT_FALSE(FindPalette("none"));
 }
 
@@ -79,7 +82,7 @@ TEST(Texture, ResolvesPaletteAndMaskToRgba) {
   auto const image{
     Image{ 2, 1, { 7, 1 }, { 1, 0 } }
   };
-  auto const texture{ ToTexture(image, FindPalette("main/day").value()) };
+  auto const texture{ ToTexture(image, Present(FindPalette("main/day"))) };
   EXPECT_EQ(texture.Width(), 2U);
   EXPECT_EQ(texture.Pitch(), 8U);
   EXPECT_EQ(texture.Pixels().size(), 8U);

@@ -18,7 +18,7 @@ namespace {
 using test::Shipped;
 
 auto Grids(std::string_view const file) -> std::array<CellGrid, MAP_COUNT> {
-  auto grids{ DecodeCellGrids(Shipped(file)) };
+  auto const grids{ DecodeCellGrids(Shipped(file)) };
   EXPECT_TRUE(grids) << file;
   return grids.value_or(std::array<CellGrid, MAP_COUNT>{});
 }

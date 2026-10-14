@@ -143,61 +143,44 @@ private:
   std::vector<Asset> _assets;
 };
 
-auto Stream(std::string id, std::string_view const file, std::uint32_t const at, Layout const layout, std::string_view const palette, std::string_view const use) -> Asset {
-  return Asset{ .id              = std::move(id),
-                .file            = file,
-                .group           = "pictures",
-                .at              = at,
-                .mask_at         = 0,
-                .layout          = layout,
-                .width_bytes     = 0,
-                .width           = 0,
-                .height          = 0,
-                .role            = Role::PICTURE,
-                .palette         = palette,
-                .ink             = 0,
-                .ink_where_clear = false,
-                .side_coloured   = false,
-                .hour_coloured   = false,
-                .animation       = {},
-                .frame           = 0,
-                .use             = std::string{ use } };
-}
+// Where a record lies in its file and how it is laid out.
+struct Record {
+  std::string_view file;
+  std::string_view group;
+  std::uint32_t    at{};
+  Layout           layout{};
+  std::size_t      width_bytes{};
+  std::size_t      height{};
+  Role             role{};
+};
 
-auto AddPictures(Builder& out) -> void {
-  for (auto const& p : EVENT_PICTURES) {
-    out.Add(Stream(std::format("event/{}", p.name), "EVENT.DAT", p.at * BLOCK, Layout::STREAM_8, "main/day", p.use));
-  }
-  for (auto const& p : SELECTION_PICTURES) {
-    out.Add(Stream(std::format("title/{}", p.name), "SCESEL.DAT", p.at * BLOCK, Layout::STREAM_16, "main/title", p.use));
-  }
-  for (auto const& p : OUTCOME_PICTURES) {
-    out.Add(Stream(std::format("outcome/{}", p.name), "SCEEND.DAT", p.at * BLOCK, Layout::STREAM_8, "main/map", p.use));
-  }
-  for (auto const& p : FRAME_PICTURES) {
-    out.Add(Stream(std::format("frame/{}", p.name), "MGAMEN.DAT", p.at * BLOCK, Layout::STREAM_16, "main/day", p.use));
-  }
-  for (auto const& p : EPILOGUE_PICTURES) {
-    out.Add(Stream(std::format("epilogue/{}", p.name), "ENDGRP.NPK", p.at, Layout::STREAM_16, "main/epilogue", p.use));
-  }
-  for (auto const n : Indices(OPENING_PICTURES.size())) {
-    auto const& p{ OPENING_PICTURES[n] };
-    out.Add(Stream(std::format("opening/{:02}", n), "OPENGRP.NPK", p.at, Layout::STREAM_16, p.palette, "the opening"));
-  }
-}
+// A file of picture streams: the ids' prefix, the file, the unit its offsets count, its layout and the palette the
+// game shows them in.
+struct Streams {
+  std::string_view prefix;
+  std::string_view file;
+  std::uint32_t    unit{};
+  Layout           layout{};
+  std::string_view palette;
+};
 
-auto Raw(std::string id, std::string_view const file, std::string_view const group, std::uint32_t const at, Layout const layout, std::size_t const width_bytes, std::size_t const height,
-         Role const role) -> Asset {
+// The colour a one-bit record's shape is drawn in, and whether the shape is its clear bits (an AND mask).
+struct Ink {
+  std::uint8_t colour{};
+  bool         where_clear{};
+};
+
+auto Raw(std::string id, Record const& record) -> Asset {
   return Asset{ .id              = std::move(id),
-                .file            = file,
-                .group           = group,
-                .at              = at,
+                .file            = record.file,
+                .group           = record.group,
+                .at              = record.at,
                 .mask_at         = 0,
-                .layout          = layout,
-                .width_bytes     = static_cast<unsigned>(width_bytes),
+                .layout          = record.layout,
+                .width_bytes     = static_cast<unsigned>(record.width_bytes),
                 .width           = 0,
-                .height          = static_cast<unsigned>(height),
-                .role            = role,
+                .height          = static_cast<unsigned>(record.height),
+                .role            = record.role,
                 .palette         = "main/day",
                 .ink             = 0,
                 .ink_where_clear = false,
@@ -208,22 +191,59 @@ auto Raw(std::string id, std::string_view const file, std::string_view const gro
                 .use             = {} };
 }
 
-auto AddTiles(Builder& out) -> void {
-  for (auto const map : Indices(MAP_COUNT)) {
-    for (auto const tile : Indices(TILES_PER_MAP)) {
-      auto asset{ Raw(std::format("overview-tile/map-{}/{:02}", map, tile), "BIGMAP.DAT", "tiles", static_cast<std::uint32_t>(map * 0xC00 + tile * 32), Layout::PLANES_4, 1, 8, Role::TILE) };
-      asset.hour_coloured = true;
-      asset.use           = "the strategic overview, through MAPPNO.DAT";
-      out.Add(std::move(asset));
-    }
+// The asset with the use the game puts it to.
+auto Used(Asset asset, std::string_view const use) -> Asset {
+  asset.use = use;
+  return asset;
+}
+
+// A picture stream, which states its own size.
+auto Stream(std::string id, Placed const& placed, Streams const& streams) -> Asset {
+  auto asset{ Raw(std::move(id), Record{ .file = streams.file, .group = "pictures", .at = placed.at * streams.unit, .layout = streams.layout, .width_bytes = 0, .height = 0, .role = Role::PICTURE }) };
+  asset.palette = streams.palette;
+  return Used(std::move(asset), placed.use);
+}
+
+// Every picture of a file.
+auto AddStreams(Builder& out, std::span<Placed const> const pictures, Streams const& streams) -> void {
+  for (auto const& p : pictures) out.Add(Stream(std::format("{}/{}", streams.prefix, p.name), p, streams));
+}
+
+auto AddPictures(Builder& out) -> void {
+  AddStreams(out, EVENT_PICTURES, Streams{ .prefix = "event", .file = "EVENT.DAT", .unit = BLOCK, .layout = Layout::STREAM_8, .palette = "main/day" });
+  AddStreams(out, SELECTION_PICTURES, Streams{ .prefix = "title", .file = "SCESEL.DAT", .unit = BLOCK, .layout = Layout::STREAM_16, .palette = "main/title" });
+  AddStreams(out, OUTCOME_PICTURES, Streams{ .prefix = "outcome", .file = "SCEEND.DAT", .unit = BLOCK, .layout = Layout::STREAM_8, .palette = "main/map" });
+  AddStreams(out, FRAME_PICTURES, Streams{ .prefix = "frame", .file = "MGAMEN.DAT", .unit = BLOCK, .layout = Layout::STREAM_16, .palette = "main/day" });
+  AddStreams(out, EPILOGUE_PICTURES, Streams{ .prefix = "epilogue", .file = "ENDGRP.NPK", .unit = 1, .layout = Layout::STREAM_16, .palette = "main/epilogue" });
+  for (auto const [n, p] : std::views::zip(Indices(OPENING_PICTURES.size()), OPENING_PICTURES)) {
+    auto const streams{
+      Streams{ .prefix = "opening", .file = "OPENGRP.NPK", .unit = 1, .layout = Layout::STREAM_16, .palette = p.palette }
+    };
+    out.Add(Stream(std::format("opening/{:02}", n), Placed{ .at = p.at, .name = {}, .use = "the opening" }, streams));
   }
-  for (auto const map : Indices(MAP_COUNT)) {
-    for (auto const tile : Indices(TILES_PER_MAP)) {
-      auto asset{ Raw(std::format("view-tile/map-{}/{:02}", map, tile), "MIDMAP.DAT", "tiles", static_cast<std::uint32_t>(map * 0x6C00 + tile * 0x120), Layout::PLANES_4, 3, 24, Role::TILE) };
-      asset.hour_coloured = true;
-      asset.use           = "the tactical map view, through MAPPNO.DAT";
-      out.Add(std::move(asset));
-    }
+}
+
+// A record whose colours 8..15 follow the hour.
+auto Tile(std::string id, Record const& record) -> Asset {
+  auto asset{ Raw(std::move(id), record) };
+  asset.hour_coloured = true;
+  return asset;
+}
+
+auto AddTiles(Builder& out) -> void {
+  for (auto const [map, tile] : Grid(MAP_COUNT, TILES_PER_MAP)) {
+    auto const at{ static_cast<std::uint32_t>((map * 0xC00) + (tile * 32)) };
+    auto const record{
+      Record{ .file = "BIGMAP.DAT", .group = "tiles", .at = at, .layout = Layout::PLANES_4, .width_bytes = 1, .height = 8, .role = Role::TILE }
+    };
+    out.Add(Used(Tile(std::format("overview-tile/map-{}/{:02}", map, tile), record), "the strategic overview, through MAPPNO.DAT"));
+  }
+  for (auto const [map, tile] : Grid(MAP_COUNT, TILES_PER_MAP)) {
+    auto const at{ static_cast<std::uint32_t>((map * 0x6C00) + (tile * 0x120)) };
+    auto const record{
+      Record{ .file = "MIDMAP.DAT", .group = "tiles", .at = at, .layout = Layout::PLANES_4, .width_bytes = 3, .height = 24, .role = Role::TILE }
+    };
+    out.Add(Used(Tile(std::format("view-tile/map-{}/{:02}", map, tile), record), "the tactical map view, through MAPPNO.DAT"));
   }
 }
 
@@ -231,79 +251,100 @@ auto TerrainUse(std::size_t const record) -> std::string {
   constexpr auto PARTS{
     std::array<std::string_view, 4>{ "the diagonal cell", "the cell below", "its own cell", "the cell to the right" }
   };
-  if (record < 68) return std::format("battle terrain object {}, the part over {}", record / 4, PARTS[record % 4]);
+  if (record < 68) return std::format("battle terrain object {}, the part over {}", record / 4, PARTS.at(record % 4));
   if (record < 72) return std::format("battle ground {}", record - 68);
   return std::format("battle overlay {} (river, road or bridge)", record - 72);
 }
 
-auto AddBattleSprites(Builder& out) -> void {
+// The 40x26 cell sprite `record` of a battle file.
+auto Cell(std::string_view const file, std::size_t const record) -> Record {
+  return Record{ .file = file, .group = "battle", .at = static_cast<std::uint32_t>(record * CELL_BYTES), .layout = Layout::CELL, .width_bytes = 5, .height = 26, .role = Role::SPRITE };
+}
+
+auto AddBattleTerrain(Builder& out) -> void {
   for (auto const& [file, set, use] : std::array<std::array<std::string_view, 3>, 2>{
            { { "HEXFONT.DAT", "summer", "" }, { "HEXFONTS.DAT", "snow", " (the Bulge, scenario 5)" } }
   }) {
-    for (auto const record : Indices(95)) {
-      auto asset{ Raw(std::format("battle-terrain/{}/{:02}", set, record), file, "battle", static_cast<std::uint32_t>(record * CELL_BYTES), Layout::CELL, 5, 26, Role::SPRITE) };
-      asset.hour_coloured = true;
-      asset.use           = TerrainUse(record) + std::string{ use };
-      out.Add(std::move(asset));
-    }
+    for (auto const record : Indices(95)) out.Add(Used(Tile(std::format("battle-terrain/{}/{:02}", set, record), Cell(file, record)), TerrainUse(record) + std::string{ use }));
   }
-  for (auto const record : Indices(52)) {
-    auto const at{ static_cast<std::uint32_t>(record * CELL_BYTES) };
-    if (record < 44) {
-      auto asset{ Raw(std::format("battle-unit/class-{:02}/facing-{}", record / 4, record % 4), "HEXUNIT.DAT", "battle", at, Layout::CELL, 5, 26, Role::SPRITE) };
-      asset.side_coloured = true;
-      asset.use           = "a battle unit icon";
-      out.Add(std::move(asset));
-      continue;
-    }
-    auto const size{ record < 48 ? std::string_view{ "large" } : std::string_view{ "small" } };
-    auto       asset{ Raw(std::format("battle-blast/{}/{}", size, record % 4), "HEXUNIT.DAT", "battle", at, Layout::CELL, 5, 26, Role::SPRITE) };
-    asset.animation = std::format("battle-blast/{}", size);
-    asset.frame     = static_cast<unsigned>(record % 4);
-    asset.use       = record < 48 ? "a hit in battle" : "a miss in battle";
-    out.Add(std::move(asset));
-  }
+}
+
+auto UnitIcon(std::size_t const record) -> Asset {
+  auto asset{ Raw(std::format("battle-unit/class-{:02}/facing-{}", record / 4, record % 4), Cell("HEXUNIT.DAT", record)) };
+  asset.side_coloured = true;
+  return Used(std::move(asset), "a battle unit icon");
+}
+
+auto Blast(std::size_t const record) -> Asset {
+  auto const large{ record < 48 };
+  auto const size{ large ? std::string_view{ "large" } : std::string_view{ "small" } };
+  auto       asset{ Raw(std::format("battle-blast/{}/{}", size, record % 4), Cell("HEXUNIT.DAT", record)) };
+  asset.animation = std::format("battle-blast/{}", size);
+  asset.frame     = static_cast<unsigned>(record % 4);
+  return Used(std::move(asset), large ? "a hit in battle" : "a miss in battle");
+}
+
+auto AddBattleSprites(Builder& out) -> void {
+  AddBattleTerrain(out);
+  for (auto const record : Indices(52)) out.Add(record < 44 ? UnitIcon(record) : Blast(record));
   for (auto const& [name, at] : std::array<std::pair<std::string_view, std::uint32_t>, 2>{
            { { "nw-se", 0x8408 }, { "ne-sw", 0x8534 } }
   }) {
-    auto asset{ Raw(std::format("battle-border/{}", name), "HEXUNIT.DAT", "battle", at, Layout::MASKED_SPRITE, 3, 20, Role::SPRITE) };
+    auto asset{ Raw(std::format("battle-border/{}", name),
+                    Record{ .file = "HEXUNIT.DAT", .group = "battle", .at = at, .layout = Layout::MASKED_SPRITE, .width_bytes = 3, .height = 20, .role = Role::SPRITE }) };
     asset.mask_at = at + 240;
-    asset.use     = "the battle field's diagonal border";
-    out.Add(std::move(asset));
+    out.Add(Used(std::move(asset), "the battle field's diagonal border"));
   }
+}
+
+auto PortraitUse(std::size_t const n) -> std::string_view {
+  if (n == 118) return "the spy";
+  if (n == 119) return "Sister Angelique";
+  return "a commander";
+}
+
+auto WithInk(Asset asset, Ink const ink) -> Asset {
+  asset.ink             = ink.colour;
+  asset.ink_where_clear = ink.where_clear;
+  return asset;
 }
 
 auto AddPortraitsAndSilhouettes(Builder& out) -> void {
   for (auto const n : Indices(120)) {
-    auto asset{ Raw(std::format("portrait/{:03}", n), "FACE.DAT", "portraits", static_cast<std::uint32_t>(n * 0x780), Layout::PLANES_3, 8, 80, Role::PORTRAIT) };
-    asset.use = n == 118 ? "the spy" : n == 119 ? "Sister Angelique" : "a commander";
-    out.Add(std::move(asset));
+    auto const record{
+      Record{ .file = "FACE.DAT", .group = "portraits", .at = static_cast<std::uint32_t>(n * 0x780), .layout = Layout::PLANES_3, .width_bytes = 8, .height = 80, .role = Role::PORTRAIT }
+    };
+    out.Add(Used(Raw(std::format("portrait/{:03}", n), record), PortraitUse(n)));
   }
-  for (auto const n : Indices(SILHOUETTE_AT.size())) {
-    auto asset{ Raw(std::format("silhouette/{:03}", n), "ARMS.SIL", "silhouettes", static_cast<std::uint32_t>(SILHOUETTE_AT[n]) * 4, Layout::RUNS_BITMAP, 24, 80, Role::SILHOUETTE) };
-    asset.ink             = 7;
-    asset.ink_where_clear = true;
-    asset.use             = "an equipment type's panel";
-    out.Add(std::move(asset));
+  for (auto const [n, at] : std::views::zip(Indices(SILHOUETTE_AT.size()), SILHOUETTE_AT)) {
+    auto const record{
+      Record{ .file = "ARMS.SIL", .group = "silhouettes", .at = at * 4, .layout = Layout::RUNS_BITMAP, .width_bytes = 24, .height = 80, .role = Role::SILHOUETTE }
+    };
+    out.Add(Used(WithInk(Raw(std::format("silhouette/{:03}", n), record), Ink{ .colour = 7, .where_clear = true }), "an equipment type's panel"));
   }
 }
 
-auto Bitmap(std::string id, std::string_view const file, std::string_view const group, std::uint32_t const at, std::size_t const width_bytes, std::size_t const height, Role const role,
-            std::uint8_t const ink, bool const where_clear, std::string_view const use) -> Asset {
-  auto asset{ Raw(std::move(id), file, group, at, Layout::BITMAP, width_bytes, height, role) };
-  asset.ink             = ink;
-  asset.ink_where_clear = where_clear;
-  asset.use             = use;
+// A one-bit bitmap drawn in an ink.
+auto Bitmap(std::string id, Record record, Ink const ink) -> Asset {
+  record.layout = Layout::BITMAP;
+  return WithInk(Raw(std::move(id), record), ink);
+}
+
+// A sequence's frame.
+auto Framed(Asset asset, std::string_view const animation, std::size_t const frame) -> Asset {
+  asset.animation = animation;
+  asset.frame     = static_cast<unsigned>(frame);
   return asset;
 }
 
-auto AddScreens(Builder& out) -> void {
-  struct Part {
-    std::string_view name;
-    std::uint32_t    at;
-    std::size_t      width_bytes, height;
-    std::string_view use;
-  };
+struct Part {
+  std::string_view name;
+  std::uint32_t    at;
+  std::size_t      width_bytes, height;
+  std::string_view use;
+};
+
+auto AddDialogs(Builder& out) -> void {
   for (auto const& p : std::array<Part, 6>{
            { { "number-dialog", 0x0000, 18, 96, "the number entry dialog" },
             { "yes", 0x1B00, 4, 16, "YES, released" },
@@ -312,57 +353,77 @@ auto AddScreens(Builder& out) -> void {
             { "no-pressed", 0x1E00, 4, 16, "NO, pressed" },
             { "supply-panel", 0x1F00, 32, 120, "the supply and transfer panel" } }
   }) {
-    auto asset{ Raw(std::format("dialog/{}", p.name), "MSGRP.DAT", "dialogs", p.at, Layout::PLANES_4, p.width_bytes, p.height, Role::SPRITE) };
-    asset.use = p.use;
-    out.Add(std::move(asset));
+    auto const record{
+      Record{ .file = "MSGRP.DAT", .group = "dialogs", .at = p.at, .layout = Layout::PLANES_4, .width_bytes = p.width_bytes, .height = p.height, .role = Role::SPRITE }
+    };
+    out.Add(Used(Raw(std::format("dialog/{}", p.name), record), p.use));
   }
+}
+
+auto AddLogos(Builder& out) -> void {
   for (auto const& p : std::array<Part, 4>{
            { { "koei", 0x0000, 26, 112, "the KOEI logo" },
             { "copyright-1992", 0x0B60, 32, 104, "" },
             { "presents", 0x1860, 26, 24, "the opening's KOEI PRESENTS" },
             { "copyright-1994", 0x1AD1, 40, 40, "the copyright line" } }
   }) {
-    auto asset{ Bitmap(std::format("logo/{}", p.name), "KOEILOGO.FNT", "logos", p.at, p.width_bytes, p.height, Role::CAPTION, p.name == "koei" ? 2 : 7, false, p.use) };
+    auto const record{
+      Record{ .file = "KOEILOGO.FNT", .group = "logos", .at = p.at, .layout = Layout::BITMAP, .width_bytes = p.width_bytes, .height = p.height, .role = Role::CAPTION }
+    };
+    auto asset{ Bitmap(std::format("logo/{}", p.name), record, Ink{ .colour = static_cast<std::uint8_t>(p.name == "koei" ? 2 : 7), .where_clear = false }) };
     asset.palette = "main/title";
-    out.Add(std::move(asset));
+    out.Add(Used(std::move(asset), p.use));
   }
 }
 
 auto AddMasks(Builder& out) -> void {
+  constexpr auto MASK_INK{
+    Ink{ .colour = 0, .where_clear = true }
+  };
   for (auto const k : Indices(6)) {
-    auto asset{ Bitmap(std::format("opening-blast-mask/{}", k), "MOPENGRP.DAT", "masks", static_cast<std::uint32_t>(k * 0x11E0), 26, 176, Role::MASK, 0, true, "the opening's bomb explosions") };
-    asset.animation = "opening-blast-mask";
-    asset.frame     = static_cast<unsigned>(k);
-    out.Add(std::move(asset));
+    auto const record{
+      Record{ .file = "MOPENGRP.DAT", .group = "masks", .at = static_cast<std::uint32_t>(k * 0x11E0), .layout = Layout::BITMAP, .width_bytes = 26, .height = 176, .role = Role::MASK }
+    };
+    out.Add(Used(Framed(Bitmap(std::format("opening-blast-mask/{}", k), record, MASK_INK), "opening-blast-mask", k), "the opening's bomb explosions"));
   }
   constexpr auto SHELLS{ std::array<std::array<unsigned, 3>, 6>{ { { 0x6B40, 8, 40 }, { 0x6C80, 6, 16 }, { 0x6CE0, 4, 16 }, { 0x6D20, 1, 8 }, { 0x6D28, 2, 8 }, { 0x6D38, 1, 8 } } } };
-  for (auto const k : Indices(SHELLS.size())) {
-    auto asset{ Bitmap(std::format("opening-shell/{}", k), "MOPENGRP.DAT", "masks", SHELLS[k][0], SHELLS[k][1], SHELLS[k][2], Role::SPRITE, 7, false, "the opening's artillery shell in flight") };
-    asset.palette   = "open/047";
-    asset.animation = "opening-shell";
-    asset.frame     = static_cast<unsigned>(k);
-    out.Add(std::move(asset));
+  for (auto const [k, shell] : std::views::zip(Indices(SHELLS.size()), SHELLS)) {
+    auto const [at, width_bytes, height]{ shell };
+    auto const record{
+      Record{ .file = "MOPENGRP.DAT", .group = "masks", .at = at, .layout = Layout::BITMAP, .width_bytes = width_bytes, .height = height, .role = Role::SPRITE }
+    };
+    auto asset{ Framed(Bitmap(std::format("opening-shell/{}", k), record, Ink{ .colour = 7, .where_clear = false }), "opening-shell", k) };
+    asset.palette = "open/047";
+    out.Add(Used(std::move(asset), "the opening's artillery shell in flight"));
   }
   for (auto const k : Indices(8)) {
-    auto asset{ Bitmap(std::format("ending-aircraft-mask/{}", k), "MENDGRP.DAT", "masks", static_cast<std::uint32_t>(k * 2048), 32, 64, Role::MASK, 0, true, "") };
-    asset.animation = "ending-aircraft-mask";
-    asset.frame     = static_cast<unsigned>(k);
-    out.Add(std::move(asset));
+    auto const record{
+      Record{ .file = "MENDGRP.DAT", .group = "masks", .at = static_cast<std::uint32_t>(k * 2048), .layout = Layout::BITMAP, .width_bytes = 32, .height = 64, .role = Role::MASK }
+    };
+    out.Add(Framed(Bitmap(std::format("ending-aircraft-mask/{}", k), record, MASK_INK), "ending-aircraft-mask", k));
   }
 }
+
+// A glyph of `height` one-byte rows at `at` in a font file or a program table.
+auto GlyphAt(std::string_view const file, std::size_t const at, std::size_t const height) -> Record {
+  return Record{ .file = file, .group = "glyphs", .at = static_cast<std::uint32_t>(at), .layout = Layout::BITMAP, .width_bytes = 1, .height = height, .role = Role::GLYPH };
+}
+
+constexpr auto GLYPH_INK{
+  Ink{ .colour = 7, .where_clear = false }
+};
 
 auto AddGlyphs(Builder& out) -> void {
-  for (auto const n : Indices(ENDING_GLYPHS)) {
-    out.Add(Bitmap(std::format("ending-glyph/{:03}", n), "EMSG.16P", "glyphs", static_cast<std::uint32_t>(n * GLYPH_BYTES), 2, GLYPH_HEIGHT, Role::GLYPH, 7, false,
-                   std::format("the ending's text, code 0x{:04X}", EndingGlyphCodes()[n])));
+  for (auto const [n, code] : std::views::zip(Indices(ENDING_GLYPHS), EndingGlyphCodes())) {
+    auto record{ GlyphAt("EMSG.16P", n * GLYPH_BYTES, GLYPH_HEIGHT) };
+    record.width_bytes = 2;
+    out.Add(Used(Bitmap(std::format("ending-glyph/{:03}", n), record, GLYPH_INK), std::format("the ending's text, code 0x{:04X}", code)));
   }
   for (auto const n : Indices(GAME_GLYPHS)) {
-    out.Add(Bitmap(std::format("game-glyph/{:04}", n), "MSG.16P", "glyphs", static_cast<std::uint32_t>(n * GLYPH_BYTES), 2, GLYPH_HEIGHT, Role::GLYPH, 7, false, ""));
+    auto record{ GlyphAt("MSG.16P", n * GLYPH_BYTES, GLYPH_HEIGHT) };
+    record.width_bytes = 2;
+    out.Add(Bitmap(std::format("game-glyph/{:04}", n), record, GLYPH_INK));
   }
-}
-
-auto Glyph(std::string id, std::string_view const table, std::size_t const at, std::size_t const height, std::string_view const use) -> Asset {
-  return Bitmap(std::move(id), table, "glyphs", static_cast<std::uint32_t>(at), 1, height, Role::GLYPH, 7, false, use);
 }
 
 auto DigitUse(std::size_t const digit, std::string_view const where) -> std::string {
@@ -372,18 +433,20 @@ auto DigitUse(std::size_t const digit, std::string_view const where) -> std::str
 auto AddProgramGlyphs(Builder& out) -> void {
   for (auto const n : Indices(TEXT_GLYPHS)) {
     auto const code{ FIRST_TEXT_CODE + n };
-    out.Add(Glyph(std::format("text-glyph/{:03}", code), PROGRAM_TEXT_FONT, n * TEXT_GLYPH_HEIGHT, TEXT_GLYPH_HEIGHT, std::format("the game's text, code 0x{:02X}", code)));
+    auto const record{ GlyphAt(PROGRAM_TEXT_FONT, n * TEXT_GLYPH_HEIGHT, TEXT_GLYPH_HEIGHT) };
+    out.Add(Used(Bitmap(std::format("text-glyph/{:03}", code), record, GLYPH_INK), std::format("the game's text, code 0x{:02X}", code)));
   }
   for (auto const n : Indices(DIGIT_GLYPHS)) {
-    auto digit{ Glyph(std::format("digit-glyph/{:02}", n), PROGRAM_DIGITS, n * DIGIT_SIZE, DIGIT_SIZE, DigitUse(n, "the map scales' and battle panels' digits")) };
+    auto digit{ Bitmap(std::format("digit-glyph/{:02}", n), GlyphAt(PROGRAM_DIGITS, n * DIGIT_SIZE, DIGIT_SIZE), GLYPH_INK) };
     digit.width = DIGIT_SIZE;
-    out.Add(std::move(digit));
+    out.Add(Used(std::move(digit), DigitUse(n, "the map scales' and battle panels' digits")));
   }
   for (auto const n : Indices(DIGIT_GLYPHS)) {
-    out.Add(Glyph(std::format("sideways-digit-glyph/{:02}", n), PROGRAM_SIDEWAYS_DIGITS, n * SIDEWAYS_DIGIT_HEIGHT, SIDEWAYS_DIGIT_HEIGHT, DigitUse(n, "the vertical map scale's digits")));
+    auto const record{ GlyphAt(PROGRAM_SIDEWAYS_DIGITS, n * SIDEWAYS_DIGIT_HEIGHT, SIDEWAYS_DIGIT_HEIGHT) };
+    out.Add(Used(Bitmap(std::format("sideways-digit-glyph/{:02}", n), record, GLYPH_INK), DigitUse(n, "the vertical map scale's digits")));
   }
   for (auto const [n, use] : std::views::zip(Indices(MARKERS), std::array{ std::string_view{ "an objective on the overview" }, std::string_view{ "the overview's flashing cell" } })) {
-    out.Add(Glyph(std::format("marker-glyph/{}", n), PROGRAM_MARKERS, n * MARKER_SIZE, MARKER_SIZE, use));
+    out.Add(Used(Bitmap(std::format("marker-glyph/{}", n), GlyphAt(PROGRAM_MARKERS, n * MARKER_SIZE, MARKER_SIZE), GLYPH_INK), use));
   }
 }
 
@@ -416,7 +479,7 @@ auto DecodeAsset(Bytes const file, Asset const& asset) -> Decoded<Image> {
   case Layout::PLANES_4:
   case Layout::PLANES_3: {
     auto const planes{ asset.layout == Layout::PLANES_4 ? 4uz : 3uz };
-    return Region(file, asset, planes).and_then([&](Bytes const bytes) { return DecodeInterleaved(bytes, asset.width_bytes, asset.height, planes); });
+    return Region(file, asset, planes).and_then([&](Bytes const bytes) { return DecodePlanes(bytes, InterleavedLayout(asset.width_bytes, asset.height, planes)); });
   }
   case Layout::BITMAP:
     return Region(file, asset, 1).and_then([&](Bytes const bytes) { return DecodeBitmap(bytes, asset.width_bytes, asset.height); }).transform([&](Image const& bits) {
@@ -432,7 +495,7 @@ auto DecodeAsset(Bytes const file, Asset const& asset) -> Decoded<Image> {
     auto const image{ Need(file, asset.at, size * 4) };
     auto const mask{ Need(file, asset.mask_at, size) };
     if (!image || !mask) return std::unexpected{ DecodeError::TRUNCATED };
-    return DecodeMaskedSprite(*image, *mask, asset.width_bytes, asset.height);
+    return DecodeMaskedSprite(MaskedSprite{ .image = *image, .mask = *mask, .width_bytes = asset.width_bytes, .height = asset.height });
   }
   case Layout::STREAM_8:
   case Layout::STREAM_16:
@@ -479,7 +542,8 @@ Catalogue::Catalogue(Source const& source) : _source{ source } {
   AddTiles(builder);
   AddBattleSprites(builder);
   AddPortraitsAndSilhouettes(builder);
-  AddScreens(builder);
+  AddDialogs(builder);
+  AddLogos(builder);
   AddMasks(builder);
   AddGlyphs(builder);
   AddProgramGlyphs(builder);

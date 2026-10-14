@@ -152,13 +152,6 @@ def test_the_renderers_sample_is_current(tmp_path):
     assert (tmp_path / 'render.opeupack').read_bytes() == sample.read_bytes(), 'regenerate it: see render.test/headless.hpp'
 
 
-@pytest.mark.parametrize('form', ['directory', 'archive'])
-def test_the_loader_reads_every_image_as_the_decoders_draw_it(classic, form):
-    directory, archive, _ = classic
-    given = directory if form == 'directory' else archive
-    assert '[  PASSED  ] 2 tests' in run_gtest('assets', MODULE, 'ClassicPack.*', given)
-
-
 def test_the_renderer_bakes_every_texture_as_from_the_decoders(classic):
     _, archive, _ = classic
     assert '[  PASSED  ]' in run_gtest('render', RENDER, 'PackParity.*', archive)

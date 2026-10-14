@@ -1,4 +1,5 @@
 // The raw bitmap files: tiles, battle sprites, portraits, silhouettes, dialogs, masks, logos and glyph fonts.
+#include "present.hpp"
 #include "shipped.hpp"
 
 #include "opeu/assets/catalogue.hpp"
@@ -18,6 +19,8 @@ namespace opeu::assets {
 
 namespace {
 
+using test::Present;
+
 using test::Shipped;
 
 // Every asset of a file decoded; each must decode.
@@ -25,7 +28,7 @@ auto ImagesOf(std::string_view const file) -> std::vector<Image> {
   auto const  shipped{ test::ShippedCatalogue{} };
   auto const& catalogue{ shipped.Catalogued() };
   return catalogue.Assets() | std::views::filter([file](Asset const& asset) { return asset.file == file; }) | std::views::transform([&catalogue](Asset const& asset) {
-           auto image{ catalogue.Decode(asset) };
+           auto const image{ catalogue.Decode(asset) };
            EXPECT_TRUE(image) << asset.id;
            return image.value_or(Image{});
          })
@@ -84,7 +87,7 @@ TEST(ShippedBattleUnits, HoldIconsBlastsAndTwoBorders) {
   ASSERT_EQ(sprites.size(), 54U);
   EXPECT_TRUE(AllSized(sprites | std::views::take(52) | std::ranges::to<std::vector>(), 40, 26));
   EXPECT_TRUE(AllSized(sprites | std::views::drop(52) | std::ranges::to<std::vector>(), 24, 20));
-  EXPECT_EQ(Shipped("HEXUNIT.DAT").size(), 52U * 650U + 2U * 300U);
+  EXPECT_EQ(Shipped("HEXUNIT.DAT").size(), (52U * 650U) + (2U * 300U));
   auto const swapped{ SideZeroColours(sprites.front()) };
   EXPECT_NE(swapped, sprites.front());
   EXPECT_EQ(SideZeroColours(swapped), sprites.front());
@@ -132,7 +135,7 @@ TEST(ShippedOpeningMasks, HoldSixBlastMasksAndSixShells) {
   EXPECT_TRUE(AllSized(masks | std::views::take(6) | std::ranges::to<std::vector>(), 208, 176));
   EXPECT_EQ(masks[6].Width(), 64U);
   EXPECT_EQ(masks[6].Height(), 40U);
-  EXPECT_EQ(Shipped("MOPENGRP.DAT").size(), 6U * 4576U + 512U);
+  EXPECT_EQ(Shipped("MOPENGRP.DAT").size(), (6U * 4576U) + 512U);
 }
 
 TEST(ShippedEndingMasks, HoldEightAircraftFrames) {
@@ -162,7 +165,7 @@ TEST(ShippedEndingFont, Holds218GlyphsInBothCopies) {
 }
 
 TEST(ShippedGameFont, Holds1080DistinctGlyphsInBothCopies) {
-  auto glyphs{ DecodeGlyphs(Shipped("MSG.16P")).value() };
+  auto const glyphs{ DecodeGlyphs(Shipped("MSG.16P")).value() };
   EXPECT_EQ(glyphs.size(), GAME_GLYPHS);
   EXPECT_TRUE(std::ranges::equal(Shipped("MSG"), Shipped("MSG.16P")));
   auto const records{ Chunks(Shipped("MSG.16P"), GLYPH_BYTES) | std::views::transform(ToRecord) | std::ranges::to<std::vector>() };
@@ -179,7 +182,7 @@ TEST(ShippedCatalogue, DecodesEveryAssetOfEveryFile) {
   auto ids{ catalogue.Assets() | std::views::transform(&Asset::id) | std::ranges::to<std::vector>() };
   std::ranges::sort(ids);
   EXPECT_EQ(std::ranges::adjacent_find(ids), ids.end());
-  auto const texture{ catalogue.DecodeTexture(catalogue.Find("portrait/119").value()) };
+  auto const texture{ catalogue.DecodeTexture(Present(catalogue.Find("portrait/119"))) };
   ASSERT_TRUE(texture);
   EXPECT_EQ(texture->Pitch(), 64U * 4U);
   EXPECT_EQ(texture->Pixels().size(), 64U * 80U * 4U);

@@ -32,13 +32,13 @@ namespace {
   if (planes == 0) return std::nullopt;
   auto const record{ Slice(file, asset.at, std::size_t{ asset.width_bytes } * asset.height * planes) };
   if (!record) return std::nullopt;
-  return RawKey(asset.layout, asset.width_bytes, asset.height, *record);
+  return RawKey(RawShape{ .layout = asset.layout, .width_bytes = asset.width_bytes, .height = asset.height }, *record);
 }
 
 }
 
-auto RawKey(Layout const layout, std::size_t const width_bytes, std::size_t const height, Bytes const bytes) -> ContentKey {
-  return ContentKey{ .layout = layout, .width_bytes = width_bytes, .height = height, .fingerprint = FingerprintOf(bytes) };
+auto RawKey(RawShape const& shape, Bytes const bytes) -> ContentKey {
+  return ContentKey{ .layout = shape.layout, .width_bytes = shape.width_bytes, .height = shape.height, .fingerprint = FingerprintOf(bytes) };
 }
 
 auto StreamKey(Layout const layout, std::uint64_t const fingerprint) -> ContentKey {

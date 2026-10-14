@@ -1,5 +1,6 @@
 // A pack loaded from its directory form, its archive form and the executable's embedded files, by id.
 #include "packs.hpp"
+#include "present.hpp"
 
 #include "opeu/assets/pack.hpp"
 
@@ -13,6 +14,8 @@ namespace opeu::assets {
 
 namespace {
 
+using test::Present;
+
 using test::ClassicArchive;
 using test::ClassicDirectory;
 using test::ClassicEmbedded;
@@ -22,7 +25,7 @@ using test::SAMPLE_IDS;
 using test::ToBytes;
 
 auto YesImage() -> std::vector<std::byte> {
-  return ClassicFile(ClassicDirectory().Find("dialog/yes")->image);
+  return ClassicFile(Present(ClassicDirectory().Find("dialog/yes")).image);
 }
 
 // A one-asset pack whose entry says the image is width x height at the given scale.
@@ -62,12 +65,12 @@ TEST(Pack, LoadsAnAssetByItsId) {
 
 TEST(Pack, NamesEachImageForWhatItShows) {
   auto const pack{ ClassicEmbedded() };
-  EXPECT_EQ(pack.Find("portrait/005")->image, "portraits/portrait-005-busch.png");
-  EXPECT_EQ(pack.Find("silhouette/012")->image, "silhouettes/silhouette-012-pzkpfw-i.png");
-  EXPECT_EQ(pack.Find("event/27")->image, "pictures/event-27-pontoon-crossing.png");
-  EXPECT_EQ(pack.Find("battle-unit/class-03/facing-1/side-0")->image, "battle/battle-unit-class-03-facing-1-light-tank-side-0.png");
-  EXPECT_EQ(pack.Find("event/27")->description, "event picture: a tank crossing a pontoon bridge");
-  EXPECT_EQ(pack.Find("portrait/005")->scale, 1U);
+  EXPECT_EQ(Present(pack.Find("portrait/005")).image, "portraits/portrait-005-busch.png");
+  EXPECT_EQ(Present(pack.Find("silhouette/012")).image, "silhouettes/silhouette-012-pzkpfw-i.png");
+  EXPECT_EQ(Present(pack.Find("event/27")).image, "pictures/event-27-pontoon-crossing.png");
+  EXPECT_EQ(Present(pack.Find("battle-unit/class-03/facing-1/side-0")).image, "battle/battle-unit-class-03-facing-1-light-tank-side-0.png");
+  EXPECT_EQ(Present(pack.Find("event/27")).description, "event picture: a tank crossing a pontoon bridge");
+  EXPECT_EQ(Present(pack.Find("portrait/005")).scale, 1U);
 }
 
 TEST(Pack, GivesTheIndexMapExactlyWhereTheGameRecolours) {
@@ -85,15 +88,15 @@ TEST(Pack, GivesTheIndexMapExactlyWhereTheGameRecolours) {
 TEST(Pack, ListsAUnitIconsSideZeroVariant) {
   auto const variant{ ClassicDirectory().Find("battle-unit/class-03/facing-1/side-0") };
   ASSERT_TRUE(variant);
-  EXPECT_EQ(variant->variant_of, "battle-unit/class-03/facing-1");
-  EXPECT_EQ(variant->variant, "side-0");
+  EXPECT_EQ(Present(variant).variant_of, "battle-unit/class-03/facing-1");
+  EXPECT_EQ(Present(variant).variant, "side-0");
 }
 
 TEST(Pack, KnowsAnimationsAndPalettes) {
   auto const pack{ ClassicEmbedded() };
   EXPECT_EQ(pack.Frames("battle-blast/large"), (std::vector<std::string>{ "battle-blast/large/0", "battle-blast/large/1", "battle-blast/large/2", "battle-blast/large/3" }));
   EXPECT_FALSE(pack.Frames("battle-blast/huge"));
-  EXPECT_EQ(pack.Palette("main/day"), Colours(FindPalette("main/day")->levels));
+  EXPECT_EQ(pack.Palette("main/day"), Colours(Present(FindPalette("main/day")).levels));
   EXPECT_FALSE(pack.Palette("main/noon"));
 }
 
@@ -102,12 +105,12 @@ TEST(Pack, KnowsItsFontsAndItsScale) {
   EXPECT_EQ(pack.FontNames(), (std::vector<std::string>{ "digit-glyph", "ending-glyph", "game-glyph", "marker-glyph", "sideways-digit-glyph", "text-glyph" }));
   auto const text{ pack.FontNamed("text-glyph") };
   ASSERT_TRUE(text);
-  EXPECT_EQ(text->cell_width, 8U);
-  EXPECT_EQ(text->cell_height, 16U);
-  EXPECT_EQ(text->first_code, 0x20U);
-  EXPECT_EQ(text->glyphs.size(), 96U);
-  EXPECT_EQ(text->glyphs[0x41 - 0x20], "text-glyph/065");
-  EXPECT_EQ(pack.FontNamed("digit-glyph")->cell_width, 6U);
+  EXPECT_EQ(Present(text).cell_width, 8U);
+  EXPECT_EQ(Present(text).cell_height, 16U);
+  EXPECT_EQ(Present(text).first_code, 0x20U);
+  EXPECT_EQ(Present(text).glyphs.size(), 96U);
+  EXPECT_EQ(Present(text).glyphs[0x41 - 0x20], "text-glyph/065");
+  EXPECT_EQ(Present(pack.FontNamed("digit-glyph")).cell_width, 6U);
   EXPECT_FALSE(pack.FontNamed("kana"));
   EXPECT_EQ(pack.Scale(), 1U);
 }
@@ -125,13 +128,13 @@ TEST(Pack, RefusesAnImageOfAnotherSize) {
 
 TEST(Pack, ReadsAnEntrysOwnScale) {
   ASSERT_TRUE(PackStating(16, 8, R"("scale": 2,)")->Load("yes"));
-  EXPECT_EQ(PackStating(16, 8, R"("scale": 2,)")->Find("yes")->scale, 2U);
+  EXPECT_EQ(Present(PackStating(16, 8, R"("scale": 2,)")->Find("yes")).scale, 2U);
   EXPECT_EQ(PackStating(32, 16, R"("scale": 2,)")->Load("yes").error().fault, PackFault::BAD_IMAGE);
   EXPECT_EQ(PackStating(32, 16, R"("scale": 0,)").error().fault, PackFault::BAD_MANIFEST);
 }
 
 TEST(Pack, RefusesAFileThatIsNotAPng) {
-  auto const portrait{ ClassicDirectory().Find("portrait/118")->image };
+  auto const portrait{ Present(ClassicDirectory().Find("portrait/118")).image };
   auto const pack{
     OpenMemoryPack({ { "pack.json", ClassicFile("pack.json") }, { portrait, ToBytes("GIF89a") } }
     )

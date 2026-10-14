@@ -1,5 +1,6 @@
 // The program's own glyph tables: the text font, the digits, the sideways digits and the markers, decoded through
 // the catalogue like the shipped bitmaps.
+#include "present.hpp"
 #include "shipped.hpp"
 
 #include "opeu/assets/catalogue.hpp"
@@ -20,6 +21,8 @@ namespace opeu::assets {
 
 namespace {
 
+using test::Present;
+
 auto GlyphImage(std::string_view const id) -> Image {
   auto const  shipped{ test::ShippedCatalogue{} };
   auto const& catalogue{ shipped.Catalogued() };
@@ -37,17 +40,17 @@ auto InkedPixels(Image const& image) -> std::size_t {
 
 // The set bits of a table's rows from `at`.
 auto SetBits(std::string_view const table, std::size_t const at, std::size_t const rows) -> std::size_t {
-  auto const bytes{ ProgramFile(table).value().subspan(at, rows) };
+  auto const bytes{ Present(ProgramFile(table)).subspan(at, rows) };
   return std::ranges::fold_left(bytes | std::views::transform([](std::byte const b) { return static_cast<std::size_t>(std::popcount(std::to_integer<std::uint8_t>(b))); }), 0uz, std::plus{});
 }
 
 }
 
 TEST(ProgramGlyphs, NameFourTablesAndNothingElse) {
-  EXPECT_EQ(ProgramFile(PROGRAM_TEXT_FONT)->size(), TEXT_GLYPHS * TEXT_GLYPH_HEIGHT);
-  EXPECT_EQ(ProgramFile(PROGRAM_DIGITS)->size(), DIGIT_GLYPHS * DIGIT_SIZE);
-  EXPECT_EQ(ProgramFile(PROGRAM_SIDEWAYS_DIGITS)->size(), DIGIT_GLYPHS * SIDEWAYS_DIGIT_HEIGHT);
-  EXPECT_EQ(ProgramFile(PROGRAM_MARKERS)->size(), MARKERS * MARKER_SIZE);
+  EXPECT_EQ(Present(ProgramFile(PROGRAM_TEXT_FONT)).size(), TEXT_GLYPHS * TEXT_GLYPH_HEIGHT);
+  EXPECT_EQ(Present(ProgramFile(PROGRAM_DIGITS)).size(), DIGIT_GLYPHS * DIGIT_SIZE);
+  EXPECT_EQ(Present(ProgramFile(PROGRAM_SIDEWAYS_DIGITS)).size(), DIGIT_GLYPHS * SIDEWAYS_DIGIT_HEIGHT);
+  EXPECT_EQ(Present(ProgramFile(PROGRAM_MARKERS)).size(), MARKERS * MARKER_SIZE);
   EXPECT_FALSE(ProgramFile("FACE.DAT"));
 }
 

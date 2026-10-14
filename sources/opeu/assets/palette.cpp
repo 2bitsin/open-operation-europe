@@ -1,6 +1,7 @@
 #include "opeu/assets/palette.hpp"
 
 #include <algorithm>
+#include <span>
 
 namespace opeu::assets::detail::palette {
 
@@ -139,8 +140,9 @@ auto ClassicPalettes() noexcept -> std::span<NamedPalette const> {
 }
 
 auto FindPalette(std::string_view const name) -> std::optional<NamedPalette> {
-  auto const found{ std::ranges::find(PALETTES, name, &NamedPalette::name) };
-  if (found == PALETTES.end()) return std::nullopt;
+  auto const palettes{ std::span{ PALETTES } };
+  auto const found{ std::ranges::find(palettes, name, &NamedPalette::name) };
+  if (found == palettes.end()) return std::nullopt;
   return *found;
 }
 

@@ -38,7 +38,7 @@ auto DecodePlanes(Bytes const bytes, PlaneLayout const& layout) -> Decoded<Image
     auto       pixels{ std::vector<std::uint8_t>(width * layout.height) };
     for (auto const [row, column, plane] : Places(layout)) {
       auto const byte{ image[layout.At(plane, column, row)] };
-      for (auto const pixel : Indices(8)) pixels[row * width + column * 8 + pixel] |= static_cast<std::uint8_t>(PixelBit(byte, pixel) << plane);
+      for (auto const pixel : Indices(8)) pixels[(row * width) + (column * 8) + pixel] |= static_cast<std::uint8_t>(PixelBit(byte, pixel) << plane);
     }
     return Image{ width, layout.height, std::move(pixels) };
   });
@@ -46,35 +46,35 @@ auto DecodePlanes(Bytes const bytes, PlaneLayout const& layout) -> Decoded<Image
 
 auto EncodePlanes(Image const& image, PlaneLayout const& layout) -> std::vector<std::byte> {
   auto bytes{ std::vector<std::byte>(layout.Bytes()) };
-  for (auto const [row, column, plane] : Places(layout)) bytes[layout.At(plane, column, row)] = Gathered(image.Pixels(), row * image.Width() + column * 8, plane);
+  for (auto const [row, column, plane] : Places(layout)) bytes[layout.At(plane, column, row)] = Gathered(image.Pixels(), (row * image.Width()) + (column * 8), plane);
   return bytes;
 }
 
-auto DecodeInterleaved(Bytes const bytes, std::size_t const width_bytes, std::size_t const height, std::size_t const planes) -> Decoded<Image> {
-  return DecodePlanes(bytes, InterleavedLayout(width_bytes, height, planes));
+auto DecodeBitmap(Bytes const bytes, std::size_t const width_bytes, std::size_t const height) -> Decoded<Image> {
+  return DecodePlanes(bytes, InterleavedLayout(width_bytes, height, 1));
 }
 
-auto DecodeBitmap(Bytes const bytes, std::size_t const width_bytes, std::size_t const height) -> Decoded<Image> {
-  return DecodeInterleaved(bytes, width_bytes, height, 1);
+namespace {
+
+// `image` with a mask whose set bits keep the background.
+[[nodiscard]] auto Masked(Image const& image, Image const& keep) -> Image {
+  auto opaque{ keep.Pixels() | std::views::transform([](std::uint8_t const bit) { return static_cast<std::uint8_t>(bit ^ 1U); }) | std::ranges::to<std::vector>() };
+  return Image{ image.Width(), image.Height(), image.Pixels() | std::ranges::to<std::vector>(), std::move(opaque) };
+}
+
 }
 
 auto DecodeCell(Bytes const bytes) -> Decoded<Image> {
   return Need(bytes, 0, CELL_BYTES).and_then([](Bytes const cell) {
     return DecodePlanes(cell.first(CELL_IMAGE_LAYOUT.Bytes()), CELL_IMAGE_LAYOUT).and_then([cell](Image const& image) {
-      return DecodePlanes(cell.subspan(CELL_IMAGE_LAYOUT.Bytes()), MASK_LAYOUT).transform([&image](Image const& keep) {
-        auto opaque{ keep.Pixels() | std::views::transform([](std::uint8_t const bit) { return std::uint8_t(bit ^ 1); }) | std::ranges::to<std::vector>() };
-        return Image{ image.Width(), image.Height(), image.Pixels() | std::ranges::to<std::vector>(), std::move(opaque) };
-      });
+      return DecodePlanes(cell.subspan(CELL_IMAGE_LAYOUT.Bytes()), MASK_LAYOUT).transform([&image](Image const& keep) { return Masked(image, keep); });
     });
   });
 }
 
-auto DecodeMaskedSprite(Bytes const image_bytes, Bytes const mask, std::size_t const width_bytes, std::size_t const height) -> Decoded<Image> {
-  return DecodeInterleaved(image_bytes, width_bytes, height, 4).and_then([&](Image const& image) {
-    return DecodeBitmap(mask, width_bytes, height).transform([&](Image const& shape) {
-      auto opaque{ shape.Pixels() | std::views::transform([](std::uint8_t const bit) { return std::uint8_t(bit ^ 1); }) | std::ranges::to<std::vector>() };
-      return Image{ image.Width(), image.Height(), image.Pixels() | std::ranges::to<std::vector>(), std::move(opaque) };
-    });
+auto DecodeMaskedSprite(MaskedSprite const& sprite) -> Decoded<Image> {
+  return DecodePlanes(sprite.image, InterleavedLayout(sprite.width_bytes, sprite.height, 4)).and_then([&sprite](Image const& image) {
+    return DecodeBitmap(sprite.mask, sprite.width_bytes, sprite.height).transform([&image](Image const& keep) { return Masked(image, keep); });
   });
 }
 

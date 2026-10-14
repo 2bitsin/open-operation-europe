@@ -25,7 +25,7 @@ struct PlaneLayout {
     return planes * width_bytes * height;
   }
   [[nodiscard]] constexpr auto At(std::size_t const plane, std::size_t const column, std::size_t const row) const noexcept -> std::size_t {
-    return plane * plane_stride + column * column_stride + row * row_stride;
+    return (plane * plane_stride) + (column * column_stride) + (row * row_stride);
   }
 
   auto operator<=>(PlaneLayout const&) const = default;
@@ -53,10 +53,6 @@ struct PlaneLayout {
 // the layout's planes are dropped.
 [[nodiscard]] auto EncodePlanes(Image const& image, PlaneLayout const& layout) -> std::vector<std::byte>;
 
-// Rows of `width_bytes` byte columns, each column `planes` bytes (plane 0 first): the map tiles, the dialog bitmaps
-// (four planes) and the portraits (three planes, colours 0..7).
-[[nodiscard]] auto DecodeInterleaved(Bytes bytes, std::size_t width_bytes, std::size_t height, std::size_t planes) -> Decoded<Image>;
-
 // Rows of `width_bytes` bytes, one bit per pixel: a set bit is index 1, a clear bit index 0.
 [[nodiscard]] auto DecodeBitmap(Bytes bytes, std::size_t width_bytes, std::size_t height) -> Decoded<Image>;
 
@@ -69,8 +65,16 @@ inline constexpr auto CELL_IMAGE_LAYOUT{ LinePlanesLayout(CELL_WIDTH / 8, CELL_H
 // set bits keep the background.
 [[nodiscard]] auto DecodeCell(Bytes bytes) -> Decoded<Image>;
 
-// A sprite stored as an interleaved four-plane image and a separate one-bit AND mask (set = background).
-[[nodiscard]] auto DecodeMaskedSprite(Bytes image, Bytes mask, std::size_t width_bytes, std::size_t height) -> Decoded<Image>;
+// A sprite stored as an interleaved four-plane image and a separate one-bit AND mask (set = background), both
+// `width_bytes` byte columns by `height` rows.
+struct MaskedSprite {
+  Bytes       image;
+  Bytes       mask;
+  std::size_t width_bytes{};
+  std::size_t height{};
+};
+
+[[nodiscard]] auto DecodeMaskedSprite(MaskedSprite const& sprite) -> Decoded<Image>;
 
 }
 
@@ -81,12 +85,12 @@ using detail::planar::CELL_IMAGE_LAYOUT;
 using detail::planar::CELL_WIDTH;
 using detail::planar::DecodeBitmap;
 using detail::planar::DecodeCell;
-using detail::planar::DecodeInterleaved;
 using detail::planar::DecodeMaskedSprite;
 using detail::planar::DecodePlanes;
 using detail::planar::EncodePlanes;
 using detail::planar::InterleavedLayout;
 using detail::planar::LinePlanesLayout;
+using detail::planar::MaskedSprite;
 using detail::planar::PlaneBlocksLayout;
 using detail::planar::PlaneLayout;
 }

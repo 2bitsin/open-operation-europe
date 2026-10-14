@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <array>
-#include <charconv>
 #include <cstdint>
 #include <format>
 #include <ranges>
@@ -90,10 +89,8 @@ auto VariantEntry(std::string const& of, Asset const& asset, Image const& image)
 
 // The number a glyph's id ends in: its code in its font.
 auto CodeOf(std::string_view const id) -> std::uint32_t {
-  auto const number{ id.substr(id.rfind('/') + 1) };
-  auto       code{ std::uint32_t{} };
-  std::from_chars(number.data(), std::to_address(number.end()), code);
-  return code;
+  auto const digits{ id.substr(id.rfind('/') + 1) | std::views::take_while([](char const c) { return c >= '0' && c <= '9'; }) };
+  return std::ranges::fold_left(digits, std::uint32_t{}, [](std::uint32_t const code, char const digit) { return (code * 10) + static_cast<std::uint32_t>(digit - '0'); });
 }
 
 // A glyph's cell: the font's cell before scaling.

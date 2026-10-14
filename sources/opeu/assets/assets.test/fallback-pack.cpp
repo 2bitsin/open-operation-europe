@@ -1,5 +1,6 @@
 // A remaster pack over the classic one: the remaster answers for its ids, the classic pack for the rest.
 #include "packs.hpp"
+#include "present.hpp"
 
 #include "opeu/assets/fallback-pack.hpp"
 
@@ -15,13 +16,15 @@ namespace opeu::assets {
 
 namespace {
 
+using test::Present;
+
 using test::ClassicEmbedded;
 using test::ClassicFile;
 using test::OpenMemoryPack;
 using test::ToBytes;
 
 auto YesImage() -> std::vector<std::byte> {
-  return ClassicFile(ClassicEmbedded().Find("dialog/yes")->image);
+  return ClassicFile(Present(ClassicEmbedded().Find("dialog/yes")).image);
 }
 
 // portrait/118 replaced by a 32x16 picture, an asset the classic pack lacks, a palette of its own, and opening/00
@@ -83,7 +86,7 @@ TEST(FallbackPack, TakesAnimationsAndFontsByNameFromThePreferredPackFirst) {
   EXPECT_EQ(pack.Frames("blink"), std::vector<std::string>{ "portrait/200" });
   EXPECT_EQ(pack.Frames("battle-blast/small"), ClassicEmbedded().Frames("battle-blast/small"));
   EXPECT_EQ(pack.Frames("battle-blast/huge"), std::nullopt);
-  EXPECT_EQ(pack.FontNamed("text-glyph")->first_code, 32U);
+  EXPECT_EQ(Present(pack.FontNamed("text-glyph")).first_code, 32U);
   EXPECT_EQ(pack.FontNamed("ending-glyph"), ClassicEmbedded().FontNamed("ending-glyph"));
   EXPECT_EQ(pack.FontNames(), (std::vector<std::string>{ "digit-glyph", "ending-glyph", "game-glyph", "marker-glyph", "runes", "sideways-digit-glyph", "text-glyph" }));
 }
@@ -104,8 +107,8 @@ TEST(FallbackPack, HasThePreferredPacksScale) {
 
 TEST(FallbackPack, FindsPalettesInEitherPack) {
   auto const pack{ Remastered() };
-  EXPECT_EQ((*pack.Palette("sepia"))[0], (Colour{ .r = 1, .g = 1, .b = 1 }));
-  EXPECT_EQ(pack.Palette("main/day"), Colours(FindPalette("main/day")->levels));
+  EXPECT_EQ(Present(pack.Palette("sepia"))[0], (Colour{ .r = 1, .g = 1, .b = 1 }));
+  EXPECT_EQ(pack.Palette("main/day"), Colours(Present(FindPalette("main/day")).levels));
   EXPECT_FALSE(pack.Palette("main/noon"));
 }
 

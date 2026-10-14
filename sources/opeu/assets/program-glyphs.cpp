@@ -169,8 +169,9 @@ constexpr auto TABLES{
 }
 
 auto ProgramFile(std::string_view const name) -> std::optional<Bytes> {
-  auto const found{ std::ranges::find(TABLES, name, &ProgramTable::name) };
-  if (found == TABLES.end()) return std::nullopt;
+  auto const tables{ std::span{ TABLES } };
+  auto const found{ std::ranges::find(tables, name, &ProgramTable::name) };
+  if (found == tables.end()) return std::nullopt;
   return std::as_bytes(found->bytes);
 }
 

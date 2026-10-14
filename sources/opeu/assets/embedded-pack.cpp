@@ -10,8 +10,8 @@
 namespace opeu::assets::detail::embedded_pack {
 
 auto EmbeddedPackFiles::Read(std::string_view const path) const -> Packed<std::vector<std::byte>> {
-  auto const name{ std::format("{}/{}", _directory, path) };
-  auto const found{ resources::find(name) };
+  auto const        name{ std::format("{}/{}", _directory, path) };
+  auto const* const found{ resources::find(name) };
   if (found == nullptr) return Fail(PackFault::MISSING_FILE, name);
   return found->bytes() | std::ranges::to<std::vector>();
 }

@@ -28,8 +28,15 @@ struct ContentKey {
   auto operator<=>(ContentKey const&) const = default;
 };
 
-// The key of a raw image (PLANES_4, PLANES_3, BITMAP) of `width_bytes` x `height` drawn from `bytes`.
-[[nodiscard]] auto RawKey(Layout layout, std::size_t width_bytes, std::size_t height, Bytes bytes) -> ContentKey;
+// The shape of a raw image (PLANES_4, PLANES_3, BITMAP): its layout, `width_bytes` byte columns by `height` rows.
+struct RawShape {
+  Layout      layout{};
+  std::size_t width_bytes{};
+  std::size_t height{};
+};
+
+// The key of a raw image of `shape` drawn from `bytes`.
+[[nodiscard]] auto RawKey(RawShape const& shape, Bytes bytes) -> ContentKey;
 // The key of a picture stream (STREAM_8, STREAM_16) whose bytes fingerprint as `fingerprint`.
 [[nodiscard]] auto StreamKey(Layout layout, std::uint64_t fingerprint) -> ContentKey;
 
@@ -58,5 +65,6 @@ namespace opeu::assets {
 using detail::content_index::ContentIndex;
 using detail::content_index::ContentKey;
 using detail::content_index::RawKey;
+using detail::content_index::RawShape;
 using detail::content_index::StreamKey;
 }

@@ -1,7 +1,6 @@
-// The classic pack against the decoders: every entry and image of the pack is what the decoders' pack (CataloguePack)
-// draws from the shipped files, pixel for pixel. By default the sample's ids in the checked-in pack's three forms
-// (directory, archive, embedded); tools/assets/pack.test runs this over a whole pack, naming it in OPEU_CLASSIC_PACK,
-// and then every id is compared and the pack must also hold every id, animation and font the decoders know.
+// The classic pack against the decoders: every entry and image of the checked-in pack, as a directory and embedded,
+// is what the decoders' pack (CataloguePack) draws from the shipped files, pixel for pixel, and the pack holds every
+// id, animation and font the decoders know; an archive made of the sample's files reads the same.
 #include "packs.hpp"
 #include "shipped.hpp"
 
@@ -12,8 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <cstdlib>
-#include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -24,32 +22,34 @@ namespace {
 using test::ClassicArchive;
 using test::ClassicDirectory;
 using test::ClassicEmbedded;
+
 using test::SAMPLE_IDS;
 
-auto WholePackGiven() -> std::optional<std::string> {
-  auto const given{ std::getenv("OPEU_CLASSIC_PACK") }; // NOLINT(concurrency-mt-unsafe): read before any test thread starts
-  if (given == nullptr) return std::nullopt;
-  return std::string{ given };
+// What the decoders cannot know: the readable file names and descriptions pack.py gives the images.
+auto WithoutNaming(LoadedAsset loaded) -> LoadedAsset {
+  loaded.entry.image.clear();
+  loaded.entry.indexed = loaded.entry.indexed.transform([](std::string const&) { return std::string{}; });
+  loaded.entry.description.clear();
+  return loaded;
 }
 
-auto PacksUnderTest() -> std::vector<Pack> {
+// The whole pack's two forms: the checked-in directory and the files compiled into the executable.
+auto WholePacks() -> std::vector<Pack> {
   auto packs{ std::vector<Pack>{} };
-  if (!WholePackGiven()) {
-    packs.push_back(ClassicDirectory());
-    packs.push_back(ClassicArchive());
-    packs.push_back(ClassicEmbedded());
-    return packs;
-  }
-  auto given{ OpenPack(*WholePackGiven()) };
-  EXPECT_TRUE(given) << Describe(given.error());
-  if (given) packs.push_back(*std::move(given));
+  packs.push_back(ClassicDirectory());
+  packs.push_back(ClassicEmbedded());
   return packs;
 }
 
-// The ids compared: every one of a whole pack, the sample's otherwise.
-auto IdsUnderTest(Pack const& pack) -> std::vector<std::string> {
-  if (WholePackGiven()) return pack.Ids();
-  return SAMPLE_IDS | std::ranges::to<std::vector<std::string>>();
+// Each image of `ids` loads from `pack` as the decoders draw it.
+auto ExpectDrawnAsTheDecoders(Pack const& pack, std::span<std::string const> const ids) -> void {
+  auto const  shipped{ test::ShippedPack{} };
+  auto const& decoders{ shipped.Decoders() };
+  std::ranges::for_each(ids, [&](std::string const& id) {
+    auto const loaded{ pack.Load(id) };
+    ASSERT_TRUE(loaded) << id << ": " << Describe(loaded.error());
+    EXPECT_EQ(WithoutNaming(*loaded), WithoutNaming(decoders.Load(id).value())) << id;
+  });
 }
 
 // The whole pack lists what the decoders list: every id, every animation's frames, every font.
@@ -64,33 +64,26 @@ auto ExpectComplete(AssetPack const& pack, AssetPack const& decoders) -> void {
   });
 }
 
-// What the decoders cannot know: the readable file names and descriptions pack.py gives the images.
-auto WithoutNaming(LoadedAsset loaded) -> LoadedAsset {
-  loaded.entry.image.clear();
-  loaded.entry.indexed = loaded.entry.indexed.transform([](std::string const&) { return std::string{}; });
-  loaded.entry.description.clear();
-  return loaded;
-}
-
 }
 
 TEST(ClassicPack, HoldsEveryImageAsTheDecodersDrawIt) {
-  auto const  shipped{ test::ShippedPack{} };
-  auto const& decoders{ shipped.Decoders() };
-  std::ranges::for_each(PacksUnderTest(), [&](Pack const& pack) {
-    std::ranges::for_each(IdsUnderTest(pack), [&](std::string const& id) {
-      auto const loaded{ pack.Load(id) };
-      ASSERT_TRUE(loaded) << id << ": " << Describe(loaded.error());
-      EXPECT_EQ(WithoutNaming(*loaded), WithoutNaming(decoders.Load(id).value())) << id;
-    });
-    if (WholePackGiven()) ExpectComplete(pack, decoders);
-  });
+  std::ranges::for_each(WholePacks(), [](Pack const& pack) { ExpectDrawnAsTheDecoders(pack, pack.Ids()); });
+}
+
+TEST(ClassicPack, ListsEveryIdAnimationAndFontTheDecodersKnow) {
+  auto const shipped{ test::ShippedPack{} };
+  std::ranges::for_each(WholePacks(), [&shipped](Pack const& pack) { ExpectComplete(pack, shipped.Decoders()); });
+}
+
+TEST(ClassicPack, ReadsTheSampleFromAnArchive) {
+  ExpectDrawnAsTheDecoders(ClassicArchive(), SAMPLE_IDS | std::ranges::to<std::vector<std::string>>());
 }
 
 TEST(ClassicPack, HoldsTheGamesPalettes) {
-  std::ranges::for_each(PacksUnderTest(), [](Pack const& pack) {
-    EXPECT_TRUE(std::ranges::all_of(ClassicPalettes(), [&](NamedPalette const& palette) { return pack.Palette(palette.name) == Colours(palette.levels); }));
-  });
+  auto packs{ WholePacks() };
+  packs.push_back(ClassicArchive());
+  std::ranges::for_each(
+      packs, [](Pack const& pack) { EXPECT_TRUE(std::ranges::all_of(ClassicPalettes(), [&](NamedPalette const& palette) { return pack.Palette(palette.name) == Colours(palette.levels); })); });
 }
 
 }
