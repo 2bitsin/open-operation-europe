@@ -131,9 +131,9 @@ python3 tools/tidy/tidy.py --worktree --unit platform               # preview on
 ```
 
 `./buildutil test` runs the gate (`tools/tidy/pytest.ini`), so every Linux CI
-job that runs it installs the newest of `clang-tidy-20`/`clang-tidy-19` from
-Ubuntu's universe (the image's default `clang-tidy` 18 is too old); the `tidy`
-CI job publishes the scoreboard. It needs clang-tidy 19 or newer (on macOS
+job that runs it installs clang-tidy and libc++ of the newest LLVM (23, 22 or
+21) from apt.llvm.org (Ubuntu 24.04's own stop at LLVM 20, too old for the
+tree); the `tidy` CI job publishes the scoreboard. It needs clang-tidy 19 or newer (on macOS
 `brew install llvm`). For `-fix` on one module, LLVM's runner over the
 compile database still works:
 `/opt/homebrew/opt/llvm/bin/run-clang-tidy -fix -p _build/armv8-macos-apple-clang-release 'sources/opeu/platform/'`.
