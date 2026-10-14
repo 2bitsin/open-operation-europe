@@ -19,7 +19,11 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
+#include <ranges>
+#include <span>
 
 using namespace opeu::game;
 
@@ -32,15 +36,32 @@ constexpr std::uint16_t DEATH_CONTEXT{ 0x10 };
 constexpr std::uint8_t  ADVISER{ 3 };      // the side record kind of the adviser
 constexpr std::uint8_t  GENERAL_ROLE{ 1 }; // the role that becomes a deputy instead of dying
 
-// The death notice the message service shows, "Commander " + name + suffix, built in one buffer with the side right
-// after the text's room. A name of seven or more characters runs the text into the side byte, and the second status
-// test then reads the overwritten side.
-constexpr std::size_t NOTICE_BYTES{ 0x34 };
-constexpr std::size_t NOTICE_SIDE{ 50 }; // the side's byte in the notice
+// The status of a side as the notice's tests read it: the word at side_status[side], past the array for a side byte
+// a long name overwrote.
+auto SideStatus(Game const& game, std::uint8_t side) -> std::uint16_t {
+  return Word(game, static_cast<std::uint16_t>(offsetof(DataSegment, side_status) + (std::size_t{ side } * 2)));
+}
 
-// The side kept in the notice's side byte, as the second status test reads it.
-auto NoticeSide(TextBuffer<NOTICE_BYTES>& notice) -> std::uint8_t {
-  return static_cast<std::uint8_t>(notice.Characters()[NOTICE_SIDE]);
+// A wounded general's hour: he recovers with chance 1 in (level * 10 + 24), else he loses 10 - limit / 10 health; at
+// no health a deputy holds on, a role-1 general becomes a deputy and anyone else dies.
+auto Wounded(Game& game, Person& person, std::uint16_t level) -> void {
+  if (game.State().RandomBounded(static_cast<std::uint16_t>((level * 10) + 24)) == 2)
+    person.role &= static_cast<std::uint8_t>(~Bits(PersonRole::POOR_HEALTH));
+  else
+    person.health = SubByte(person.health, 10 - (person.max_health / 10));
+  if (person.health != 0) return;
+  if ((person.role & Bits(PersonRole::DEPUTY)) != 0)
+    person.health = 1;
+  else if ((person.role & Bits(PersonRole::ROLE_MASK)) == GENERAL_ROLE)
+    person.role |= Bits(PersonRole::DEPUTY);
+  else
+    opeu_commander_death(game, Near(Data(game), person));
+}
+
+// The hour's healing: 1 for a general assigned to a division, 3 while his record counter runs, else 2.
+auto Healing(Person const& person) -> std::uint8_t {
+  if ((person.assignment & Bits(Assignment::DIVISION)) != 0) return 1;
+  return opeu_get_record_counter(person) != 0 ? 3 : 2;
 }
 } // namespace
 
@@ -49,56 +70,37 @@ void opeu_death_present(Game& game) {
   opeu_delay_units(game, 30);
 }
 
+auto opeu::game::detail::evwound::ComposeDeathNotice(Game& game, std::uint16_t person) -> DeathNotice {
+  DeathNotice notice{ opeu_person_lacks_side0_flag(game, person) };
+  if (SideStatus(game, notice.Side()) != SIDE_PLAYED) return notice;
+  opeu_string_copy(game, notice.Message(), DEATH_PREFIX);
+  opeu_string_append(game, notice.Message(), person);
+  opeu_string_append(game, notice.Message(), DEATH_SUFFIX);
+  return notice;
+}
+
 // Replaces the dead general with a new deputy; a side the player watches is told by its adviser.
 void opeu_commander_death(Game& game, uint16_t person) {
-  TextBuffer<NOTICE_BYTES> notice;
-  auto&                    data{ Data(game) };
-  notice.Characters()[NOTICE_SIDE] = static_cast<char>(opeu_person_lacks_side0_flag(game, person));
-  if (data.side_status[NoticeSide(notice)] == SIDE_PLAYED) {
-    opeu_string_copy(game, notice, DEATH_PREFIX);
-    opeu_string_append(game, notice, person);
-    opeu_string_append(game, notice, DEATH_SUFFIX);
-  }
+  auto notice{ ComposeDeathNotice(game, person) };
   opeu_initialize_deputy(game, person);
-  std::uint8_t const side{ NoticeSide(notice) };
-  if (data.side_status[side] == SIDE_PLAYED) {
+  std::uint8_t const side{ notice.Side() };
+  if (SideStatus(game, side) == SIDE_PLAYED) {
     opeu_set_turn_context(game, DEATH_CONTEXT);
     opeu_finish_side_initialization(game, 0);
     opeu_daily_show(game, DEATH_SHOW, side, Presenter::DEATH);
-    opeu_control_message(game, notice, opeu_find_side_record(game, side, ADVISER));
+    opeu_control_message(game, notice.Message(), opeu_find_side_record(game, side, ADVISER));
   }
 }
 
-// A wounded general recovers with chance 1 in (level * 10 + 24), the level being the delivery level for a side the
-// player commands and 2 otherwise; else he loses 10 - limit / 10 health. Healing: 1 for a general assigned to a
-// division, 3 while his record counter runs, else 2.
+// Every present general of both sides: the wounded recover or worsen, then all heal a little up to their limit.
 void opeu_wound_event(Game& game) {
   auto& data{ Data(game) };
-  for (std::uint8_t side{ 0 }; side < SIDE_COUNT; ++side) {
-    std::uint16_t const level{ DeliveryLevel(data, side) };
-    for (std::uint8_t i{ 0 }; i < PEOPLE_PER_SIDE; ++i) {
-      auto& person{ data.people[side * PEOPLE_PER_SIDE + i] };
+  std::ranges::for_each(std::views::iota(std::uint8_t{ 0 }, std::uint8_t{ SIDE_COUNT }), [&](std::uint8_t side) {
+    auto const level{ DeliveryLevel(data, side) };
+    for (auto& person : std::span{ data.people }.subspan(std::size_t{ side } * PEOPLE_PER_SIDE, PEOPLE_PER_SIDE)) {
       if (person.status == PERSON_VACANT) continue;
-      if (person.role & Bits(PersonRole::POOR_HEALTH)) {
-        if (game.State().RandomBounded(static_cast<std::uint16_t>(level * 10 + 24)) == 2)
-          person.role &= static_cast<std::uint8_t>(~Bits(PersonRole::POOR_HEALTH));
-        else
-          person.health = SubByte(person.health, 10 - person.max_health / 10);
-        if (person.health == 0) {
-          if (person.role & Bits(PersonRole::DEPUTY))
-            person.health = 1;
-          else if ((person.role & Bits(PersonRole::ROLE_MASK)) == GENERAL_ROLE)
-            person.role |= Bits(PersonRole::DEPUTY);
-          else
-            opeu_commander_death(game, Near(data, person));
-        }
-      }
-      std::uint8_t amount{ 2 };
-      if (person.assignment & Bits(Assignment::DIVISION))
-        amount = 1;
-      else if (opeu_get_record_counter(person))
-        amount = 3;
-      person.health = AddByte(person.health, amount, person.max_health);
+      if ((person.role & Bits(PersonRole::POOR_HEALTH)) != 0) Wounded(game, person, level);
+      person.health = AddByte(person.health, Healing(person), person.max_health);
     }
-  }
+  });
 }
