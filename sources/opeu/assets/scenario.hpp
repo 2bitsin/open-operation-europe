@@ -22,6 +22,8 @@ inline constexpr auto FILE_BYTES{ SETUPS_AT + (SETUPS * SETUP_BYTES) };
 struct Side {
   std::array<unsigned, 3> stock{};
   std::array<unsigned, 3> income{};
+
+  auto operator==(Side const&) const -> bool = default;
 };
 
 struct Person {
@@ -29,6 +31,8 @@ struct Person {
   std::uint8_t                side{};
   std::array<std::uint8_t, 8> abilities{};
   std::uint8_t                portrait{}; // FACE.DAT record
+
+  auto operator==(Person const&) const -> bool = default;
 };
 
 struct Element {
@@ -39,6 +43,8 @@ struct Element {
   std::uint8_t training{};
   std::uint8_t experience{};
   std::uint8_t state{};
+
+  auto operator==(Element const&) const -> bool = default;
 };
 
 struct Unit {
@@ -47,6 +53,8 @@ struct Unit {
   std::uint8_t            y{};
   std::array<unsigned, 3> supplies{};
   std::uint8_t            flags{};
+
+  auto operator==(Unit const&) const -> bool = default;
 };
 
 struct Objective {
@@ -56,6 +64,8 @@ struct Objective {
   std::uint8_t garrison{};
   std::uint8_t points{};
   std::uint8_t flags{};
+
+  auto operator==(Objective const&) const -> bool = default;
 };
 
 struct Setup {
@@ -71,6 +81,8 @@ struct Setup {
   std::vector<Element>   elements;   // 256
   std::vector<Unit>      units;      // 64
   std::vector<Objective> objectives; // 21
+
+  auto operator==(Setup const&) const -> bool = default;
 };
 
 class ScenarioFile {
@@ -87,6 +99,8 @@ public:
   [[nodiscard]] auto Condition(std::size_t n, std::size_t side) const -> std::string const&;
   // Set-up n: 1..6 start scenarios 0..5.
   [[nodiscard]] auto SetupOf(std::size_t n) const -> Setup const&;
+
+  auto operator==(ScenarioFile const&) const -> bool = default;
 
 private:
   Descriptions _descriptions;

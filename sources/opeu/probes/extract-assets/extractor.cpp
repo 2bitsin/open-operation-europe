@@ -3,8 +3,13 @@
 #include "json.hpp"
 #include "png.hpp"
 
+#include "opeu/assets/glyph-code-table.hpp"
+#include "opeu/assets/glyphs.hpp"
+#include "opeu/assets/map-tables.hpp"
 #include "opeu/assets/maps.hpp"
+#include "opeu/assets/palette-table.hpp"
 #include "opeu/assets/palette.hpp"
+#include "opeu/assets/scenario-table.hpp"
 #include "opeu/assets/scenario.hpp"
 
 #include <algorithm>
@@ -35,19 +40,9 @@ auto ColoursUsed(assets::Image const& image) -> std::vector<int> {
   return drawn;
 }
 
-// Rows of a square grid of bytes as a JSON array of arrays.
-auto Grid(std::span<std::uint8_t const> const cells, std::size_t const side) -> std::string {
-  return json::Array(std::views::iota(0uz, cells.size() / side) | std::views::transform([&](std::size_t const row) { return json::Array(cells.subspan(row * side, side)); }));
-}
-
-// A game text field: ASCII as a string; text in KOEI's double-byte code (the Chinese edition's names in set-up 0)
-// has no Unicode mapping here, so it goes out as null with its bytes in hex under <name>_koei.
-auto GameText(json::Object& record, std::string_view const name, std::string_view const text) -> json::Object& {
-  if (std::ranges::all_of(text, [](char const c) { return static_cast<unsigned char>(c) < 0x80; })) {
-    return record.Text(name, text);
-  }
-  auto const hex{ text | std::views::transform([](char const c) { return std::format("{:02x}", static_cast<unsigned char>(c)); }) | std::views::join | std::ranges::to<std::string>() };
-  return record.Raw(name, "null").Text(std::format("{}_koei", name), hex);
+// One table file as a record: its path in the pack and its JSON.
+auto TableRecord(std::string_view const path, std::string const& table) -> std::string {
+  return json::Object{}.Text("kind", "table").Text("path", path).Raw("table", table).Encoded();
 }
 
 auto AssetRecord(Asset const& asset, assets::Image const& image) -> json::Object {
@@ -80,7 +75,7 @@ auto AssetRecord(Asset const& asset, assets::Image const& image) -> json::Object
 Extractor::Extractor(assets::Source const& source, std::filesystem::path out, Emit emit) : _source{ source }, _catalogue{ source }, _out{ std::move(out) }, _emit{ std::move(emit) } { }
 
 auto Extractor::Run() const -> Done {
-  return Palettes().and_then([this] { return Graphics(); }).and_then([this] { return Scenarios(); }).and_then([this] { return Maps(); });
+  return Palettes().and_then([this] { return Graphics(); }).and_then([this] { return Tables(); });
 }
 
 auto Extractor::Palettes() const -> Done {
@@ -114,95 +109,27 @@ auto Extractor::Graphic(Asset const& asset) const -> Done {
   return done;
 }
 
-auto Extractor::Scenarios() const -> Done {
+auto Extractor::Tables() const -> Done {
   auto const file{ _source.get().File("SCEDATA").and_then(assets::DecodeScenarioFile) };
   if (!file) return Failed("SCEDATA", file.error());
-  for (auto const n : std::views::iota(0uz, assets::detail::scenario::SCENARIOS)) {
-    _emit(json::Object{}
-              .Text("kind", "scenario-text")
-              .Number("scenario", n)
-              .Text("description", file->Description(n))
-              .Raw("conditions", json::Array(std::array{ json::Quoted(file->Condition(n, 0)), json::Quoted(file->Condition(n, 1)) }))
-              .Encoded());
-  }
-  for (auto const n : std::views::iota(0uz, assets::detail::scenario::SETUPS)) {
-    auto const& s{ file->SetupOf(n) };
-    auto const  sides{ s.sides | std::views::transform([](auto const& side) { return json::Object{}.Raw("stock", json::Array(side.stock)).Raw("income", json::Array(side.income)).Encoded(); }) };
-    auto        people{ std::views::zip(std::views::iota(0), s.people) | std::views::filter([](auto const& p) { return !std::get<1>(p).name.empty(); }) | std::views::transform([](auto const& p) {
-                   auto const& [index, person]{ p };
-                   return GameText(json::Object{}.Number("index", index), "name", person.name)
-                       .Number("side", person.side)
-                       .Number("portrait", person.portrait)
-                       .Raw("abilities", json::Array(person.abilities))
-                       .Encoded();
-                 }) };
-    auto objectives{ std::views::zip(std::views::iota(0), s.objectives) | std::views::filter([](auto const& o) { return !std::get<1>(o).name.empty(); }) | std::views::transform([](auto const& o) {
-                       auto const& [index, objective]{ o };
-                       return GameText(json::Object{}.Number("index", index), "name", objective.name)
-                           .Number("x", objective.x)
-                           .Number("y", objective.y)
-                           .Number("garrison", objective.garrison)
-                           .Number("points", objective.points)
-                           .Number("flags", objective.flags)
-                           .Encoded();
-                     }) };
-    auto units{
-      s.units | std::views::transform([](auto const& unit) {
-        return json::Object{}.Number("first_element", unit.first_element).Number("x", unit.x).Number("y", unit.y).Raw("supplies", json::Array(unit.supplies)).Number("flags", unit.flags).Encoded();
-      })
-    };
-    auto elements{ s.elements | std::views::transform([](auto const& e) {
-                     return json::Object{}
-                         .Number("next", e.next)
-                         .Number("type", e.type)
-                         .Number("quantity", e.quantity)
-                         .Number("morale", e.morale)
-                         .Number("training", e.training)
-                         .Number("experience", e.experience)
-                         .Number("state", e.state)
-                         .Encoded();
-                   }) };
-    _emit(json::Object{}
-              .Text("kind", "setup")
-              .Number("setup", n)
-              .Number("scenario", s.scenario)
-              .Text("date", std::format("{:04}-{:02}-{:02}", s.year, s.month, s.day))
-              .Number("hour", s.hour)
-              .Number("weather", s.weather)
-              .Number("difficulty", s.difficulty)
-              .Raw("sides", json::Array(sides))
-              .Raw("people", json::Array(people))
-              .Raw("objectives", json::Array(objectives))
-              .Raw("units", json::Array(units))
-              .Raw("elements", json::Array(elements))
-              .Encoded());
-  }
-  return {};
-}
-
-auto Extractor::Maps() const -> Done {
   auto const grids{ [this](std::string_view const name) { return _source.get().File(name).and_then(assets::DecodeCellGrids); } };
   auto const cells{ grids("MAPINF.DAT") };
   auto const tiles{ grids("MAPPNO.DAT") };
   auto const selectors{ grids("HEXDISP.DAT") };
   auto const fields{ _source.get().File("HEXMAP.DAT").and_then(assets::DecodeBattleFields) };
   if (!cells || !tiles || !selectors || !fields) return Failed("map layers", assets::DecodeError::BAD_SIZE);
-  for (auto const map : std::views::iota(0uz, assets::MAP_COUNT)) {
-    _emit(json::Object{}
-              .Text("kind", "map")
-              .Number("map", map)
-              .Number("first_field", assets::FIRST_FIELD[map])
-              .Raw("cells", Grid((*cells)[map], assets::MAP_SIDE))
-              .Raw("tiles", Grid((*tiles)[map], assets::MAP_SIDE))
-              .Raw("fields", Grid((*selectors)[map], assets::MAP_SIDE))
-              .Encoded());
-  }
-  for (auto const [n, field] : std::views::zip(std::views::iota(0uz), *fields)) {
-    _emit(json::Object{}.Text("kind", "battle-field").Number("field", n).Raw("cells", Grid(field, assets::FIELD_SIDE)).Encoded());
-  }
+  _emit(TableRecord(assets::SCENARIO_TABLE, assets::ScenarioTableText(*file)));
+  _emit(TableRecord(assets::MAP_TABLE, assets::MapTableText(assets::MapLayers{ .cells = *cells, .tiles = *tiles, .battle_fields = *selectors })));
+  _emit(TableRecord(assets::BATTLE_FIELD_TABLE, assets::BattleFieldTableText(*fields)));
+  _emit(TableRecord(assets::PALETTE_TABLE, assets::PaletteTableText(assets::ClassicPalettes())));
+  _emit(TableRecord(assets::GLYPH_CODE_TABLE, assets::GlyphCodeTableText(assets::EndingGlyphCodes())));
+  return EpilogueToken();
+}
+
+auto Extractor::EpilogueToken() const -> Done {
   auto const token{ _source.get().File("ENDGRP.NPK") };
   if (!token) return Failed("ENDGRP.NPK", token.error());
-  auto bytes{ token->subspan(assets::EPILOGUE_TOKEN_AT, assets::EPILOGUE_TOKEN_BYTES) | std::views::transform([](std::byte const b) { return std::to_integer<int>(b); }) };
+  auto const bytes{ token->subspan(assets::EPILOGUE_TOKEN_AT, assets::EPILOGUE_TOKEN_BYTES) | std::views::transform([](std::byte const b) { return std::to_integer<int>(b); }) };
   _emit(json::Object{}.Text("kind", "epilogue-token").Number("at", assets::EPILOGUE_TOKEN_AT).Raw("bytes", json::Array(bytes)).Encoded());
   return {};
 }

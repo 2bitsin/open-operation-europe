@@ -12,10 +12,8 @@ Runs the extract-assets probe (sources/opeu/probes/extract-assets) over the ship
     manifest.json              the format version, the source files with their SHA-256, the manifests below
     assets/<group>.json        one per group: every asset's id, geometry, layout, colour roles, mask, frames
     palettes.json              the 121 classic palettes
-    text/scenarios.json        the scenario descriptions and victory conditions, UTF-8
-    tables/setups.json         the seven scenario set-ups
-    tables/maps.json           the six maps' cell, tile and battle-field layers
-    tables/battle-fields.json  the 537 battle fields
+    tables/*.json              the tables the classic pack holds (docs/asset-pack.md, "Tables"): scenarios, maps,
+                               battle fields, palettes, glyph codes
     tables/epilogue-token.json ENDGRP.NPK's one-shot token
 
 The output directory is replaced, so a run is idempotent: the same inputs give the same bytes.
@@ -29,7 +27,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from extraction import ROOT, SHIPPED, find_probe, run_probe, write_json  # noqa: E402
+from extraction import ROOT, SHIPPED, find_probe, run_probe, write_json, write_tables  # noqa: E402
 
 FORMAT = 'opeu-assets/1'
 
@@ -73,10 +71,7 @@ def extract(out, assets, probe):
     for group, manifest in manifests.items():
         write_json(out / 'assets' / f'{group}.json', manifest)
     write_json(out / 'palettes.json', {'format': FORMAT, 'palettes': strip_kind(by_kind['palette'])})
-    write_json(out / 'text' / 'scenarios.json', {'format': FORMAT, 'scenarios': strip_kind(by_kind['scenario-text'])})
-    write_json(out / 'tables' / 'setups.json', {'format': FORMAT, 'setups': strip_kind(by_kind['setup'])})
-    write_json(out / 'tables' / 'maps.json', {'format': FORMAT, 'maps': strip_kind(by_kind['map'])})
-    write_json(out / 'tables' / 'battle-fields.json', {'format': FORMAT, 'fields': strip_kind(by_kind['battle-field'])})
+    tables = write_tables(out, records)
     write_json(out / 'tables' / 'epilogue-token.json', {'format': FORMAT, **strip_kind(by_kind['epilogue-token'])[0]})
 
     files = {p.name: {'bytes': p.stat().st_size, 'sha256': hashlib.sha256(p.read_bytes()).hexdigest()}
@@ -87,9 +82,7 @@ def extract(out, assets, probe):
         'assets': {group: f'assets/{group}.json' for group in sorted(manifests)},
         'counts': {group: len(m['assets']) for group, m in sorted(manifests.items())},
         'palettes': 'palettes.json',
-        'text': ['text/scenarios.json'],
-        'tables': ['tables/setups.json', 'tables/maps.json', 'tables/battle-fields.json',
-                   'tables/epilogue-token.json'],
+        'tables': tables + ['tables/epilogue-token.json'],
     })
     return {group: len(m['assets']) for group, m in manifests.items()}
 

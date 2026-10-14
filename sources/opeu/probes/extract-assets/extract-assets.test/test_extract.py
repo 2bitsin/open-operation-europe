@@ -36,6 +36,6 @@ def test_extraction_is_complete_and_byte_stable(tmp_path):
     for group in COUNTS:
         for asset in json.loads((first / 'assets' / f'{group}.json').read_text(encoding='utf-8'))['assets']:
             assert asset['image'] in files and asset['indices'] in files, asset['id']
-    setups = json.loads((first / 'tables' / 'setups.json').read_text(encoding='utf-8'))['setups']
-    assert [s['date'] for s in setups[1:]] == ['1940-05-10', '1942-05-26', '1943-07-05', '1944-06-06',
-                                               '1944-12-16', '1945-04-16']
+    setups = json.loads((first / 'tables' / 'scenarios.json').read_text(encoding='utf-8'))['scenario_file']['setups']
+    assert [f"{s['year']}-{s['month']:02}-{s['day']:02}" for s in setups[1:]] == [
+        '1940-05-10', '1942-05-26', '1943-07-05', '1944-06-06', '1944-12-16', '1945-04-16']

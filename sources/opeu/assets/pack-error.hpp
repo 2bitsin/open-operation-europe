@@ -16,6 +16,7 @@ enum class PackFault : std::uint8_t {
   BAD_MANIFEST,  // pack.json is not a manifest of this format
   UNKNOWN_ASSET, // no asset of that id
   BAD_IMAGE,     // an image is not a PNG, or not the size its entry states
+  BAD_TABLE,     // a table file is not JSON of the tables' format, or a record is missing, extra or out of range
 };
 
 struct PackError {
@@ -35,6 +36,7 @@ using Packed = std::expected<_Value, PackError>;
   case PackFault::BAD_MANIFEST:  return "bad manifest";
   case PackFault::UNKNOWN_ASSET: return "unknown asset";
   case PackFault::BAD_IMAGE:     return "bad image";
+  case PackFault::BAD_TABLE:     return "bad table";
   }
   return "unknown";
 }

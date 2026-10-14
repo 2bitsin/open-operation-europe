@@ -14,7 +14,6 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 NAMES = Path(__file__).resolve().parent / 'asset-names.json'
-TERRAIN_BITS = 0x0F
 GLYPH_WORDS = {
     ' ': 'space', '!': 'exclamation', '"': 'quote', '#': 'hash', '$': 'dollar', '%': 'percent', '&': 'ampersand',
     "'": 'apostrophe', '(': 'left-parenthesis', ')': 'right-parenthesis', '*': 'asterisk', '+': 'plus', ',': 'comma',
@@ -65,16 +64,15 @@ class Naming:
         self._unit_classes = known['unit_icon_classes']
         self._equipment = known['equipment']
         self._events = known['events']
-        self._people = self._people_by_portrait([r for r in records if r['kind'] == 'setup'])
-        self._tile_terrain = self._terrain_by_tile([r for r in records if r['kind'] == 'map'])
+        tables = {r['path']: r['table'] for r in records if r['kind'] == 'table'}
+        self._people = self._people_by_portrait(tables['tables/scenarios.json']['scenario_file']['setups'])
+        self._tile_terrain = self._terrain_by_tile(tables['tables/maps.json']['maps'])
 
     def _people_by_portrait(self, setups):
         """Portrait number -> (name, the maps of the scenarios that show it), from the set-ups the menus start."""
         people = defaultdict(lambda: ['', []])
-        for setup in sorted(setups, key=lambda s: s['setup']):
-            if setup['setup'] == 0:
-                continue  # set-up 0 is reached by no menu and its names are in KOEI's double-byte code
-            for person in setup['people']:
+        for setup in setups[1:]:  # set-up 0 is reached by no menu and its names are in KOEI's double-byte code
+            for person in (p for p in setup['people'] if p.get('name')):  # an empty name is an unused slot
                 entry = people[person['portrait']]
                 entry[0] = entry[0] or person['name']
                 entry[1].append(setup['scenario'])
@@ -83,10 +81,10 @@ class Naming:
     def _terrain_by_tile(self, maps):
         """(map, tile) -> how many cells of each terrain class show that tile."""
         counts = defaultdict(Counter)
-        for grid in maps:
-            for cells, tiles in zip(grid['cells'], grid['tiles']):
-                for cell, tile in zip(cells, tiles):
-                    counts[(int(grid['map']), tile)][self._terrain[cell & TERRAIN_BITS]] += 1
+        for map_number, layers in enumerate(maps):
+            for classes, tiles in zip(layers['terrain_class'], layers['tile']):
+                for terrain_class, tile in zip(classes, tiles):
+                    counts[(map_number, tile)][self._terrain[terrain_class]] += 1
         return counts
 
     def label(self, asset_id):

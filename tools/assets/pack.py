@@ -9,7 +9,8 @@ Decodes the shipped files (sources/opeu/opeu/assets.embed) through the extract-a
 decoders, and writes the pack twice:
 
     DIR (default sources/opeu/assets/packs.embed/classic)   the directory form, checked in and compiled into the game:
-                                                           pack.json and <class>/<readable name>.png (naming.py)
+                                                           pack.json, <class>/<readable name>.png (naming.py) and
+                                                           tables/*.json (the data that is no picture)
     FILE (default _local/packs/classic.opeupack)            the archive form: the same files in one file
 
 `--check` writes nothing: it decodes the pack into a scratch directory and exits non-zero, naming the files, when the
@@ -32,7 +33,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from extraction import ROOT, SHIPPED, find_probe, run_probe  # noqa: E402
+from extraction import ROOT, SHIPPED, find_probe, run_probe, write_tables  # noqa: E402
 from naming import Naming  # noqa: E402
 
 PACKS = ROOT / 'sources' / 'opeu' / 'assets' / 'packs.embed'
@@ -205,6 +206,8 @@ def build(out, archive, assets=SHIPPED, probe=None, only=None):
             for target, source in files.items():
                 (out / target).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(staging / source, out / target)
+        if not only:
+            write_tables(out, records)
         pack = manifest(listed, graphics, [r for r in records if r['kind'] == 'palette'])
         (out / MANIFEST).write_text(encode(pack), encoding='utf-8')
     write_archive(out, archive)
