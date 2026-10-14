@@ -19,23 +19,36 @@
 #include <cstddef>
 #include <cstdlib>
 #include <fstream>
+#include <functional>
+#include <iterator>
 #include <optional>
 #include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 namespace opeu::intro::detail::intro {
 namespace {
 constexpr std::string_view INTRO_FLAG{ "--intro" };
 constexpr std::string_view NO_INTRO_FLAG{ "--no-intro" };
 
-// --intro or --no-intro, the last one given; neither: the opening runs in a window only. Set by the entry's option
-// pass before the opening runs.
-std::optional<bool> requested; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables): the entry's two calls share it
-
 auto IsIntroFlag(std::string_view argument) -> bool {
   return argument == INTRO_FLAG || argument == NO_INTRO_FLAG;
+}
+
+auto RequestOf(std::string_view flag) -> IntroRequest {
+  return flag == INTRO_FLAG ? IntroRequest::RUN : IntroRequest::SKIP;
+}
+
+auto Wanted(IntroRequest request) -> bool {
+  switch (request) {
+  case IntroRequest::RUN:              return true;
+  case IntroRequest::SKIP:             return false;
+  case IntroRequest::IN_A_WINDOW_ONLY: return port_options.headless == 0;
+  }
+  return false;
 }
 
 // The file OPEU_OPEN_DUMP names, if it is set.
@@ -71,19 +84,17 @@ auto RunOpenExe() -> void {
 }
 } // namespace
 
-// Takes --intro and --no-intro out of the command line; the other arguments keep their order, argv its terminating null.
-void open_intro_options(int* argc, char** argv) {
-  auto const      count{ static_cast<std::size_t>(*argc) };
-  std::span const arguments{ argv, count + 1 }; // argv[argc] is the terminating null
-  auto const      options{ arguments.first(count).subspan(count > 0 ? 1 : 0) };
-  std::ranges::for_each(options | std::views::filter(IsIntroFlag), [](std::string_view flag) { requested = flag == INTRO_FLAG; });
-  auto const kept{ count - std::ranges::remove_if(options, IsIntroFlag).size() };
-  arguments[kept] = nullptr;
-  *argc           = static_cast<int>(kept);
+auto IntroOptions(std::span<std::string_view const> const arguments) -> IntroCommandLine {
+  auto const options{ arguments | std::views::drop(1) };
+  auto const request{ std::ranges::fold_left(options | std::views::filter(IsIntroFlag), IntroRequest::IN_A_WINDOW_ONLY,
+                                             [](IntroRequest /*earlier*/, std::string_view flag) { return RequestOf(flag); }) };
+  auto       remaining{ arguments | std::views::take(1) | std::ranges::to<std::vector>() };
+  std::ranges::copy(options | std::views::filter(std::not_fn(IsIntroFlag)), std::back_inserter(remaining));
+  return { .request = request, .remaining = std::move(remaining) };
 }
 
-void open_intro_run() {
-  if (!requested.value_or(port_options.headless == 0)) return;
+auto RunIntro(IntroRequest const request) -> void {
+  if (!Wanted(request)) return;
   port_trace("svc", "OPEN.EXE: start");
   RunOpenExe();
   port_memory_init();

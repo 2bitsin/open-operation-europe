@@ -16,9 +16,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <optional>
 #include <print>
+#include <ranges>
 #include <span>
 #include <string_view>
+#include <vector>
 #if defined(__APPLE__) || defined(__linux__)
 #include <execinfo.h>
 #include <unistd.h>
@@ -57,57 +60,69 @@ auto ShutdownPlatform() -> void {
   plat_shutdown();
 }
 
-auto Milliseconds(char const* text) -> std::uint32_t {
-  return static_cast<std::uint32_t>(std::strtoul(text, nullptr, 0));
+auto Milliseconds(std::string_view text) -> std::uint32_t {
+  return static_cast<std::uint32_t>(std::strtoul(text.data(), nullptr, 0));
 }
 
-// The command line into port_options; the arena dump path, if any, into `dump_path`. False on a bad option.
-auto ParseOptions(std::span<char*> args, char const*& dump_path) -> bool {
+auto Number(std::string_view text) -> int {
+  return std::atoi(text.data());
+}
+
+// What the command line asks of the entry itself; the rest goes into port_options.
+struct EntryOptions {
+  std::optional<std::string_view> dump_path; // --dump-arena: write the initial arena there and stop
+};
+
+// The command line into port_options (its text fields point into argv, which outlives the run); nothing on a bad option.
+auto ParseOptions(std::span<std::string_view const> args) -> std::optional<EntryOptions> {
+  auto entry{ EntryOptions{} };
+  // A hand loop: an option consumes the values after it.
   for (auto at{ args.begin() + 1 }; at != args.end(); ++at) {
     std::string_view const option{ *at };
     auto const             values{ args.end() - at - 1 };
-    auto                   next{ [&at] -> char* { return *++at; } };
+    auto                   next{ [&at] -> std::string_view { return *++at; } };
     if (option == "--saves" && values >= 1) {
-      port_options.save_dir = next();
+      port_options.save_dir = next().data();
     } else if (option == "--scale" && values >= 1) {
-      port_options.scale = std::atoi(next());
+      port_options.scale = Number(next());
     } else if (option == "--headless") {
       port_options.headless = 1;
     } else if (option == "--ms" && values >= 1) {
       port_options.stop_ms = Milliseconds(next());
     } else if (option == "--input" && values >= 1) {
-      port_options.input_path = next();
+      port_options.input_path = next().data();
     } else if (option == "--png" && values >= 1) {
-      port_options.png_path = next();
+      port_options.png_path = next().data();
     } else if (option == "--shots" && values >= 2) {
-      port_options.shot_dir      = next();
+      port_options.shot_dir      = next().data();
       port_options.shot_every_ms = Milliseconds(next());
     } else if (option == "--wav" && values >= 1) {
-      port_options.wav_path = next();
+      port_options.wav_path = next().data();
     } else if (option == "--opl-log" && values >= 1) {
-      port_options.opl_log_path = next();
+      port_options.opl_log_path = next().data();
     } else if (option == "--mute") {
       port_options.mute = 1;
     } else if (option == "--dump-arena" && values >= 1) {
-      dump_path             = next();
+      entry.dump_path       = next();
       port_options.headless = 1;
     } else {
-      return false;
+      return std::nullopt;
     }
   }
-  return true;
+  return entry;
 }
 
 // Diagnostic: the initial conventional memory (the far data and the data segment as composed from the game's data
 // modules).
-auto DumpArena(char const* path) -> void {
-  std::ofstream file{ path, std::ios::binary };
+auto DumpArena(std::string_view path) -> void {
+  std::ofstream file{ std::string{ path }, std::ios::binary };
   auto const    image{ opeu::game::InitialArenaImage() };
   file.write(reinterpret_cast<char const*>(image.data()), static_cast<std::streamsize>(image.size())); // NOLINT(*-reinterpret-cast): bytes out
-  if (!file) port_fatal("cannot write %s", path);                                                      // NOLINT(*-pro-type-vararg): the glue's printf-shaped fatal exit
+  if (!file) port_fatal("cannot write %s", path.data());                                               // NOLINT(*-pro-type-vararg): the glue's printf-shaped fatal exit
 }
-// The game's application entry on the data segment the arena holds and the machine it runs on, the native devices
-// (adapters over the services) wired in here; it returns after the scenario's end.
+
+// The game's application entry on its initial state and the machine it runs on, the native devices (adapters over the
+// services) wired in here; it returns after the scenario's end.
 auto RunGame() -> void {
   auto                          state{ opeu::game::GameState::Initial() };
   opeu::services::NativeDevices devices;
@@ -117,14 +132,12 @@ auto RunGame() -> void {
 }
 } // namespace
 
-auto Main(int argc, char** argv) -> int {
-  char const* dump_path{ nullptr };
-
+auto Main(std::span<std::string_view const> const command_line) -> int {
   port_options.scale = 2;
-  opeu::intro::open_intro_options(&argc, argv); // --no-intro / --intro
-  std::span<char*> const args{ argv, static_cast<std::size_t>(argc) };
-  if (!ParseOptions(args, dump_path)) {
-    Usage(args.front());
+  auto const intro{ opeu::intro::IntroOptions(command_line) }; // --no-intro / --intro
+  auto const options{ ParseOptions(intro.remaining) };
+  if (!options) {
+    Usage(command_line.front());
     return 2;
   }
 
@@ -149,15 +162,15 @@ auto Main(int argc, char** argv) -> int {
 
   vgalib_init();
   port_memory_init();
-  if (dump_path != nullptr) {
-    DumpArena(dump_path);
+  if (options->dump_path) {
+    DumpArena(*options->dump_path);
     return 0;
   }
 
   // The FM driver was resident before the game started.
   port_fm_init();
   // The launcher ran the opening between the FM driver and the game.
-  opeu::intro::open_intro_run();
+  opeu::intro::RunIntro(intro.request);
   RunGame();
   port_exit(0);
   return 0;
@@ -166,5 +179,10 @@ auto Main(int argc, char** argv) -> int {
 
 // main.cpp of the application module calls this.
 auto opeu_main(int argc, char** argv) -> int {
-  return opeu::app::detail::entry::Main(argc, argv);
+  auto const arguments{
+    std::span{ argv, static_cast<std::size_t>(argc) }
+    | std::views::transform([](char const* argument) { return std::string_view{ argument }; }
+    ) | std::ranges::to<std::vector>()
+  };
+  return opeu::app::detail::entry::Main(arguments);
 }
