@@ -12,106 +12,105 @@
 #include "recovered/data/song-bank.hpp"
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <span>
 
 namespace opeu::intro::detail::load_image {
 namespace {
-// The bytes of a recovered data object.
-template <class _Object>
-auto ObjectBytes(_Object const& object) -> std::span<std::byte const> {
-  return std::as_bytes(std::span{ &object, 1 });
+// A recovered data object's bytes as the host lays it out, made at compile time.
+template <auto const& OBJECT>
+constexpr auto OBJECT_IMAGE{ std::bit_cast<std::array<std::uint8_t, sizeof OBJECT>>(OBJECT) };
+
+// The bytes of a recovered data object, a span over its compile-time image.
+template <auto const& OBJECT>
+constexpr auto ObjectBytes() -> std::span<std::uint8_t const> {
+  return OBJECT_IMAGE<OBJECT>;
 }
 
-} // namespace
-
-// Built on each call (it is only addresses and sizes): spans of the constexpr objects are not constant expressions.
-auto OpenImageObjects() -> std::array<OpenImageObject, OPEN_IMAGE_OBJECT_COUNT> {
-  // clang-format off
-  return { {
-    // The text console
-    { ObjectBytes(detail::console_data::UNUSED_DIGIT_FONT),          0x0000,     offsetof(OpenDataSegment, digit_font) },
-    { ObjectBytes(detail::console_data::DRAW_HOOKS),                 0x0000,     offsetof(OpenDataSegment, draw_hooks) },
-    { ObjectBytes(detail::console_data::TEXT_ERASE),                 0x0000,     offsetof(OpenDataSegment, text_erase) },
-    { ObjectBytes(detail::console_data::TEXT_X),                     0x0000,     offsetof(OpenDataSegment, text_x) },
-    { ObjectBytes(detail::console_data::TEXT_Y),                     0x0000,     offsetof(OpenDataSegment, text_y) },
-    { ObjectBytes(detail::console_data::TEXT_LEFT),                  0x0000,     offsetof(OpenDataSegment, text_left) },
-    { ObjectBytes(detail::console_data::TEXT_PAPER),                 0x0000,     offsetof(OpenDataSegment, text_paper) },
-    { ObjectBytes(detail::console_data::TEXT_INK),                   0x0000,     offsetof(OpenDataSegment, text_ink) },
-    { ObjectBytes(detail::console_data::TEXT_BACKGROUND),            0x0000,     offsetof(OpenDataSegment, text_background) },
-    { ObjectBytes(detail::console_data::TEXT_LARGE),                 0x0000,     offsetof(OpenDataSegment, text_large) },
-    { ObjectBytes(detail::console_data::TEXT_SAVED),                 0x0000,     offsetof(OpenDataSegment, text_saved) },
-    { ObjectBytes(detail::console_data::TEXT_LEAD),                  0x0000,     offsetof(OpenDataSegment, text_lead) },
-    { ObjectBytes(detail::console_data::TEXT_STATE),                 0x0000,     offsetof(OpenDataSegment, text_state) },
-    { ObjectBytes(detail::console_data::FORMAT_OUTPUT),              0x0000,     offsetof(OpenDataSegment, format_output) },
+// clang-format off
+constexpr std::array<OpenImageObject, 71> IMAGE_OBJECTS{ {
+  // The text console
+  { ObjectBytes<detail::console_data::UNUSED_DIGIT_FONT>(),          0x0000,     offsetof(OpenDataSegment, digit_font) },
+  { ObjectBytes<detail::console_data::DRAW_HOOKS>(),                 0x0000,     offsetof(OpenDataSegment, draw_hooks) },
+  { ObjectBytes<detail::console_data::TEXT_ERASE>(),                 0x0000,     offsetof(OpenDataSegment, text_erase) },
+  { ObjectBytes<detail::console_data::TEXT_X>(),                     0x0000,     offsetof(OpenDataSegment, text_x) },
+  { ObjectBytes<detail::console_data::TEXT_Y>(),                     0x0000,     offsetof(OpenDataSegment, text_y) },
+  { ObjectBytes<detail::console_data::TEXT_LEFT>(),                  0x0000,     offsetof(OpenDataSegment, text_left) },
+  { ObjectBytes<detail::console_data::TEXT_PAPER>(),                 0x0000,     offsetof(OpenDataSegment, text_paper) },
+  { ObjectBytes<detail::console_data::TEXT_INK>(),                   0x0000,     offsetof(OpenDataSegment, text_ink) },
+  { ObjectBytes<detail::console_data::TEXT_BACKGROUND>(),            0x0000,     offsetof(OpenDataSegment, text_background) },
+  { ObjectBytes<detail::console_data::TEXT_LARGE>(),                 0x0000,     offsetof(OpenDataSegment, text_large) },
+  { ObjectBytes<detail::console_data::TEXT_SAVED>(),                 0x0000,     offsetof(OpenDataSegment, text_saved) },
+  { ObjectBytes<detail::console_data::TEXT_LEAD>(),                  0x0000,     offsetof(OpenDataSegment, text_lead) },
+  { ObjectBytes<detail::console_data::TEXT_STATE>(),                 0x0000,     offsetof(OpenDataSegment, text_state) },
+  { ObjectBytes<detail::console_data::FORMAT_OUTPUT>(),              0x0000,     offsetof(OpenDataSegment, format_output) },
   // Reserved: kept for the layout until M4
-    { ObjectBytes(detail::scene_data::RESERVED_EMS_NAME),            0x0000,     offsetof(OpenDataSegment, reserved_ems_name) },
-    { ObjectBytes(detail::scene_data::RESERVED_SPRITE_MAPPED),       0x0000,     offsetof(OpenDataSegment, reserved_sprite_mapped) },
-    // The music
-    { ObjectBytes(detail::music_data::MUSIC_CURRENT),                0x0000,     offsetof(OpenDataSegment, music_current) },
-    { ObjectBytes(detail::music_data::EFFECT_CURRENT),               0x0000,     offsetof(OpenDataSegment, effect_current) },
-    { ObjectBytes(detail::music_data::MUSIC_BANK),                   0x0000,     offsetof(OpenDataSegment, music_bank) },
-    { ObjectBytes(detail::music_data::MUSIC_PATH),                   0x0000,     offsetof(OpenDataSegment, music_path) },
-    // The scenes
-    { ObjectBytes(detail::scene_data::ABORTED),                      0x0000,     offsetof(OpenDataSegment, aborted) },
-    { ObjectBytes(detail::scene_data::FRAME_Y),                      0x0000,     offsetof(OpenDataSegment, frame_y) },
-    { ObjectBytes(detail::scene_data::FRAME_H),                      0x0000,     offsetof(OpenDataSegment, frame_h) },
-    { ObjectBytes(detail::scene_data::FRAME_OFF),                    0x0000,     offsetof(OpenDataSegment, frame_off) },
-    { ObjectBytes(detail::scene_data::BOB_A),                        0x0000,     offsetof(OpenDataSegment, bob_a) },
-    { ObjectBytes(detail::scene_data::BLAST_STEPS),                  0x0000,     offsetof(OpenDataSegment, blast_steps) },
-    { ObjectBytes(detail::scene_data::BLAST_SLOTS),                  0x0000,     offsetof(OpenDataSegment, blast_slots) },
-    { ObjectBytes(detail::scene_data::BLAST_X),                      0x0000,     offsetof(OpenDataSegment, blast_x) },
-    { ObjectBytes(detail::scene_data::BLAST_Y),                      0x0000,     offsetof(OpenDataSegment, blast_y) },
-    { ObjectBytes(detail::scene_data::BLAST_MASKS),                  0x0000,     offsetof(OpenDataSegment, blast_masks) },
-    { ObjectBytes(detail::scene_data::BLAST_SPRITES),                0x0000,     offsetof(OpenDataSegment, blast_sprites) },
-    { ObjectBytes(detail::scene_data::FLASH_SLOTS),                  0x0000,     offsetof(OpenDataSegment, flash_slots) },
-    { ObjectBytes(detail::scene_data::BOB_B),                        0x0000,     offsetof(OpenDataSegment, bob_b) },
-    { ObjectBytes(detail::scene_data::FLAK_X),                       0x0000,     offsetof(OpenDataSegment, flak_x) },
-    { ObjectBytes(detail::scene_data::FLAK_Y),                       0x0000,     offsetof(OpenDataSegment, flak_y) },
-    { ObjectBytes(detail::scene_data::GUN_FLIPS),                    0x0000,     offsetof(OpenDataSegment, gun_flips) },
-    { ObjectBytes(detail::scene_data::SHELL_X),                      0x0000,     offsetof(OpenDataSegment, shell_x) },
-    { ObjectBytes(detail::scene_data::SHELL_Y),                      0x0000,     offsetof(OpenDataSegment, shell_y) },
-    { ObjectBytes(detail::scene_data::SHELL_W),                      0x0000,     offsetof(OpenDataSegment, shell_w) },
-    { ObjectBytes(detail::scene_data::SHELL_WS),                     0x0000,     offsetof(OpenDataSegment, shell_ws) },
-    { ObjectBytes(detail::scene_data::SHELL_H),                      0x0000,     offsetof(OpenDataSegment, shell_h) },
-    { ObjectBytes(detail::scene_data::SHELL_SPRITE),                 0x0000,     offsetof(OpenDataSegment, shell_sprite) },
-    { ObjectBytes(detail::scene_data::SHELL_SAVE),                   0x0000,     offsetof(OpenDataSegment, shell_save) },
-    { ObjectBytes(detail::scene_data::FLASH_ON),                     0x0000,     offsetof(OpenDataSegment, flash_on) },
-    { ObjectBytes(detail::scene_data::FLASH_PHASE),                  0x0000,     offsetof(OpenDataSegment, flash_phase) },
-    { ObjectBytes(detail::scene_data::ALLOC_ERR1),                   0x0000,     offsetof(OpenDataSegment, alloc_err1) },
-    { ObjectBytes(detail::scene_data::ALLOC_ERR2),                   0x0000,     offsetof(OpenDataSegment, alloc_err2) },
-    { ObjectBytes(detail::scene_data::ALLOC_ERR3),                   0x0000,     offsetof(OpenDataSegment, alloc_err3) },
-    { ObjectBytes(detail::scene_data::ALLOC_ERR4),                   0x0000,     offsetof(OpenDataSegment, alloc_err4) },
-    { ObjectBytes(detail::scene_data::ALLOC_ERR5),                   0x0000,     offsetof(OpenDataSegment, alloc_err5) },
-    { ObjectBytes(detail::scene_data::ALLOC_ERR6),                   0x0000,     offsetof(OpenDataSegment, alloc_err6) },
-    { ObjectBytes(detail::scene_data::ALLOC_ERR7),                   0x0000,     offsetof(OpenDataSegment, alloc_err7) },
-    { ObjectBytes(detail::scene_data::ALLOC_ERR9),                   0x0000,     offsetof(OpenDataSegment, alloc_err9) },
-    { ObjectBytes(detail::scene_data::CONSOLE_RESET),                0x0000,     offsetof(OpenDataSegment, console_reset) },
-    { ObjectBytes(detail::scene_data::SCENARIO_FILE_NAME),           0x0000,     offsetof(OpenDataSegment, scenario_file_name) },
-    // The helpers
-    { ObjectBytes(detail::helper_data::STREAM_COUNT),                0x0000,     offsetof(OpenDataSegment, stream_count) },
-    { ObjectBytes(detail::helper_data::PALETTE),                     0x0000,     offsetof(OpenDataSegment, palette) },
-    { ObjectBytes(detail::helper_data::BLACK_PALETTE),               0x0000,     offsetof(OpenDataSegment, black) },
-    { ObjectBytes(detail::helper_data::SPARE_PALETTE),               0x0000,     offsetof(OpenDataSegment, spare_palette) },
-    { ObjectBytes(detail::helper_data::ICON),                        0x0000,     offsetof(OpenDataSegment, icon) },
-    { ObjectBytes(detail::helper_data::ERROR_FORMAT),                0x0000,     offsetof(OpenDataSegment, error_format) },
-    // The file names and the palette table
-    { ObjectBytes(detail::file_and_palette_data::LOGO_FILE_NAME),    0x0000,     offsetof(OpenDataSegment, logo_file_name) },
-    { ObjectBytes(detail::file_and_palette_data::PICTURE_FILE_NAME), 0x0000,     offsetof(OpenDataSegment, picture_file_name) },
-    { ObjectBytes(detail::file_and_palette_data::SPRITE_FILE_NAME),  0x0000,     offsetof(OpenDataSegment, sprite_file_name) },
-    { ObjectBytes(detail::file_and_palette_data::PICTURE_HANDLE),    0x0000,     offsetof(OpenDataSegment, picture_handle) },
-    { ObjectBytes(detail::file_and_palette_data::LOGO_HANDLE),       0x0000,     offsetof(OpenDataSegment, logo_handle) },
-    { ObjectBytes(detail::file_and_palette_data::PALETTE_TABLE),     0x0000,     offsetof(OpenDataSegment, palettes) },
-    { ObjectBytes(detail::file_and_palette_data::CLOSING_PALETTE),   0x0000,     offsetof(OpenDataSegment, closing_palette) },
-    // The song bank
-    { ObjectBytes(detail::song_bank::TRACKS),                        BANK_FRAME, BANK_OFFSET },
-    { ObjectBytes(detail::song_bank::VOICES),                        BANK_FRAME, 0x0020 },
-    { ObjectBytes(detail::song_bank::EVENTS),                        BANK_FRAME, 0x01df },
-  } };
-  // clang-format on
-}
+  { ObjectBytes<detail::scene_data::RESERVED_EMS_NAME>(),            0x0000,     offsetof(OpenDataSegment, reserved_ems_name) },
+  { ObjectBytes<detail::scene_data::RESERVED_SPRITE_MAPPED>(),       0x0000,     offsetof(OpenDataSegment, reserved_sprite_mapped) },
+  // The music
+  { ObjectBytes<detail::music_data::MUSIC_CURRENT>(),                0x0000,     offsetof(OpenDataSegment, music_current) },
+  { ObjectBytes<detail::music_data::EFFECT_CURRENT>(),               0x0000,     offsetof(OpenDataSegment, effect_current) },
+  { ObjectBytes<detail::music_data::MUSIC_BANK>(),                   0x0000,     offsetof(OpenDataSegment, music_bank) },
+  { ObjectBytes<detail::music_data::MUSIC_PATH>(),                   0x0000,     offsetof(OpenDataSegment, music_path) },
+  // The scenes
+  { ObjectBytes<detail::scene_data::ABORTED>(),                      0x0000,     offsetof(OpenDataSegment, aborted) },
+  { ObjectBytes<detail::scene_data::FRAME_Y>(),                      0x0000,     offsetof(OpenDataSegment, frame_y) },
+  { ObjectBytes<detail::scene_data::FRAME_H>(),                      0x0000,     offsetof(OpenDataSegment, frame_h) },
+  { ObjectBytes<detail::scene_data::FRAME_OFF>(),                    0x0000,     offsetof(OpenDataSegment, frame_off) },
+  { ObjectBytes<detail::scene_data::BOB_A>(),                        0x0000,     offsetof(OpenDataSegment, bob_a) },
+  { ObjectBytes<detail::scene_data::BLAST_STEPS>(),                  0x0000,     offsetof(OpenDataSegment, blast_steps) },
+  { ObjectBytes<detail::scene_data::BLAST_SLOTS>(),                  0x0000,     offsetof(OpenDataSegment, blast_slots) },
+  { ObjectBytes<detail::scene_data::BLAST_X>(),                      0x0000,     offsetof(OpenDataSegment, blast_x) },
+  { ObjectBytes<detail::scene_data::BLAST_Y>(),                      0x0000,     offsetof(OpenDataSegment, blast_y) },
+  { ObjectBytes<detail::scene_data::BLAST_MASKS>(),                  0x0000,     offsetof(OpenDataSegment, blast_masks) },
+  { ObjectBytes<detail::scene_data::BLAST_SPRITES>(),                0x0000,     offsetof(OpenDataSegment, blast_sprites) },
+  { ObjectBytes<detail::scene_data::FLASH_SLOTS>(),                  0x0000,     offsetof(OpenDataSegment, flash_slots) },
+  { ObjectBytes<detail::scene_data::BOB_B>(),                        0x0000,     offsetof(OpenDataSegment, bob_b) },
+  { ObjectBytes<detail::scene_data::FLAK_X>(),                       0x0000,     offsetof(OpenDataSegment, flak_x) },
+  { ObjectBytes<detail::scene_data::FLAK_Y>(),                       0x0000,     offsetof(OpenDataSegment, flak_y) },
+  { ObjectBytes<detail::scene_data::GUN_FLIPS>(),                    0x0000,     offsetof(OpenDataSegment, gun_flips) },
+  { ObjectBytes<detail::scene_data::SHELL_X>(),                      0x0000,     offsetof(OpenDataSegment, shell_x) },
+  { ObjectBytes<detail::scene_data::SHELL_Y>(),                      0x0000,     offsetof(OpenDataSegment, shell_y) },
+  { ObjectBytes<detail::scene_data::SHELL_W>(),                      0x0000,     offsetof(OpenDataSegment, shell_w) },
+  { ObjectBytes<detail::scene_data::SHELL_WS>(),                     0x0000,     offsetof(OpenDataSegment, shell_ws) },
+  { ObjectBytes<detail::scene_data::SHELL_H>(),                      0x0000,     offsetof(OpenDataSegment, shell_h) },
+  { ObjectBytes<detail::scene_data::SHELL_SPRITE>(),                 0x0000,     offsetof(OpenDataSegment, shell_sprite) },
+  { ObjectBytes<detail::scene_data::SHELL_SAVE>(),                   0x0000,     offsetof(OpenDataSegment, shell_save) },
+  { ObjectBytes<detail::scene_data::FLASH_ON>(),                     0x0000,     offsetof(OpenDataSegment, flash_on) },
+  { ObjectBytes<detail::scene_data::FLASH_PHASE>(),                  0x0000,     offsetof(OpenDataSegment, flash_phase) },
+  { ObjectBytes<detail::scene_data::ALLOC_ERR1>(),                   0x0000,     offsetof(OpenDataSegment, alloc_err1) },
+  { ObjectBytes<detail::scene_data::ALLOC_ERR2>(),                   0x0000,     offsetof(OpenDataSegment, alloc_err2) },
+  { ObjectBytes<detail::scene_data::ALLOC_ERR3>(),                   0x0000,     offsetof(OpenDataSegment, alloc_err3) },
+  { ObjectBytes<detail::scene_data::ALLOC_ERR4>(),                   0x0000,     offsetof(OpenDataSegment, alloc_err4) },
+  { ObjectBytes<detail::scene_data::ALLOC_ERR5>(),                   0x0000,     offsetof(OpenDataSegment, alloc_err5) },
+  { ObjectBytes<detail::scene_data::ALLOC_ERR6>(),                   0x0000,     offsetof(OpenDataSegment, alloc_err6) },
+  { ObjectBytes<detail::scene_data::ALLOC_ERR7>(),                   0x0000,     offsetof(OpenDataSegment, alloc_err7) },
+  { ObjectBytes<detail::scene_data::ALLOC_ERR9>(),                   0x0000,     offsetof(OpenDataSegment, alloc_err9) },
+  { ObjectBytes<detail::scene_data::CONSOLE_RESET>(),                0x0000,     offsetof(OpenDataSegment, console_reset) },
+  { ObjectBytes<detail::scene_data::SCENARIO_FILE_NAME>(),           0x0000,     offsetof(OpenDataSegment, scenario_file_name) },
+  // The helpers
+  { ObjectBytes<detail::helper_data::STREAM_COUNT>(),                0x0000,     offsetof(OpenDataSegment, stream_count) },
+  { ObjectBytes<detail::helper_data::PALETTE>(),                     0x0000,     offsetof(OpenDataSegment, palette) },
+  { ObjectBytes<detail::helper_data::BLACK_PALETTE>(),               0x0000,     offsetof(OpenDataSegment, black) },
+  { ObjectBytes<detail::helper_data::SPARE_PALETTE>(),               0x0000,     offsetof(OpenDataSegment, spare_palette) },
+  { ObjectBytes<detail::helper_data::ICON>(),                        0x0000,     offsetof(OpenDataSegment, icon) },
+  { ObjectBytes<detail::helper_data::ERROR_FORMAT>(),                0x0000,     offsetof(OpenDataSegment, error_format) },
+  // The file names and the palette table
+  { ObjectBytes<detail::file_and_palette_data::LOGO_FILE_NAME>(),    0x0000,     offsetof(OpenDataSegment, logo_file_name) },
+  { ObjectBytes<detail::file_and_palette_data::PICTURE_FILE_NAME>(), 0x0000,     offsetof(OpenDataSegment, picture_file_name) },
+  { ObjectBytes<detail::file_and_palette_data::SPRITE_FILE_NAME>(),  0x0000,     offsetof(OpenDataSegment, sprite_file_name) },
+  { ObjectBytes<detail::file_and_palette_data::PICTURE_HANDLE>(),    0x0000,     offsetof(OpenDataSegment, picture_handle) },
+  { ObjectBytes<detail::file_and_palette_data::LOGO_HANDLE>(),       0x0000,     offsetof(OpenDataSegment, logo_handle) },
+  { ObjectBytes<detail::file_and_palette_data::PALETTE_TABLE>(),     0x0000,     offsetof(OpenDataSegment, palettes) },
+  { ObjectBytes<detail::file_and_palette_data::CLOSING_PALETTE>(),   0x0000,     offsetof(OpenDataSegment, closing_palette) },
+  // The song bank
+  { ObjectBytes<detail::song_bank::TRACKS>(),                        BANK_FRAME, BANK_OFFSET },
+  { ObjectBytes<detail::song_bank::VOICES>(),                        BANK_FRAME, 0x0020 },
+  { ObjectBytes<detail::song_bank::EVENTS>(),                        BANK_FRAME, 0x01df },
+} };
+// clang-format on
 
-namespace {
 // Each DGROUP object fills its field.
 static_assert(sizeof detail::console_data::UNUSED_DIGIT_FONT == sizeof(OpenDataSegment::digit_font));
 static_assert(sizeof detail::console_data::DRAW_HOOKS == sizeof(OpenDataSegment::draw_hooks));
@@ -183,4 +182,7 @@ static_assert(sizeof detail::file_and_palette_data::PALETTE_TABLE == sizeof(Open
 static_assert(sizeof detail::file_and_palette_data::CLOSING_PALETTE == sizeof(OpenDataSegment::closing_palette));
 } // namespace
 
+auto OpenImageObjects() -> std::span<OpenImageObject const> {
+  return IMAGE_OBJECTS;
+}
 } // namespace opeu::intro::detail::load_image

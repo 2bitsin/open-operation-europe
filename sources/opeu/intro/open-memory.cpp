@@ -31,7 +31,7 @@ auto OpenMemory::Load() -> void {
   std::ranges::for_each(OpenImageObjects(), [&](OpenImageObject const& object) {
     auto const linear{ (ObjectParagraph(object) * PARAGRAPH) + object.offset };
     Expects(linear + object.bytes.size() <= Conventional().size(), "an OPEN data object lies in conventional memory");
-    std::ranges::copy(object.bytes, std::as_writable_bytes(_bytes.subspan(linear)).begin());
+    std::ranges::copy(object.bytes, _bytes.subspan(linear).begin());
   });
   _blocks.clear();
 }
