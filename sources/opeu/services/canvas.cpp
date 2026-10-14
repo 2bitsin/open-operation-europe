@@ -296,7 +296,7 @@ auto Canvas::DrawColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std:
     auto line{ y + GAME_TOP };
     for (auto const source : Chunks(image.first(std::size_t{ w } * h * PLANES), std::size_t{ w } * PLANES))
       for ([[maybe_unused]] auto const pass : std::views::iota(0, passes)) {
-        EachOctet(At(x * 8, line), w, [&](std::size_t i, std::uint64_t under) { return apply(under, Colours(source.subspan(i * PLANES).template first<PLANES>())); });
+        EachOctet(At(ColumnPixel(x), line), w, [&](std::size_t i, std::uint64_t under) { return apply(under, Colours(source.subspan(i * PLANES).template first<PLANES>())); });
         line++;
       }
   } };
@@ -327,7 +327,7 @@ auto Canvas::DrawBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::ui
   auto       line{ y + GAME_TOP };
   for (auto const source : Chunks(bits.first(std::size_t{ w } * h), w))
     for ([[maybe_unused]] auto const pass : std::views::iota(0, passes)) {
-      EachOctet(At(x * 8, line), w, [&](std::size_t i, std::uint64_t under) { return op == 0 ? Expand(source[i]) & Solid(mode) : _pen.Apply(under, source[i]); });
+      EachOctet(At(ColumnPixel(x), line), w, [&](std::size_t i, std::uint64_t under) { return op == 0 ? Expand(source[i]) & Solid(mode) : _pen.Apply(under, source[i]); });
       line++;
     }
   _changed = true;
@@ -339,7 +339,7 @@ auto Canvas::DrawBitsOnPaper(std::uint16_t x, std::uint16_t y, std::uint16_t w, 
   if (auto const inside{ Clip(x, y, w, h) }; !inside) return inside;
   auto line{ y + GAME_TOP };
   for (auto const source : Chunks(bits.first(std::size_t{ w } * h), w)) {
-    EachOctet(At(x * 8, line), w, [&](std::size_t i, std::uint64_t) { return Select(Expand(source[i]), Solid(mode), Solid(mode >> 8)); });
+    EachOctet(At(ColumnPixel(x), line), w, [&](std::size_t i, std::uint64_t) { return Select(Expand(source[i]), Solid(mode), Solid(mode >> 8)); });
     line++;
   }
   _changed = true;
@@ -367,7 +367,7 @@ auto Canvas::DrawShiftedBits(std::uint16_t x, std::uint16_t y, std::uint16_t w, 
     framed[bytes + 1] = outside;
     auto const base{ GameAt(x & ~7, line) };
     for (auto const [column, left, right] : std::views::zip(std::views::iota(0), framed, framed | std::views::drop(1)) | std::views::take(columns))
-      PenBits(base + (column * 8), static_cast<std::uint8_t>((left << 8 | right) >> shift));
+      PenBits(base + ColumnPixel(column), static_cast<std::uint8_t>((left << 8 | right) >> shift));
     line++;
   }
   return {};
@@ -389,7 +389,7 @@ auto Canvas::DrawShiftedColumns(std::uint16_t x, std::uint16_t y, std::uint16_t 
     std::uint64_t previous{};
     for (auto const [column, bits] : std::views::zip(std::views::iota(0), FixedChunks<4>(source))) {
       auto const pixels{ shifted(previous, Colours(bits)) };
-      Store(base + (column * 8), Select(NonZero(pixels), pixels, first));
+      Store(base + ColumnPixel(column), Select(NonZero(pixels), pixels, first));
       previous = Colours(bits);
     }
     if (shift != 0) {
@@ -406,7 +406,7 @@ auto Canvas::SaveColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std:
   if ((w == 0u) || (h == 0u)) return;
   auto line{ y };
   for (auto const target : Chunks(image.first(std::size_t{ w } * h * 4), std::size_t{ w } * 4)) {
-    for (auto const [column, bits] : std::views::zip(std::views::iota(int{ x }), Chunks(target, 4))) std::ranges::copy(Column(GameAt(column * 8, line)), bits.begin());
+    for (auto const [column, bits] : std::views::zip(std::views::iota(int{ x }), Chunks(target, 4))) std::ranges::copy(Column(GameAt(ColumnPixel(column), line)), bits.begin());
     line++;
   }
 }
@@ -415,7 +415,7 @@ auto Canvas::SaveColumns(std::uint16_t x, std::uint16_t y, std::uint16_t w, std:
 
 auto Canvas::Box(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::uint16_t h, std::uint16_t colour) noexcept -> Drawn {
   if (auto const inside{ Clip(x, y, w, h) }; !inside) return inside;
-  for (auto const line : std::views::iota(y + GAME_TOP, y + GAME_TOP + h)) std::ranges::fill(Run(At(x * 8, line), w * 8), Low4(colour));
+  for (auto const line : std::views::iota(y + GAME_TOP, y + GAME_TOP + h)) std::ranges::fill(Run(At(ColumnPixel(x), line), ColumnPixel(w)), Low4(colour));
   _changed = true;
   return {};
 }
@@ -426,7 +426,7 @@ auto Canvas::Highlight(std::uint16_t x, std::uint16_t y, std::uint16_t w, std::u
   if (auto const inside{ Clip(x, y, w, h) }; !inside) return inside;
   if (op == 0 || op >= 4) return std::unexpected{ DrawError::BAD_MODE };
   SelectPen(op, static_cast<std::uint8_t>(colour));
-  for (auto const line : std::views::iota(y + GAME_TOP, y + GAME_TOP + h)) EachOctet(At(x * 8, line), w, [this](std::size_t, std::uint64_t under) { return _pen.Apply(under, 0xFF); });
+  for (auto const line : std::views::iota(y + GAME_TOP, y + GAME_TOP + h)) EachOctet(At(ColumnPixel(x), line), w, [this](std::size_t, std::uint64_t under) { return _pen.Apply(under, 0xFF); });
   _changed = true;
   return {};
 }
@@ -447,10 +447,10 @@ auto Canvas::Fill(std::uint16_t x1, std::uint16_t y1, std::uint16_t x2, std::uin
   auto const masked{ [this, colour](Offset at, std::uint8_t mask) { Store(at, Select(Expand(mask), Solid(colour), Load(at))); } };
   auto       line{ static_cast<std::uint16_t>(y1 + GAME_TOP) };
   for ([[maybe_unused]] auto const row : std::views::iota(0, rows ? int{ rows } : 0x10000)) {
-    auto const at{ At((x1 >> 3) * 8, line) };
+    auto const at{ At(ColumnPixel(x1 >> 3), line) };
     masked(at, left);
     EachOctet(at + 8, middle, [colour](std::size_t, std::uint64_t) { return Solid(colour); });
-    masked(at + 8 + (middle * 8), right);
+    masked(at + 8 + ColumnPixel(middle), right);
     line++;
   }
 }
@@ -533,7 +533,7 @@ auto Canvas::CopyColumns(std::uint16_t x1, std::uint16_t y1, std::uint16_t w, st
   // Column by column in one direction at a constant distance: memmove of each row, the rows in the same direction.
   auto const row{ [&](int r) {
     auto const at{ [r](std::uint16_t start) { return Offset{ static_cast<std::uint16_t>(start + (r * 80)) } * 8; } };
-    Move(at(to), at(from), w * 8);
+    Move(at(to), at(from), ColumnPixel(w));
   } };
   auto const rows{ std::views::iota(0, (h != 0u) ? int{ h } : 0x10000) };
   if (to < from)
@@ -607,7 +607,7 @@ auto Canvas::DecodePicture(std::uint16_t x, std::uint16_t y, ByteReader const& r
         n = static_cast<std::uint16_t>((command & 0x0F) + 1);
         // Unit by unit from the start, so a copy that overlaps its source repeats it.
         auto const from{ UnitAt(static_cast<std::uint16_t>(unit - back)) };
-        auto const target{ Run(UnitAt(unit), n * 4) };
+        auto const target{ Run(UnitAt(unit), std::int64_t{ n } * 4) };
         std::ranges::for_each(std::views::iota(0uz, target.size()), [&](std::size_t i) { target[i] = Pixel(from + Offset(i)); });
         _changed = true;
       }

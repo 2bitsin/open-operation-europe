@@ -35,7 +35,7 @@ auto Paint() -> void {
 auto ScreenAfter(auto const& draw) -> std::vector<std::uint8_t> {
   Paint();
   draw();
-  std::vector<std::uint8_t>     frame(640 * 480);
+  std::vector<std::uint8_t>     frame(640uz * 480);
   std::array<std::uint8_t, 768> palette{};
   std::ignore = VgalibRender(std::span<std::uint8_t, 640 * 480>{ frame.data(), frame.size() }, palette);
   frame.insert(frame.end(), palette.begin(), palette.end());
@@ -64,8 +64,8 @@ TEST_F(DisplayAdapter, ReportsWhatTheLibraryRejects) {
 }
 
 TEST_F(DisplayAdapter, SavesAndCopiesColumnsAsTheLibrary) {
-  std::array<std::uint8_t, 4 * 4 * 6> direct{};
-  std::array<std::uint8_t, 4 * 4 * 6> adapted{};
+  std::array<std::uint8_t, 4uz * 4 * 6> direct{};
+  std::array<std::uint8_t, 4uz * 4 * 6> adapted{};
   Paint();
   opeu_bitmap_save(9, 33, 4, 6, direct.data());
   _display.SaveColumns({ 9, 33, 4, 6 }, adapted);
@@ -156,9 +156,9 @@ TEST_F(DisplayAdapter, ComposesCellBuffersAsTheLibrary) {
 }
 
 TEST_F(DisplayAdapter, ComposesSpritesAsTheLibrary) {
-  std::array<std::uint8_t, 6 * 26 * 4> direct{};
-  std::array<std::uint8_t, 6 * 26 * 4> adapted{};
-  auto const                           sprite{ [&](std::span<std::uint8_t> const buffer) {
+  std::array<std::uint8_t, 6uz * 26 * 4> direct{};
+  std::array<std::uint8_t, 6uz * 26 * 4> adapted{};
+  auto const                             sprite{ [&](std::span<std::uint8_t> const buffer) {
     return Sprite{ .and_mask = std::span{ PATTERN }.first(1024), .or_image = std::span{ PATTERN }.subspan(1024), .buffer = buffer, .flags = 1 };
   } };
   EXPECT_EQ(ScreenAfter([&] { opeu_sprite_compose(20, 100, 5, 26, PATTERN.data(), std::span{ PATTERN }.subspan(1024).data(), direct.data(), 1); }),

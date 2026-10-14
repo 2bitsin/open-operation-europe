@@ -568,7 +568,7 @@ auto FmDriver::StartSong(std::uint8_t const song) -> void {
   _fade_prescaler   = 0;
   _fade_step        = 0;
   _fade_attenuation = 0;
-  auto const entry{ At(_music, 10u * Low8(song - 1)) };
+  auto const entry{ At(_music, 10uz * Low8(song - 1)) };
   std::ranges::for_each(std::views::iota(0uz, MUSIC_VOICES), [&](std::size_t const i) { StartTrack(_voices[i], entry, 2 * i); });
   StartTrack(Rhythm(), entry, 8);
   _drums.velocity = {};
@@ -587,7 +587,7 @@ auto FmDriver::KeyOffEffectVoices() -> void {
 auto FmDriver::StartEffect(std::uint8_t const effect) -> void {
   if (effect == 0) return;
   _current_effect = effect;
-  auto const entry{ At(_effects, 4u * Low8(effect - 1)) };
+  auto const entry{ At(_effects, 4uz * Low8(effect - 1)) };
   KeyOffEffectVoices();
   std::ranges::for_each(std::views::iota(0uz, 2uz), [&](std::size_t const i) {
     StartTrack(EffectVoice(i), entry, 2 * i);

@@ -141,7 +141,7 @@ auto vgalib_init() -> void {
   Screen().Start();
 }
 
-auto VgalibRender(std::span<std::uint8_t, 640 * 480> const frame, std::span<std::uint8_t, 768> const palette) -> bool {
+auto VgalibRender(std::span<std::uint8_t, 640uz * 480> const frame, std::span<std::uint8_t, 768> const palette) -> bool {
   auto&      screen{ Screen() };
   auto const changed{ screen.TakeChanged() };
   screen.Render(frame, palette);

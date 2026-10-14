@@ -34,6 +34,11 @@ inline constexpr Offset STORED{ Offset{ 1 } << 19 };
   return (line * WIDTH) + x;
 }
 
+// The first pixel of byte column `column`: a byte of a plane holds eight pixels.
+[[nodiscard]] constexpr auto ColumnPixel(std::int64_t const column) noexcept -> std::int64_t {
+  return column * 8;
+}
+
 // The offset of pixel x on the game's line y.
 [[nodiscard]] constexpr auto GameAt(std::int64_t x, std::int64_t y) noexcept -> Offset {
   return At(x, y + GAME_TOP);

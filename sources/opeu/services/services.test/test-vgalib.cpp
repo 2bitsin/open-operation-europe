@@ -327,10 +327,10 @@ TEST_F(Vgalib, DecodesRepeatsAndRejectsWidePictures) {
 }
 
 TEST_F(Vgalib, LoadsThePaletteAndRendersTheFrame) {
-  constexpr std::array<std::uint8_t, 48>   RGB{ 1, 2, 3, 15, 0, 15 };
-  std::vector<std::uint8_t>                out(640 * 480);
-  std::array<std::uint8_t, 768>            palette{};
-  std::span<std::uint8_t, 640 * 480> const frame{ out.data(), out.size() };
+  constexpr std::array<std::uint8_t, 48>     RGB{ 1, 2, 3, 15, 0, 15 };
+  std::vector<std::uint8_t>                  out(640uz * 480);
+  std::array<std::uint8_t, 768>              palette{};
+  std::span<std::uint8_t, 640uz * 480> const frame{ out.data(), out.size() };
   koei_vga_identity_palette();
   EXPECT_EQ(opeu_set_palette(1, 2, RGB.data()), 0);
   // Entry 1: R = b1 << 2 = 8, G = b2 << 2 = 12, B = b0 << 2 = 4.
@@ -338,20 +338,20 @@ TEST_F(Vgalib, LoadsThePaletteAndRendersTheFrame) {
   EXPECT_TRUE(dac[3] == 8 && dac[4] == 12 && dac[5] == 4) << "dac entry 1";
   EXPECT_TRUE(dac[6] == 0 && dac[7] == 60 && dac[8] == 60) << "dac entry 2";
   opeu_set_palette(15, 2, RGB.data()); // runs past 15
-  EXPECT_TRUE(dac[16 * 3] == 0 && dac[16 * 3 + 1] == 60) << "dac entry 16 written";
+  EXPECT_TRUE(dac[16uz * 3] == 0 && dac[(16uz * 3) + 1] == 60) << "dac entry 16 written";
   opeu_set_palette(4, 20, RGB.data()); // count -> 16 - 4 = 12 (reads 12 entries)
   SetPx(0, 0, 1);
   SetPx(639, 399, 2);
   EXPECT_TRUE(VgalibRender(frame, palette)) << "render dirty";
-  EXPECT_TRUE(out[40 * 640] == 1 && out[439 * 640 + 639] == 2 && out[0] == 0) << "render pixels";
+  EXPECT_TRUE(out[40uz * 640] == 1 && out[(439uz * 640) + 639] == 2 && out[0] == 0) << "render pixels";
   EXPECT_TRUE(palette[3] == ((8 << 2) | (8 >> 4)) && palette[4] == ((12 << 2) | (12 >> 4))) << "palette scale";
   EXPECT_FALSE(VgalibRender(frame, palette)) << "render clean";
   Screen().MapColour(1, 0x3F);
   std::ignore = VgalibRender(frame, palette);
-  EXPECT_EQ(out[40 * 640], 0x3F) << "colour map applied";
+  EXPECT_EQ(out[40uz * 640], 0x3F) << "colour map applied";
   opeu_text_mode();
   std::ignore = VgalibRender(frame, palette);
-  EXPECT_EQ(out[40 * 640], 0) << "text mode renders blank";
+  EXPECT_EQ(out[40uz * 640], 0) << "text mode renders blank";
 }
 
 }
