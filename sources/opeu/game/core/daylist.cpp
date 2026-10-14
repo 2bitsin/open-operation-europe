@@ -6,6 +6,10 @@
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
 
+#include <cstddef>
+#include <ranges>
+#include <vector>
+
 using namespace opeu::game;
 
 namespace {
@@ -13,17 +17,13 @@ namespace {
 constexpr std::uint8_t ANY_KIND{ 255 };
 } // namespace
 
-// Writes the indices of the types in service that the nations in mask field to the byte list at the near pointer
-// list; returns their number.
-uint8_t opeu_list_due_records(Game& game, uint16_t list, uint8_t mask, uint8_t kind) {
-  auto&         data{ Data(game) };
-  std::uint16_t cursor{ list };
-  auto const    today{ (data.year << 4) + data.month };
-  for (std::uint8_t index{ 0 }; auto const& type : data.element_types) {
-    if ((type.sides & mask) && (type.category == kind || kind == ANY_KIND) && today >= type.date && !(type.flags & Bits(TypeFlag::AIRBORNE))) Record<std::uint8_t>(data, cursor++) = index;
-    ++index;
-  }
-  return static_cast<std::uint8_t>(cursor - list);
+// The indices of the types in service that the nations in mask field, of category kind.
+auto opeu_list_due_records(Game const& game, uint8_t mask, uint8_t kind) -> std::vector<std::uint8_t> {
+  auto const& data{ Data(game) };
+  auto const  today{ (data.year << 4) + data.month };
+  auto const  due{ [&](ElementType const& type) { return (type.sides & mask) && (type.category == kind || kind == ANY_KIND) && today >= type.date && !(type.flags & Bits(TypeFlag::AIRBORNE)); } };
+  return std::views::iota(std::size_t{ 0 }, data.element_types.size()) | std::views::filter([&](std::size_t index) { return due(data.element_types[index]); })
+         | std::views::transform([](std::size_t index) { return static_cast<std::uint8_t>(index); }) | std::ranges::to<std::vector>();
 }
 
 uint8_t opeu_objective_level(Game const& game, uint16_t objective) {

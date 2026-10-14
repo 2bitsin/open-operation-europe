@@ -12,7 +12,7 @@ uint16_t opeu_request_pending(Game const& game, uint8_t kind);
 uint16_t opeu_request_mode_is(Game const& game, uint8_t mode);
 uint16_t opeu_request_cancel_prompt(Game& game, uint16_t what);
 void     opeu_request_finish(Game& game);
-void     opeu_request_file(Game& game, uint16_t request);
+void     opeu_request_file(Game& game, opeu::game::RequestSlot const& filed);
 uint16_t opeu_side_has_city(Game const& game);
 
 namespace opeu::game::detail::rqcommon {

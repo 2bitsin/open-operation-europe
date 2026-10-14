@@ -48,13 +48,14 @@ uint8_t opeu_supply_keypad_hit(Game& game, uint16_t x, uint16_t y) {
 }
 
 // With the mouse: the right button is Enter and a left click on the keys 8, 5 or 2 selects row 0, 1 or 2 (stored at
-// the near pointer row, NO_KEY returned). With the keyboard: the key.
-uint8_t opeu_supply_input(Game& game, uint16_t row) {
+// the row, NO_KEY returned). With the keyboard: the key.
+auto opeu_supply_input(Game& game) -> PanelInput {
   auto& data{ Data(game) };
-  if (!data.input_mode) return opeu_keyboard_key(game);
+  if (!data.input_mode) return { static_cast<std::uint8_t>(opeu_keyboard_key(game)), std::nullopt };
   opeu_mouse_show(game);
   opeu_delay_ticks(game, 3);
-  std::uint8_t key;
+  std::uint8_t                key{};
+  std::optional<std::uint8_t> row;
   for (;;) {
     auto const [x, y]{ MousePosition(game) };
     if (static_cast<std::uint16_t>(opeu_mouse_right(game))) {
@@ -65,14 +66,14 @@ uint8_t opeu_supply_input(Game& game, uint16_t row) {
       key = opeu_supply_keypad_hit(game, x, y);
       for (std::uint8_t selected = 0; selected < 3; ++selected)
         if (key == KEYS[1][selected]) {
-          Record<std::uint8_t>(data, row) = selected;
-          key                             = NO_KEY;
+          row = selected;
+          key = NO_KEY;
         }
       break;
     }
   }
   opeu_mouse_hide(game);
-  return key;
+  return { key, row };
 }
 
 void opeu_supply_set(Game& game, uint8_t side, uint8_t row, uint8_t column, uint16_t value) {

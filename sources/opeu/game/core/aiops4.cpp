@@ -24,18 +24,15 @@ constexpr std::uint8_t  EQUIPMENT_REQUEST{ 1 }; // and of an equipment request (
 // The three support categories whose stock the side tops up first, in the order of their totals below.
 constexpr std::array<std::uint8_t, 3> SUPPORT_CATEGORIES{ 5, 6, 7 };
 
-using TypeList = std::array<std::uint8_t, ELEMENT_TYPE_COUNT>;
-
 auto IsSupport(std::uint8_t category) -> bool {
   return category == 5 || category == 6 || category == 7;
 }
 
-// A random one of the element types of `category` the nations in `mask` field: the service lists them in the
-// routine's reserve.
+// A random one of the element types of `category` the nations in `mask` field (type 0 when there is none).
 auto RandomAvailableType(Game& game, std::uint8_t mask, std::uint8_t category) -> std::uint8_t {
-  ServiceLocals const types{ ELEMENT_TYPE_COUNT };
-  auto const          count{ opeu_list_due_records(game, types.At(0), mask, category) };
-  return Record<TypeList>(Data(game), types.At(0))[game.State().Generator().Bounded(count)];
+  auto const types{ opeu_list_due_records(game, mask, category) };
+  auto const pick{ game.State().Generator().Bounded(static_cast<std::uint16_t>(types.size())) };
+  return pick < types.size() ? types[pick] : std::uint8_t{ 0 };
 }
 } // namespace
 

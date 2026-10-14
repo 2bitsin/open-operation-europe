@@ -40,14 +40,11 @@ void Highlight(Game& game, std::uint8_t row) {
 }
 } // namespace
 
-// The selected row's byte lives in the routine's reserve: the mouse input sets it through its near address.
+// The selected row: the keys move it, a mouse click on the keypad's middle column sets it.
 uint16_t opeu_supply_step(Game& game) {
-  ServiceLocals const locals{ 2 };
-  auto const          selection{ locals.At(0) };
-  auto&               data{ Data(game) };
-  auto&               selected{ Record<std::uint8_t>(data, selection) };
-  std::uint8_t        highlighted{ NO_ROW };
-  selected = 0;
+  auto&        data{ Data(game) };
+  std::uint8_t selected{ 0 };
+  std::uint8_t highlighted{ NO_ROW };
   opeu_supply_draw_row(game, 1, 0);
   opeu_supply_draw_row(game, 0, 0);
   opeu_supply_draw_row(game, 2, 0);
@@ -64,7 +61,8 @@ uint16_t opeu_supply_step(Game& game) {
       Highlight(game, selected);
       highlighted = selected;
     }
-    auto const key{ opeu_supply_input(game, selection) };
+    auto const [key, row]{ opeu_supply_input(game) };
+    if (row) selected = *row;
     switch (key) {
     case '2':
       if (selected++ == ROWS - 1) selected = 0;

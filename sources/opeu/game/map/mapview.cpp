@@ -25,6 +25,9 @@
 #include "vgalib.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cstdint>
+#include <span>
 
 using namespace opeu::game;
 
@@ -43,50 +46,53 @@ constexpr uint8_t  BRIDGE_SPRITE{ 11 };
 constexpr uint8_t  BRIDGE_CODE{ 10 }; // opeu_map_code of a bridge cell
 constexpr uint8_t  OBJECTIVE_CODE{ 1 };
 
-// Copies a sprite from the sprite segment into the DS buffer `destination`.
-void ReadSprite(Game& game, uint16_t offset, uint16_t destination) {
-  std::ranges::copy(FarBytes(game, SPRITE_SEGMENT, offset).first(SPRITE_BYTES), game.State().Bytes(destination, SPRITE_BYTES).begin());
+using Sprite = std::array<std::uint8_t, SPRITE_BYTES>;
+
+// A copy of a sprite of the sprite segment.
+[[nodiscard]] auto ReadSprite(Game const& game, uint16_t offset) -> Sprite {
+  Sprite sprite{};
+  std::ranges::copy(FarBytes(game, SPRITE_SEGMENT, offset).first(SPRITE_BYTES), sprite.begin());
+  return sprite;
 }
 
-// Composes the 3 x 24 sprite at sprite_segment:sprite_offset through the streamed mask at a pixel position.
-void Compose(Game& game, uint16_t x, uint16_t y, uint16_t sprite_offset, uint16_t sprite_segment) {
+// Composes the 3 x 24 sprite `image` through the streamed mask at a pixel position.
+void Compose(Game& game, uint16_t x, uint16_t y, std::span<std::uint8_t const> image) {
   auto const& data{ Data(game) };
   game.Machine().Display().ComposeSprite({ x, y, 3, 24 }, { .and_mask = FarBytes(game, static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])),
-                                                            .or_image = FarBytes(game, sprite_segment, sprite_offset),
+                                                            .or_image = image,
                                                             .buffer   = FarBytes(game, static_cast<std::uint16_t>(data.bitmap_buffer), 0),
                                                             .flags    = 0 });
 }
 
 } // namespace
 
-// The sprite is read into a DS buffer the far read, the recolouring and the compose service work on.
+// The sprite is copied out of the sprite segment, recoloured and composed.
 void opeu_view_unit_draw(Game& game, uint16_t unit, uint16_t x, uint16_t y) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ SPRITE_BYTES };
-  auto const          sprite_buffer{ locals.At(0) };
-  auto const          side{ opeu_unit_side(unit) };
-  auto const          recolor{ [&] { opeu_sprite_recolor(game, sprite_buffer, SPRITE_BYTES, side); } };
-  bool                order_shown{ false };
+  auto&      data{ Data(game) };
+  Sprite     sprite_buffer{};
+  auto const side{ opeu_unit_side(unit) };
+  auto const recolor{ [&] { opeu_sprite_recolor(sprite_buffer, side); } };
+  bool       order_shown{ false };
   if (UnitOrderDestination(game, unit).valid && (data.side_status[side] == SIDE_PLAYED || Record<Unit>(data, unit).flags & Bits(UnitFlag::SPOTTED))) {
     auto const& order{ Record<Unit>(data, unit).orders[0] };
     auto const  kind{ order.kind };
     order_shown = ShowsUntilStarted(kind) ? !order.progress : order.progress < 100;
     if (order_shown) {
       auto const sprite{ data.order_glyphs[kind] };
-      ReadSprite(game, static_cast<uint16_t>(ORDER_SPRITES + sprite * SPRITE_BYTES), sprite_buffer);
+      sprite_buffer = ReadSprite(game, static_cast<uint16_t>(ORDER_SPRITES + sprite * SPRITE_BYTES));
       recolor();
       SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(ORDER_MASKS + sprite * SPRITE_BYTES));
-      Compose(game, x, y, sprite_buffer, DATA_SEGMENT);
+      Compose(game, x, y, sprite_buffer);
       if (kind == 1 || kind == 2 || kind == 3) order_shown = false;
     }
   }
   if (!order_shown) {
     auto const& element{ Record<Element>(data, opeu_unit_selected_element(game, unit)) };
     auto const  sprite{ data.element_types[element.type].category };
-    ReadSprite(game, static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES), sprite_buffer);
+    sprite_buffer = ReadSprite(game, static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES));
     recolor();
     SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(TYPE_MASKS + sprite * TYPE_MASK_BYTES));
-    Compose(game, x, y, sprite_buffer, DATA_SEGMENT);
+    Compose(game, x, y, sprite_buffer);
   }
   opeu_view_number(game, { static_cast<uint16_t>(x * 8 + 18), static_cast<uint16_t>(y + 18) }, static_cast<uint16_t>(opeu_unit_group_index(unit) * 10 + opeu_unit_index(unit) + 11));
 }
@@ -104,7 +110,7 @@ void opeu_view_cell_draw(Game& game, uint16_t x, uint16_t y) {
                                        { 0, FarBytes(game, static_cast<std::uint16_t>(data.tile_segment), static_cast<std::uint16_t>(tile * TILE_BYTES)) });
   auto const overlay{ [&](uint8_t sprite) {
     SetStream(data, SPRITE_SEGMENT, static_cast<uint16_t>(TYPE_MASKS + sprite * TYPE_MASK_BYTES));
-    Compose(game, pixel_x, pixel_y, static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES), SPRITE_SEGMENT);
+    Compose(game, pixel_x, pixel_y, FarBytes(game, SPRITE_SEGMENT, static_cast<uint16_t>(TYPE_SPRITES + sprite * SPRITE_BYTES)));
   } };
   if (data.side_status[data.view_side] == SIDE_PLAYED && opeu_cell_marked(game, { cell_x, cell_y }, data.view_side)) overlay(OVERLAY_SPRITE);
   switch (opeu_map_code(game, cell_x, cell_y)) {

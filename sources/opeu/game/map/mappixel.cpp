@@ -9,7 +9,11 @@
 #include "types.hpp"
 #include "units/stats.hpp"
 
+#include <algorithm>
+#include <cstddef>
 #include <ranges>
+#include <span>
+#include <utility>
 
 using namespace opeu::game;
 
@@ -26,13 +30,9 @@ auto ViewPixel(DataSegment const& data, GridCell cell) -> ScreenPoint {
 }
 
 // Side 0's sprites swap the first two bytes of every 3-byte group of the DS buffer at sprite.
-void opeu_sprite_recolor(Game& game, uint16_t sprite, uint16_t size, uint8_t side) {
+void opeu_sprite_recolor(std::span<std::uint8_t> sprite, uint8_t side) {
   if (side != 0) return;
-  for (auto const group : std::views::iota(0, (size + 2) / 3)) {
-    auto const first{ static_cast<uint16_t>(sprite + group * 3) };
-    auto const second{ static_cast<uint16_t>(first + 1) };
-    std::swap(Byte(game, first), Byte(game, second));
-  }
+  std::ranges::for_each(std::views::iota(std::size_t{ 0 }, sprite.size() / 3), [sprite](std::size_t row) { std::swap(sprite[row * 3], sprite[(row * 3) + 1]); });
 }
 
 // A unit of the side the map shows is visible when it can be selected, an enemy unit only when it has been spotted.

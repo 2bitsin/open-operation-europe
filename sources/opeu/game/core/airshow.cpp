@@ -24,11 +24,13 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <ranges>
+#include <span>
+#include <utility>
 
 using namespace opeu::game;
 
-// Far segments are the unrelocated segments plus the load segment. Locals whose addresses reach services live in the
-// routine's ServiceLocals reserve.
+// Far segments are the unrelocated segments plus the load segment.
 namespace {
 
 using PlaneMask = std::array<std::uint8_t, 216>;
@@ -43,26 +45,22 @@ constexpr std::uint16_t CANCELED_TEXT{ offsetof(DataSegment, air_canceled_text) 
 constexpr std::uint16_t REQUEST_BUFFER_SIZE{ 0x66 };
 } // namespace
 
-void opeu_air_sprite_mirror(Game& game, uint16_t image, uint8_t keep) {
+void opeu_air_sprite_mirror(std::span<std::uint8_t> mask, uint8_t keep) {
   if (keep != 0) return;
-  auto& mask{ Record<PlaneMask>(Data(game), image) };
-  for (std::size_t i = 0; i < mask.size(); i += 3) std::swap(mask[i], mask[i + 1]);
+  std::ranges::for_each(std::views::iota(std::size_t{ 0 }, mask.size() / 3), [mask](std::size_t row) { std::swap(mask[row * 3], mask[(row * 3) + 1]); });
 }
 
 void opeu_air_sprite_draw(Game& game, uint16_t load, uint16_t x, uint16_t y, uint8_t keep) {
-  ServiceLocals const locals{ sizeof(PlaneMask) }; // the mask the compose service reads
-  auto&               data{ Data(game) };
-  auto const          mask{ locals.At(0) };
-  std::ranges::copy(VIEW_TYPE_MASKS[PLANE_MASK], Record<PlaneMask>(data, mask).begin());
-  opeu_air_sprite_mirror(game, mask, keep);
+  auto&     data{ Data(game) };
+  PlaneMask mask{ VIEW_TYPE_MASKS[PLANE_MASK] };
+  opeu_air_sprite_mirror(mask, keep);
   SetStream(data, static_cast<std::uint16_t>(load + BACKGROUND_SEGMENT), BACKGROUND_OFFSET);
   game.Machine().Display().SaveColumns({ x, y, 4, 32 }, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]));
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), SHADOW_OFFSET);
   game.Machine().Display().DrawBits({ static_cast<uint16_t>(x + 1), static_cast<uint16_t>(y + 8), 3, 24 }, { SHADOW_MODE, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]) });
   SetStream(data, static_cast<std::uint16_t>(load + SPRITE_SEGMENT), PLANE_OFFSET);
-  game.Machine().Display().ComposeSprite(
-      { x, y, 3, 24 },
-      { .and_mask = FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]), .or_image = FarBytes(game, load + DATA_SEGMENT, mask), .buffer = FarBytes(game, data.bitmap_buffer, 0), .flags = 0 });
+  game.Machine().Display().ComposeSprite({ x, y, 3, 24 },
+                                         { .and_mask = FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]), .or_image = mask, .buffer = FarBytes(game, data.bitmap_buffer, 0), .flags = 0 });
 }
 
 void opeu_air_sprite_restore(Game& game, uint16_t load, uint16_t x, uint16_t y) {

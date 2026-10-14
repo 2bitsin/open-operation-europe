@@ -21,8 +21,10 @@
 #include "units/release.hpp"
 #include "units/value.hpp"
 
+#include <algorithm>
 #include <array>
 #include <ranges>
+#include <span>
 #include <utility>
 
 using namespace opeu::game;
@@ -51,7 +53,11 @@ void opeu_request_arms(Game& game) {
   }
   opeu_title_panel_begin(game);
   std::uint8_t count{ 0 };
-  for (auto const category : std::views::iota(std::uint8_t{ 0 }, CATEGORIES)) count += opeu_list_due_records(game, Near(data, data.rq_type_list[count]), data.side_masks[data.current_side], category);
+  for (auto const category : std::views::iota(std::uint8_t{ 0 }, CATEGORIES)) {
+    auto const types{ opeu_list_due_records(game, data.side_masks[data.current_side], category) };
+    std::ranges::copy(types, std::span{ data.rq_type_list }.subspan(count).begin());
+    count = static_cast<std::uint8_t>(count + types.size());
+  }
   data.rq_type_dialog.rows = static_cast<std::uint8_t>(count + 1);
   opeu_control_message(game, Near(data, data.rq_arms_which), data.context_record2);
   if (!opeu_list_dialog(game, data.rq_type_dialog, LIST_OPTIONS)) return;

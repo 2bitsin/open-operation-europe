@@ -14,7 +14,11 @@
 #include "services.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <ranges>
+#include <span>
 
 using namespace opeu::game;
 
@@ -39,8 +43,6 @@ constexpr uint16_t ICON_STRIDE{ 650 }; // a bitmap and its mask
 constexpr uint16_t ICON_ROW{ 20 };
 constexpr uint16_t HALF_ROW{ 5 };
 constexpr uint8_t  MODES_PER_ICON{ 4 };
-// The DS reserve of the bitmap buffer the far read fills and the draw reads.
-constexpr uint16_t ICON_BUFFER_BYTES{ 0x214 };
 // The count's digits from the right: the outline offsets around each digit and the digit's colours.
 constexpr uint16_t COUNT_RIGHT{ 23 };
 constexpr uint16_t DIGIT_WIDTH{ 6 };
@@ -99,20 +101,19 @@ uint16_t opeu_battle_code_low(Game&, uint8_t code) {
 
 // Side 0's icons face the other way: each row's two halves are swapped.
 void opeu_battle_draw_icon(Game& game, uint16_t element, uint8_t side, uint8_t mode) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ ICON_BUFFER_BYTES };
-  auto const          buffer{ locals.At(0) };
-  auto const          icon{ opeu_battle_element_icon(game, element) };
-  auto const          offset{ static_cast<uint16_t>((icon * MODES_PER_ICON + mode) * ICON_STRIDE) };
-  auto const          segment{ data.icon_segment };
+  auto&                                data{ Data(game) };
+  std::array<std::uint8_t, ICON_BYTES> bitmap{};
+  auto const                           icon{ opeu_battle_element_icon(game, element) };
+  auto const                           offset{ static_cast<uint16_t>((icon * MODES_PER_ICON + mode) * ICON_STRIDE) };
+  auto const                           segment{ data.icon_segment };
   data.stream_ptr[1] = segment;
   data.stream_ptr[0] = offset;
-  std::ranges::copy(FarBytes(game, segment, offset).first(ICON_BYTES), game.State().Bytes(buffer, ICON_BYTES).begin());
+  std::ranges::copy(FarBytes(game, segment, offset).first(ICON_BYTES), bitmap.begin());
   if (side != 1)
     for (auto const row : std::views::iota(uint16_t{ 0 }, static_cast<uint16_t>(ICON_BYTES / ICON_ROW))) {
-      auto const bytes{ game.State().Bytes(static_cast<uint16_t>(buffer + row * ICON_ROW), 2 * HALF_ROW) };
+      auto const bytes{ std::span{ bitmap }.subspan(std::size_t{ row } * ICON_ROW, 2 * HALF_ROW) };
       std::ranges::swap_ranges(bytes.first(HALF_ROW), bytes.subspan(HALF_ROW));
     }
   game.Machine().Display().MaskCell(data.vram, FarBytes(game, data.icon_segment, offset + ICON_BYTES).first<services::CELL_MASK_BYTES>());
-  game.Machine().Display().OverlayCell(data.vram, game.State().Bytes(buffer, SYSLIB_CELL_BYTES).first<SYSLIB_CELL_BYTES>());
+  game.Machine().Display().OverlayCell(data.vram, std::span<std::uint8_t const>{ bitmap }.first<SYSLIB_CELL_BYTES>());
 }

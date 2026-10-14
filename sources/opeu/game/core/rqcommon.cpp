@@ -66,10 +66,9 @@ void opeu_request_finish(Game& game) {
 }
 
 // Files the request in the current side's slot for its kind: "I will file the request immediately."
-void opeu_request_file(Game& game, uint16_t request) {
-  auto&       data{ Data(game) };
-  auto const& filed{ Record<RequestSlot>(data, request) };
-  auto&       slot{ FiledRequests(data)[filed.kind] };
+void opeu_request_file(Game& game, RequestSlot const& filed) {
+  auto& data{ Data(game) };
+  auto& slot{ FiledRequests(data)[filed.kind] };
   slot.target   = filed.target;
   slot.argument = filed.argument;
   slot.kind     = filed.kind;
@@ -79,10 +78,7 @@ void opeu_request_file(Game& game, uint16_t request) {
 
 namespace opeu::game::detail::rqcommon {
 auto FileRequest(Game& game, RequestSlot request) -> void {
-  ServiceLocals const locals{ sizeof(RequestSlot) };
-  auto const          at{ locals.At(0) };
-  Record<RequestSlot>(Data(game), at) = request;
-  opeu_request_file(game, at);
+  opeu_request_file(game, request);
 }
 } // namespace opeu::game::detail::rqcommon
 

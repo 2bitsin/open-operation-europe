@@ -26,6 +26,8 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
+#include <span>
 
 using namespace opeu::game;
 
@@ -46,11 +48,11 @@ constexpr uint8_t  BRIDGE_CODE{ 10 }; // opeu_map_code of a bridge cell
 constexpr std::array<uint16_t, 2> BULGE_MARKER{ 2, 4 };
 constexpr std::array<uint16_t, 2> MARKER{ 0x702, 0x701 };
 
-// Composes the 1 x 8 glyph at segment:offset through the streamed mask at a pixel position.
-void Compose(Game& game, uint16_t x, uint16_t y, uint16_t offset, uint16_t segment) {
+// Composes the 1 x 8 glyph `image` through the streamed mask at a pixel position.
+void Compose(Game& game, uint16_t x, uint16_t y, std::span<std::uint8_t const> image) {
   auto const& data{ Data(game) };
   game.Machine().Display().ComposeSprite({ x, y, 1, 8 }, { .and_mask = FarBytes(game, static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])),
-                                                           .or_image = FarBytes(game, segment, offset),
+                                                           .or_image = image,
                                                            .buffer   = FarBytes(game, static_cast<std::uint16_t>(data.bitmap_buffer), 0),
                                                            .flags    = 0 });
 }
@@ -62,16 +64,15 @@ void Compose(Game& game, uint16_t x, uint16_t y, uint16_t offset, uint16_t segme
 
 } // namespace
 
-// The glyph is read into a DS buffer the far read, the recolouring and the compose service work on.
+// The glyph is copied out of the sprite segment, recoloured and composed.
 void opeu_overview_unit_draw(Game& game, uint16_t unit, uint16_t x, uint16_t y) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ GLYPH_BYTES };
-  auto const          buffer{ locals.At(0) };
-  auto const          draw{ [&](uint16_t glyphs, uint16_t mask) {
-    std::ranges::copy(FarBytes(game, SPRITE_SEGMENT, glyphs).first(GLYPH_BYTES), game.State().Bytes(buffer, GLYPH_BYTES).begin());
-    opeu_sprite_recolor(game, buffer, GLYPH_BYTES, opeu_unit_side(unit));
+  auto&                                 data{ Data(game) };
+  std::array<std::uint8_t, GLYPH_BYTES> buffer{};
+  auto const                            draw{ [&](uint16_t glyphs, uint16_t mask) {
+    std::ranges::copy(FarBytes(game, SPRITE_SEGMENT, glyphs).first(GLYPH_BYTES), buffer.begin());
+    opeu_sprite_recolor(buffer, opeu_unit_side(unit));
     SetStream(data, SPRITE_SEGMENT, mask);
-    Compose(game, x, y, buffer, DATA_SEGMENT);
+    Compose(game, x, y, buffer);
   } };
   bool       order_shown{ false };
   auto const side{ opeu_unit_side(unit) };
@@ -108,7 +109,7 @@ void opeu_overview_cell_draw(Game& game, uint8_t x, uint8_t y) {
   }
   if (SideStatus(game, data.overview_side) == SIDE_PLAYED && opeu_cell_marked(game, { x, y }, data.overview_side)) {
     SetStream(data, SPRITE_SEGMENT, MARK_MASK);
-    Compose(game, pixel_x, pixel_y, MARK_GLYPH, SPRITE_SEGMENT);
+    Compose(game, pixel_x, pixel_y, FarBytes(game, SPRITE_SEGMENT, MARK_GLYPH));
   }
   if (opeu_map_code(game, x, y) == BRIDGE_CODE) {
     SetStream(data, SPRITE_SEGMENT, BRIDGE_GLYPH);

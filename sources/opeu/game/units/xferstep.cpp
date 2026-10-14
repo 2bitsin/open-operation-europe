@@ -52,16 +52,13 @@ void Highlight(Game& game, std::uint8_t row) {
 } // namespace
 
 // Runs the transfer until Enter. A player's transfer asks for confirmation; the computer's finishes its presentation.
-// The selected row's byte lives in the routine's reserve: the mouse input sets it through its near address.
+// The selected row: the keys move it, a mouse click on the keypad's middle column sets it.
 void opeu_transfer_step(Game& game) {
-  ServiceLocals const locals{ 2 };
-  auto const          selection{ locals.At(0) };
-  auto&               data{ Data(game) };
-  auto&               selected{ Record<std::uint8_t>(data, selection) };
-  std::uint8_t        highlighted{ NO_ROW };
+  auto&        data{ Data(game) };
+  std::uint8_t selected{ 0 };
+  std::uint8_t highlighted{ NO_ROW };
   if (!data.transfer_interactive && SidePlayed(data, data.current_side)) opeu_sound_cue14(game);
   data.transfer_auto = UNMOVED;
-  selected           = 0;
   opeu_transfer_draw_row(game, 1);
   opeu_transfer_draw_row(game, 0);
   opeu_transfer_draw_row(game, 2);
@@ -76,7 +73,10 @@ void opeu_transfer_step(Game& game) {
       Highlight(game, selected);
       highlighted = selected;
     }
-    auto const key{ data.transfer_interactive ? opeu_transfer_input(game, selection) : opeu_transfer_auto_key(game, selected) };
+    auto const [key, row]{
+      data.transfer_interactive ? opeu_transfer_input(game) : PanelInput{ opeu_transfer_auto_key(game, selected), std::nullopt }
+    };
+    if (row) selected = *row;
     switch (key) {
     case '2':
       if (selected++ == RESOURCES - 1) selected = 0;

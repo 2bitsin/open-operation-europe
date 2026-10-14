@@ -79,13 +79,14 @@ uint8_t opeu_transfer_keypad_hit(Game& game, uint16_t x, uint16_t y) {
 }
 
 // With the mouse: the right button is Enter and a left click on the keys 8, 5 or 2 selects row 0, 1 or 2 (stored at
-// the near pointer row, NO_KEY returned). With the keyboard: the key.
-uint8_t opeu_transfer_input(Game& game, uint16_t row) {
+// the row, NO_KEY returned). With the keyboard: the key.
+auto opeu_transfer_input(Game& game) -> PanelInput {
   auto& data{ Data(game) };
-  if (!data.input_mode) return static_cast<std::uint8_t>(opeu_keyboard_key(game));
+  if (!data.input_mode) return { static_cast<std::uint8_t>(opeu_keyboard_key(game)), std::nullopt };
   opeu_mouse_show(game);
   opeu_delay_ticks(game, 3);
-  std::uint8_t key;
+  std::uint8_t                key{};
+  std::optional<std::uint8_t> row;
   for (;;) {
     auto const [x, y]{ MousePosition(game) };
     if (static_cast<uint16_t>(opeu_mouse_right(game))) {
@@ -95,14 +96,14 @@ uint8_t opeu_transfer_input(Game& game, uint16_t row) {
     if (static_cast<uint16_t>(opeu_mouse_left(game))) {
       key = opeu_transfer_keypad_hit(game, x, y);
       if (auto const selected{ std::ranges::find(KEYS[1], key) }; selected != KEYS[1].end()) {
-        Record<std::uint8_t>(data, row) = static_cast<std::uint8_t>(selected - KEYS[1].begin());
-        key                             = NO_KEY;
+        row = static_cast<std::uint8_t>(selected - KEYS[1].begin());
+        key = NO_KEY;
       }
       break;
     }
   }
   opeu_mouse_hide(game);
-  return key;
+  return { key, row };
 }
 
 // For a player's side: titles the panel, restores its background and centres the two names, at most ten characters

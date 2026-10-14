@@ -12,6 +12,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 
 namespace opeu::game::detail::exchange_panel {
@@ -20,6 +21,12 @@ namespace opeu::game::detail::exchange_panel {
 inline constexpr std::array<std::uint16_t, 4> KEY_COLUMNS{ 0x48, 0x68, 0x98, 0xb8 };
 inline constexpr std::array<std::uint16_t, 4> KEY_ROWS{ 0x23, 0x3f, 0x5b, 0x77 };
 inline constexpr std::uint8_t                 NO_KEY{ 0xff };
+
+// What the panel's input gives: the key, NO_KEY when a mouse click on the keypad's middle column selected a row.
+struct PanelInput {
+  std::uint8_t                key;
+  std::optional<std::uint8_t> row;
+};
 
 // The panel's background, saved in the number dialog's image segment.
 inline constexpr std::uint16_t PANEL_WIDTH{ 0x20 }; // in 8-pixel columns
@@ -89,6 +96,7 @@ using detail::exchange_panel::KEY_ROWS;
 using detail::exchange_panel::KeyAmount;
 using detail::exchange_panel::NAME_LIMIT;
 using detail::exchange_panel::NO_KEY;
+using detail::exchange_panel::PanelInput;
 using detail::exchange_panel::NO_ROW;
 using detail::exchange_panel::PANEL_HEIGHT;
 using detail::exchange_panel::PANEL_IMAGE_AT;
