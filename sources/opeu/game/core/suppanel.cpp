@@ -51,7 +51,7 @@ uint8_t opeu_supply_keypad_hit(Game& game, uint16_t x, uint16_t y) {
 // the row, NO_KEY returned). With the keyboard: the key.
 auto opeu_supply_input(Game& game) -> PanelInput {
   auto& data{ Data(game) };
-  if (!data.input_mode) return { static_cast<std::uint8_t>(opeu_keyboard_key(game)), std::nullopt };
+  if (!data.input_mode) return { opeu_keyboard_key(game), std::nullopt };
   opeu_mouse_show(game);
   opeu_delay_ticks(game, 3);
   std::uint8_t                key{};

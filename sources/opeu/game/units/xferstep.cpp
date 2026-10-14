@@ -76,7 +76,7 @@ void opeu_transfer_step(Game& game) {
     auto const [key, row]{
       data.transfer_interactive ? opeu_transfer_input(game) : PanelInput{ opeu_transfer_auto_key(game, selected), std::nullopt }
     };
-    if (row) selected = *row;
+    selected = row.value_or(selected);
     switch (key) {
     case '2':
       if (selected++ == RESOURCES - 1) selected = 0;

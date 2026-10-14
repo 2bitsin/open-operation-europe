@@ -62,7 +62,7 @@ uint16_t opeu_supply_step(Game& game) {
       highlighted = selected;
     }
     auto const [key, row]{ opeu_supply_input(game) };
-    if (row) selected = *row;
+    selected = row.value_or(selected);
     switch (key) {
     case '2':
       if (selected++ == ROWS - 1) selected = 0;
