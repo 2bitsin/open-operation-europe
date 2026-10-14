@@ -29,10 +29,10 @@ constexpr uint16_t BUFFER_OFFSET{ 4 };
 // "Which city would you like to receive the supplies?": a filed supplies request may be cancelled first; then the
 // player picks one of the side's own cities on the map, confirms, and the request is filed and the side's turn ends.
 void opeu_request_supplies(Game& game) {
-  ServiceLocals const locals{ SCRATCH_BYTES };
-  auto&               data{ Data(game) };
-  auto const          buffer{ locals.At(BUFFER_OFFSET) };
-  auto const          kind{ std::to_underlying(RequestKind::SUPPLIES) };
+  TextBuffer<SCRATCH_BYTES> locals;
+  auto&                     data{ Data(game) };
+  auto const                buffer{ locals.At(BUFFER_OFFSET) };
+  auto const                kind{ std::to_underlying(RequestKind::SUPPLIES) };
   if (opeu_request_pending(game, kind)) {
     if (!opeu_request_cancel_prompt(game, offsetof(DataSegment, rq_supplies_text))) return;
     Record<Side>(data, data.current_side_ptr).requests[kind].kind = std::to_underlying(RequestKind::NONE);

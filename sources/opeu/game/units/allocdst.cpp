@@ -143,10 +143,10 @@ void opeu_alloc_distribute(Game& game, Allocation const& allocation) {
 // the prompt (100 bytes) and the unit's name (32 bytes) in the routine's buffers; the dialog's select callback is
 // opeu_tally_mark.
 void opeu_alloc_choose_hq(Game& game) {
-  auto&               data{ Data(game) };
-  ServiceLocals const buffers{ PROMPT_BYTES + NAME_BYTES };
-  auto const          name{ buffers.At(0) };
-  auto const          text{ buffers.At(NAME_BYTES) };
+  auto&                                 data{ Data(game) };
+  TextBuffer<PROMPT_BYTES + NAME_BYTES> buffers;
+  auto const                            name{ buffers.At(0) };
+  auto const                            text{ buffers.At(NAME_BYTES) };
   for (std::uint8_t i{ 0 }; i < 2; ++i) {
     auto const unit_near{ data.alloc_units[i] };
     if (unit_near == 0) continue;

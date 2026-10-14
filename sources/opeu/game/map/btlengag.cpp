@@ -63,11 +63,11 @@ void Pause(Game& game) {
 
 // "<unit> is out of <supply>! They cannot move/fight!", for a side a player commands.
 void opeu_battle_supply_notice(Game& game, uint16_t element, uint8_t supply) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ NOTICE_RESERVE };
-  auto const          text{ locals.At(NOTICE_TEXT) };
-  auto const          name_buffer{ locals.At(NOTICE_NAME) };
-  auto const          side{ opeu_battle_element_side(game, element) };
+  auto&                      data{ Data(game) };
+  TextBuffer<NOTICE_RESERVE> locals;
+  auto const                 text{ locals.At(NOTICE_TEXT) };
+  auto const                 name_buffer{ locals.At(NOTICE_NAME) };
+  auto const                 side{ opeu_battle_element_side(game, element) };
   if (!data.side_status[side]) return;
   auto const unit{ opeu_battle_element_unit(game, element) };
   auto const name{ unit == Near(data, data.battle_garrison) ? Near(data, data.text_defenders) : opeu_unit_name(game, unit, name_buffer) };

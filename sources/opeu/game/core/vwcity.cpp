@@ -31,12 +31,7 @@ constexpr std::uint16_t CITY_NONE_OWN{ offsetof(DataSegment, city_none_own) };
 constexpr std::uint16_t CITY_NONE_ENEMY{ offsetof(DataSegment, city_none_enemy) };
 constexpr std::uint16_t CITY_SIDE_PROMPT{ offsetof(DataSegment, city_side_prompt) };
 constexpr std::uint16_t CITY_SIDE_MENU{ offsetof(DataSegment, city_side_menu) };
-constexpr std::uint16_t LIST_WINDOW{ offsetof(DataSegment, list_window) };
-
-// The city list's locals whose addresses the services receive, as offsets in its reserve.
-constexpr std::uint16_t TITLE_AT{ 0x00 };        // the stock list's title
-constexpr std::uint16_t SAVED_WINDOW_AT{ 0x64 }; // the list window state saved around the stock list
-constexpr std::uint16_t CITY_LIST_LOCALS{ 0x6e };
+constexpr std::uint16_t TITLE_BYTES{ 0x64 }; // the stock list's title
 
 // Lists the side's cities and shows them; tells when the side holds none.
 void ViewSideCities(Game& game, std::uint8_t side, std::uint16_t none) {
@@ -59,10 +54,8 @@ constexpr auto CITY_ACTIONS = DispatchRows<CityAction, auto (*)(Game&)->void>({
 // Picks a listed city and flashes it; a city that holds stocks has them listed, the city list's window state kept
 // aside meanwhile.
 void opeu_view_city_list(Game& game, uint8_t count) {
-  ServiceLocals const locals{ CITY_LIST_LOCALS };
-  auto&               data{ Data(game) };
-  auto const          saved_window{ locals.At(SAVED_WINDOW_AT) };
-  auto const          title{ locals.At(TITLE_AT) };
+  TextBuffer<TITLE_BYTES> title;
+  auto&                   data{ Data(game) };
   data.city_dialog.rows = static_cast<uint8_t>(count + 1);
   SetListPredicate(data.city_dialog, ListSelect::VIEW_OBJECTIVE);
   for (std::uint16_t height{ 7 };
@@ -75,9 +68,9 @@ void opeu_view_city_list(Game& game, uint8_t count) {
       opeu_title_panel_begin(game);
       opeu_request_format(game, title, std::array<FormatArgument, 2>{ CITY_FORMAT, city });
       opeu_control_message(game, title, data.context_record3);
-      opeu_copy_bytes(game, LIST_WINDOW, saved_window, LIST_WINDOW_STATE);
+      auto const saved_window{ SaveListWindow(game) };
       opeu_list_dialog(game, data.stock_dialog, LIST_OPTIONS);
-      opeu_copy_bytes(game, saved_window, LIST_WINDOW, LIST_WINDOW_STATE);
+      RestoreListWindow(game, saved_window);
     }
   }
 }

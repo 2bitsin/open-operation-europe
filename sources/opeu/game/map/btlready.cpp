@@ -37,9 +37,9 @@ constexpr uint16_t PAUSE{ 3 };
 } // namespace
 
 uint16_t opeu_battle_announce_ready(Game& game) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ NAME_BYTES };
-  bool                announced{ false };
+  auto&                  data{ Data(game) };
+  TextBuffer<NAME_BYTES> unit_name;
+  bool                   announced{ false };
   for (auto const list : std::views::iota(uint8_t{ 0 }, SIDE_COUNT))
     for (auto const slot : std::views::iota(uint8_t{ 0 }, BATTLE_LIST_LENGTH)) {
       auto const unit{ BattleList(data, list, slot) };
@@ -56,9 +56,7 @@ uint16_t opeu_battle_announce_ready(Game& game) {
         column = SIDE_1_COLUMN;
       }
       opeu_army_position(game, static_cast<short>(column), static_cast<short>(NAME_ROW));
-      auto const hoisted0{ static_cast<std::uint16_t>(locals.At(0)) };
-      auto const hoisted1{ static_cast<std::uint16_t>(unit) };
-      auto const name{ opeu_unit_name(game, hoisted1, hoisted0) };
+      auto const name{ opeu_unit_name(game, unit, unit_name) };
       opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(data, data.battle_ready_name_format), SideColorCode(side), name });
       opeu_army_position(game, static_cast<short>(column), static_cast<short>(READY_ROW));
       opeu_cursor_print(game, std::array<FormatArgument, 1>{ Near(data, data.battle_ready_text) });

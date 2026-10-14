@@ -53,15 +53,15 @@ constexpr uint16_t PICTURE_Y{ 0x140 };
 
 // orders_hidden: the enemy's element, whose order the panel does not show.
 void opeu_battle_element_panel(Game& game, uint16_t element, uint16_t orders_hidden) {
-  auto&               data{ Data(game) };
-  auto const&         record{ Record<Element>(data, element) };
-  ServiceLocals const locals{ NAMES_RESERVE };
-  auto const          unit_name{ locals.At(UNIT_NAME_AT) };
-  auto const          element_name{ locals.At(ELEMENT_NAME_AT) };
-  auto                side{ opeu_battle_element_side(game, element) };
-  auto const          unit{ opeu_battle_element_unit(game, element) };
-  auto const          at{ [&](uint16_t column, uint16_t row) { opeu_army_position(game, static_cast<short>(column), static_cast<short>(row)); } };
-  auto const          print{ [&](auto const& format, auto... words) { opeu_cursor_print(game, std::array<FormatArgument, 1 + sizeof...(words)>{ Near(data, format), words... }); } };
+  auto&                     data{ Data(game) };
+  auto const&               record{ Record<Element>(data, element) };
+  TextBuffer<NAMES_RESERVE> locals;
+  auto const                unit_name{ locals.At(UNIT_NAME_AT) };
+  auto const                element_name{ locals.At(ELEMENT_NAME_AT) };
+  auto                      side{ opeu_battle_element_side(game, element) };
+  auto const                unit{ opeu_battle_element_unit(game, element) };
+  auto const                at{ [&](uint16_t column, uint16_t row) { opeu_army_position(game, static_cast<short>(column), static_cast<short>(row)); } };
+  auto const                print{ [&](auto const& format, auto... words) { opeu_cursor_print(game, std::array<FormatArgument, 1 + sizeof...(words)>{ Near(data, format), words... }); } };
   opeu_battle_panel_begin(game);
   at(TITLE_COLUMN, 0);
   TextTarget name{ unit_name };

@@ -184,9 +184,9 @@ uint16_t opeu_notice_can_command(Game& game, uint8_t list, uint8_t side) {
 // Each side decides whether a leader takes command of the battle: the computer by a coin toss, a player when asked
 // (only for a unit outside the computer's divisions). The battle is reported when a player's side could command.
 void opeu_notice_decide(Game& game) {
-  ServiceLocals const     locals{ 0x72 };
+  TextBuffer<0x72>        locals;
   auto&                   data{ Data(game) };
-  uint16_t const          text{ locals.At(0) };
+  auto const              text{ locals.At(0) };
   std::array<uint16_t, 2> can_command{ 1, 1 };
   data.battle_command[0] = 0;
   data.battle_command[1] = 0;
@@ -239,14 +239,14 @@ void opeu_notice_view_finish(Game& game) {
 // Tells the attacked unit or objective of the attack (naming a special attacker) and shows it to the attacked side;
 // the attacked unit's elements tire and lose morale by its order: least when holding, most under EXPOSED_ORDER.
 void opeu_notice_attack(Game& game) {
-  ServiceLocals const locals{ 0x80 };
-  auto&               data{ Data(game) };
-  uint16_t const      text{ locals.At(0xc) };
-  uint16_t const      name{ locals.At(0) };
-  uint16_t const      attacker{ opeu_find_unit_at(game, data.battle_attacker_x, data.battle_attacker_y) };
-  auto const          side{ opeu_unit_side(attacker) };
-  uint16_t const      unit{ opeu_find_unit_at(game, data.battle_x, data.battle_y) };
-  uint16_t const      objective{ opeu_find_objective_at(game, data.battle_x, data.battle_y) };
+  TextBuffer<0x80> locals;
+  auto&            data{ Data(game) };
+  auto const       text{ locals.At(0xc) };
+  auto const       name{ locals.At(0) };
+  uint16_t const   attacker{ opeu_find_unit_at(game, data.battle_attacker_x, data.battle_attacker_y) };
+  auto const       side{ opeu_unit_side(attacker) };
+  uint16_t const   unit{ opeu_find_unit_at(game, data.battle_x, data.battle_y) };
+  uint16_t const   objective{ opeu_find_objective_at(game, data.battle_x, data.battle_y) };
   if (opeu_unit_special(game, attacker)) {
     uint16_t const side_name{ data.side_names[side] };
     opeu_request_format(game, text, std::array<FormatArgument, 4>{ offsetof(DataSegment, notice_attack_format), SIDE_COLOUR[side == 0 ? 0 : 1], side_name, opeu_unit_name(game, attacker, name) });

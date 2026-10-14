@@ -89,11 +89,11 @@ void opeu_objective_panel(Game& game, uint16_t objective) {
 // The regiment's name, its order and target (or "waiting" and its own place), supplies with their percentages, the
 // fatigue of its first battalion and its battalions.
 void opeu_unit_panel(Game& game, uint16_t unit) {
-  ServiceLocals const locals{ 0x28 }; // the two names services write
-  auto&               data{ Data(game) };
-  auto const&         regiment{ Record<Unit>(data, unit) };
-  auto const          location_name{ locals.At(2) };
-  opeu_army_title(game, opeu_unit_name(game, unit, locals.At(0xe)));
+  TextBuffer<0x26> location_name; // the two names services write
+  TextBuffer<0x1a> unit_name;
+  auto&            data{ Data(game) };
+  auto const&      regiment{ Record<Unit>(data, unit) };
+  opeu_army_title(game, opeu_unit_name(game, unit, unit_name));
   auto const capacity{ UnitCapacities(data, unit) };
   auto const ammunition{ opeu_resource_percent(regiment.resources[0], capacity.ammunition) };
   auto const fuel{ opeu_resource_percent(regiment.resources[1], capacity.fuel) };

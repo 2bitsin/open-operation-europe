@@ -143,8 +143,8 @@ void opeu_transfer_load_objective(Game& game, uint16_t objective) {
 // The transfer between two regiments, repeated until it is confirmed (or the computer finishes); the player runs it
 // when a player commands the side, unless the computer has taken over both divisions.
 void opeu_transfer_units(Game& game, uint16_t first, uint16_t second) {
-  ServiceLocals const names{ 2 * NAME_BYTES };
-  auto&               data{ Data(game) };
+  TextBuffer<2 * NAME_BYTES> names;
+  auto&                      data{ Data(game) };
   data.transfer_objective_ptr = 0;
   do {
     opeu_transfer_load_unit(game, first, 0);
@@ -160,8 +160,8 @@ void opeu_transfer_units(Game& game, uint16_t first, uint16_t second) {
 
 // The transfer between a regiment and an objective.
 void opeu_transfer_objective(Game& game, uint16_t unit, uint16_t objective) {
-  ServiceLocals const name{ NAME_BYTES };
-  auto&               data{ Data(game) };
+  TextBuffer<NAME_BYTES> name;
+  auto&                  data{ Data(game) };
   data.transfer_objective_ptr = objective;
   do {
     opeu_transfer_load_unit(game, unit, 0);

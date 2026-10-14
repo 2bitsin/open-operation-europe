@@ -52,12 +52,12 @@ void opeu_mission_recon_objective(Game& game, uint8_t side) {
 }
 
 void opeu_mission_recon_unit(Game& game, uint8_t side) {
-  ServiceLocals const locals{ 0x50 };
-  auto&               data{ Data(game) };
-  auto const          text{ locals.At(0x1e) };
-  auto const          name{ locals.At(0) };
-  auto const          target{ data.sides[side].order.target };
-  auto&               unit{ Record<Unit>(data, target) };
+  TextBuffer<0x50> locals;
+  auto&            data{ Data(game) };
+  auto const       text{ locals.At(0x1e) };
+  auto const       name{ locals.At(0) };
+  auto const       target{ data.sides[side].order.target };
+  auto&            unit{ Record<Unit>(data, target) };
   opeu_string_copy(game, text, At(offsetof(DataSegment, recon_unit_text)));
   opeu_string_append(game, text, opeu_unit_name(game, target, name));
   if (opeu_officer_rating(game, side, OFFICER) <= game.State().RandomBounded(100)) {

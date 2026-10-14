@@ -119,11 +119,11 @@ void opeu_bomb_event(Game& game, uint16_t load) {
   if (data.month < RAID_MONTH || (data.month == RAID_MONTH && data.day < RAID_DAY)) return;
   if (!opeu_hour_is_day(data.hour)) return;
   if (data.weather != 0 && data.weather != 1) return;
-  ServiceLocals const locals{ EVENT_LOCALS };
-  auto const          report{ locals.At(REPORT_AT) };
-  auto const          intro{ locals.At(INTRO_AT) };
-  auto const          name{ locals.At(NAME_AT) };
-  auto const          level{ static_cast<std::uint16_t>(data.side_control[RAIDED_SIDE] == SIDE_PLAYED ? data.delivery_level : 2) };
+  TextBuffer<EVENT_LOCALS> locals;
+  auto const               report{ locals.At(REPORT_AT) };
+  auto const               intro{ locals.At(INTRO_AT) };
+  auto const               name{ locals.At(NAME_AT) };
+  auto const               level{ static_cast<std::uint16_t>(data.side_control[RAIDED_SIDE] == SIDE_PLAYED ? data.delivery_level : 2) };
   for (unsigned group{ 0 }; group < GROUPS_PER_SIDE; ++group) {
     for (auto& regiment : GroupUnits(data, RAIDED_SIDE, group)) {
       auto const troop{ Near(data, regiment) };

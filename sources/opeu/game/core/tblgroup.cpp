@@ -80,14 +80,13 @@ void opeu_tbl_draw_groups(Game& game, DrawRequest const& request) {
 // cell, or the cell in map coordinates.
 void opeu_tbl_draw_missions(Game& game, DrawRequest const& request) {
   auto const [column, first, last_column, last, flags]{ request };
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ ROW_TEXT_BYTES };
-  locals.Clear(game);
-  auto const  buffer{ locals.At(0) };
-  auto const  place{ locals.At(PLACE_AT) };
-  auto const& window{ ActiveWindow(data) };
-  auto const  columns{ TableColumnLayout(game, column, last_column) };
-  auto const  side{ data.current_side };
+  auto&                      data{ Data(game) };
+  TextBuffer<ROW_TEXT_BYTES> locals;
+  auto const                 buffer{ locals.At(0) };
+  auto const                 place{ locals.At(PLACE_AT) };
+  auto const&                window{ ActiveWindow(data) };
+  auto const                 columns{ TableColumnLayout(game, column, last_column) };
+  auto const                 side{ data.current_side };
   if (flags & DRAW_HEADER) {
     opeu_army_position(game, 0x26, 0x81);
     opeu_select_side_color(game, side);

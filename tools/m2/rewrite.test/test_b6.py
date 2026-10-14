@@ -6,7 +6,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 
-from rewriter.b6 import RewriteCasts, RewriteFarText, RewriteFormats, RewriteReserves  # noqa: E402
+from rewriter.b6 import RewriteCasts, RewriteFarText, RewriteFormats, RewriteReserves, RewriteSharedReserves  # noqa: E402
 
 
 def test_the_destination_leaves_the_words_of_sprintf():
@@ -98,3 +98,15 @@ def test_a_reserve_holding_several_locals_is_left_for_the_hand_pass():
   rewritten, counts = RewriteReserves(text)
   assert rewritten == text.replace("  ServiceLocals const locals{ 4 };\n  auto const          text{ locals.At(0) };\n", "  TextBuffer<4> text;\n")
   assert counts["text_buffer"] == 1
+
+
+def test_a_reserve_holding_several_texts_becomes_one_buffer_under_its_name():
+  text = "  ServiceLocals const locals{ 0x50 }; // two texts\n" \
+         "  locals.Clear(game);\n" \
+         "  auto const          text{ locals.At(0) };\n" \
+         "  auto const          name{ locals.At(0x32) };\n"
+  rewritten, counts = RewriteSharedReserves(text)
+  assert rewritten == "  TextBuffer<0x50> locals; // two texts\n" \
+                      "  auto const          text{ locals.At(0) };\n" \
+                      "  auto const          name{ locals.At(0x32) };\n"
+  assert counts["shared_buffer"] == 1

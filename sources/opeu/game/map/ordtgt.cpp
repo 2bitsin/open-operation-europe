@@ -48,13 +48,13 @@ uint8_t opeu_menu_always(void) {
 }
 
 void opeu_group_set_target(Game& game, uint8_t group) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ TARGET_RESERVE };
-  auto const          text{ locals.At(TEXT_AT) };
-  auto const          person{ opeu_find_group_record(game, data.current_side, group) };
-  auto&               division{ GroupOf(data, data.current_side, group) };
-  auto&               task{ division.tasks[data.supply_row] };
-  auto const          start{ [&] {
+  auto&                      data{ Data(game) };
+  TextBuffer<TARGET_RESERVE> locals;
+  auto const                 text{ locals.At(TEXT_AT) };
+  auto const                 person{ opeu_find_group_record(game, data.current_side, group) };
+  auto&                      division{ GroupOf(data, data.current_side, group) };
+  auto&                      task{ division.tasks[data.supply_row] };
+  auto const                 start{ [&] {
     if (task.kind != Bits(TaskKind::NONE)) return GridCell{ task.x, task.y };
     auto const& unit{ Record<Unit>(data, opeu_find_group_selected_unit(game, Near(data, division))) };
     return GridCell{ unit.x, unit.y };

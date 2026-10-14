@@ -44,23 +44,23 @@ uint16_t opeu_ops_chief_show(Game& game) {
   return 1;
 }
 
-void opeu_ops_chief_text(Game& game, uint16_t text) {
+void opeu_ops_chief_text(Game& game, Text text) {
   if (opeu_ops_chief_show(game)) opeu_text_feed(game, text);
 }
 
-// Shows the text and the range "(low-high)" formatted into `buffer`, then reads a number in the range.
-uint16_t opeu_number_prompt(Game& game, uint16_t text, uint16_t low, uint16_t high, uint16_t value, uint16_t d, uint16_t buffer) {
+// Shows the text and the range "(low-high)" formatted into a buffer of its own, then reads a number in the range.
+uint16_t opeu_number_prompt(Game& game, uint16_t text, uint16_t low, uint16_t high, uint16_t value, uint16_t d) {
+  TextBuffer<RANGE_TEXT_BYTES> buffer;
   opeu_request_format(game, buffer, std::array<FormatArgument, 3>{ RANGE_FORMAT, low, high });
   opeu_text_feed(game, text);
   opeu_text_feed(game, buffer);
   return opeu_choose_value(game, { low, high }, { .cancel = static_cast<int16_t>(value), .items = d });
 }
 
-// The operations chief asks for a number in low..high; the range text is formatted in the routine's reserve.
+// The operations chief asks for a number in low..high.
 uint16_t opeu_ops_chief_number(Game& game, uint16_t text, uint16_t low, uint16_t high, uint16_t value, uint16_t d) {
-  ServiceLocals const range{ RANGE_TEXT_BYTES };
   opeu_ops_chief_show(game);
-  return opeu_number_prompt(game, text, low, high, value, d, range.At(0));
+  return opeu_number_prompt(game, text, low, high, value, d);
 }
 
 uint16_t opeu_ops_chief_wait(Game& game, uint16_t text) {

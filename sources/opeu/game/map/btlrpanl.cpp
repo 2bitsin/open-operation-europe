@@ -50,11 +50,11 @@ void opeu_battle_wiped_notice(Game& game, uint16_t element) {
 }
 
 void opeu_battle_ranged_panel(Game& game, uint16_t shooter, uint16_t target) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ NAMES_RESERVE };
-  auto const          target_name{ locals.At(TARGET_AT) };
-  auto const          shooter_name{ locals.At(SHOOTER_AT) };
-  auto const          side{ opeu_battle_element_side(game, shooter) };
+  auto&                     data{ Data(game) };
+  TextBuffer<NAMES_RESERVE> locals;
+  auto const                target_name{ locals.At(TARGET_AT) };
+  auto const                shooter_name{ locals.At(SHOOTER_AT) };
+  auto const                side{ opeu_battle_element_side(game, shooter) };
   opeu_battle_panel_begin(game);
   opeu_text_paper_set(game, static_cast<uint8_t>(PANEL_PAPER));
   opeu_army_position(game, static_cast<short>(NAME_COLUMN), static_cast<short>(SHOOTER_ROW));

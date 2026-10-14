@@ -137,9 +137,9 @@ void opeu_battle_auto_hq(Game& game) {
   if (data.presentation_mode != SHOWN || unit == Near(data, data.garrison_unit)) return;
   auto const side{ static_cast<uint8_t>(opeu_battle_unit_side(game, unit)) };
   if (data.side_status[side] != SIDE_PLAYED) return;
-  ServiceLocals const locals{ AUTO_RESERVE };
-  auto const          label{ opeu_element_name(game, best, locals.At(AUTO_LABEL)) };
-  auto const          name{ opeu_unit_name(game, data.battle_lost_unit, locals.At(AUTO_NAME)) };
+  TextBuffer<AUTO_RESERVE> locals;
+  auto const               label{ opeu_element_name(game, best, locals.At(AUTO_LABEL)) };
+  auto const               name{ opeu_unit_name(game, data.battle_lost_unit, locals.At(AUTO_NAME)) };
   opeu_request_format(game, locals.At(AUTO_TEXT), std::array<FormatArgument, 4>{ Near(data, data.hq_fmt_moved), SideColorCode(side), name, label });
   opeu_battle_commander_wait(game, locals.At(AUTO_TEXT), side, MESSAGE_MODE);
 }

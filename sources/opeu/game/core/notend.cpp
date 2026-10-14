@@ -207,12 +207,12 @@ void opeu_end_nothing(void) { }
 // Reports, when the battle is reported and not only presented, every engaged element's losses to its side's
 // commander: wiped out, not damaged, or how many it lost.
 void opeu_end_losses(Game& game) {
-  ServiceLocals const locals{ 0xb2 };
-  auto&               data{ Data(game) };
-  uint16_t const      report{ locals.At(0x42) };
-  uint16_t const      unit_name{ locals.At(0x36) };
-  uint16_t const      loss_text{ locals.At(0x16) };
-  uint16_t const      item_name{ locals.At(0) };
+  TextBuffer<0xb2> locals;
+  auto&            data{ Data(game) };
+  auto const       report{ locals.At(0x42) };
+  auto const       unit_name{ locals.At(0x36) };
+  auto const       loss_text{ locals.At(0x16) };
+  auto const       item_name{ locals.At(0) };
   if (data.presentation_mode == 1) return;
   if (!data.battle_report) return;
   for (auto const& loss : data.battle_losses) {

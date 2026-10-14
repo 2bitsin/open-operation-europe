@@ -32,27 +32,19 @@ constexpr std::uint16_t REGIMENT_PROMPT{ offsetof(DataSegment, regiment_prompt) 
 constexpr std::uint16_t REGIMENT_FORMAT{ offsetof(DataSegment, regiment_format) };
 constexpr std::uint16_t DIVISION_PROMPT{ offsetof(DataSegment, view_division_prompt) };
 constexpr std::uint16_t NONE_ENEMY{ offsetof(DataSegment, units_none_enemy) };
-constexpr std::uint16_t LIST_WINDOW{ offsetof(DataSegment, list_window) };
-
-// The locals whose addresses the services receive, as offsets in the routines' reserves: the regiment list's title,
-// its regiment's name and its window state kept around the battalions; the division list's window state kept around
-// the regiments.
+// The regiment list's title and its regiment's name, offsets in one buffer (the name may run to its end).
 constexpr std::uint16_t REGIMENT_TITLE_AT{ 0x00 };
 constexpr std::uint16_t REGIMENT_NAME_AT{ 0x64 };
-constexpr std::uint16_t REGIMENT_SAVED_WINDOW_AT{ 0x70 };
-constexpr std::uint16_t REGIMENT_LOCALS{ 0x7a };
-constexpr std::uint16_t DIVISION_SAVED_WINDOW_AT{ 0 };
-constexpr std::uint16_t DIVISION_LOCALS{ 0xc };
+constexpr std::uint16_t REGIMENT_TEXTS{ 0x70 };
 
 } // namespace
 
 // Picks a listed regiment, announces it and lists its battalions, the regiment list's window state kept aside.
 void opeu_view_regiment_list(Game& game) {
-  ServiceLocals const locals{ REGIMENT_LOCALS };
-  auto&               data{ Data(game) };
-  auto const          saved_window{ locals.At(REGIMENT_SAVED_WINDOW_AT) };
-  auto const          name{ locals.At(REGIMENT_NAME_AT) };
-  auto const          title{ locals.At(REGIMENT_TITLE_AT) };
+  TextBuffer<REGIMENT_TEXTS> locals;
+  auto&                      data{ Data(game) };
+  auto const                 name{ locals.At(REGIMENT_NAME_AT) };
+  auto const                 title{ locals.At(REGIMENT_TITLE_AT) };
   for (std::uint16_t height{ 7 };
        opeu_title_panel_begin(game), opeu_control_message(game, REGIMENT_PROMPT, data.context_record3), opeu_list_dialog(game, data.organize_list, { 1, static_cast<std::uint8_t>(height) });
        height = 6) {
@@ -64,9 +56,9 @@ void opeu_view_regiment_list(Game& game) {
     auto const unit_name{ opeu_unit_name(game, unit, name) };
     opeu_request_format(game, title, std::array<FormatArgument, 2>{ REGIMENT_FORMAT, unit_name });
     opeu_control_message(game, title, data.context_record3);
-    opeu_copy_bytes(game, LIST_WINDOW, saved_window, LIST_WINDOW_STATE);
+    auto const saved_window{ SaveListWindow(game) };
     opeu_list_dialog(game, data.choice_dialog, LIST_OPTIONS);
-    opeu_copy_bytes(game, saved_window, LIST_WINDOW, LIST_WINDOW_STATE);
+    RestoreListWindow(game, saved_window);
   }
 }
 
@@ -81,9 +73,7 @@ uint8_t opeu_list_group_units(Game& game, uint8_t group) {
 // Picks one of the own side's divisions, shows it, then lists its regiments, the division list's window state kept
 // aside.
 void opeu_view_own_divisions(Game& game) {
-  ServiceLocals const locals{ DIVISION_LOCALS };
-  auto&               data{ Data(game) };
-  auto const          saved_window{ locals.At(DIVISION_SAVED_WINDOW_AT) };
+  auto& data{ Data(game) };
   for (std::uint16_t height{ 7 }; SetListPredicate(data.division_dialog, ListSelect::VIEW_DIVISION), opeu_control_message(game, DIVISION_PROMPT, data.context_record3),
                                   opeu_list_dialog(game, data.division_dialog, { 1, static_cast<std::uint8_t>(height) });
        height = 6) {
@@ -92,9 +82,9 @@ void opeu_view_own_divisions(Game& game) {
     opeu_group_show(game, Near(data, group), division);
     data.organize_list.rows = static_cast<uint8_t>(opeu_list_group_units(game, division) + 1);
     SetListPredicate(data.organize_list, ListSelect::VIEW_REGIMENT);
-    opeu_copy_bytes(game, LIST_WINDOW, saved_window, LIST_WINDOW_STATE);
+    auto const saved_window{ SaveListWindow(game) };
     opeu_view_regiment_list(game);
-    opeu_copy_bytes(game, saved_window, LIST_WINDOW, LIST_WINDOW_STATE);
+    RestoreListWindow(game, saved_window);
   }
 }
 

@@ -47,11 +47,11 @@ constexpr std::uint16_t NAME_BYTES{ 0x50 }; // the headquarters regiment's name
 } // namespace
 
 // Shown on a side the player controls (or when neither side is player-controlled). The headquarters regiment's name
-// is written into the routine's reserve for the print service.
+// is written into the routine's buffer for the print service.
 void opeu_army_summary(Game& game) {
-  ServiceLocals const locals{ NAME_BYTES };
-  auto&               data{ Data(game) };
-  auto const          side{ data.current_side };
+  TextBuffer<NAME_BYTES> name;
+  auto&                  data{ Data(game) };
+  auto const             side{ data.current_side };
   if ((data.side_control[1] || data.side_control[0]) && data.side_control[side] != SIDE_PLAYED) return;
   opeu_army_title(game, data.side_names[side]);
   if (!opeu_unit_support_condition(game, opeu_find_side_selected_unit(game, side))) {
@@ -81,5 +81,5 @@ void opeu_army_summary(Game& game) {
   row(263);
   opeu_cursor_print(game, std::array<FormatArgument, 4>{ ROW5, own.planes, own.paratroops, own.strength });
   opeu_army_position(game, 54, 138);
-  opeu_cursor_print(game, std::array<FormatArgument, 2>{ HQ_FORMAT, opeu_unit_name(game, opeu_find_side_selected_unit(game, side), locals.At(0)) });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ HQ_FORMAT, opeu_unit_name(game, opeu_find_side_selected_unit(game, side), name) });
 }

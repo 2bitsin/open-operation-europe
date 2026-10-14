@@ -36,8 +36,8 @@ void opeu_map_cursor(Game& game, uint16_t x, uint16_t y) {
   if (side != NO_SIDE) {
     auto const unit{ opeu_find_unit_at(game, cell_x, cell_y) };
     if ((side == data.current_side && opeu_unit_selection_eligible(game, unit)) || (side != data.current_side && opeu_unit_special(game, unit))) {
-      ServiceLocals const locals{ NAME_BUFFER_BYTES };
-      auto const          name{ opeu_unit_name(game, unit, locals.At(0)) };
+      TextBuffer<NAME_BUFFER_BYTES> unit_name;
+      auto const                    name{ opeu_unit_name(game, unit, unit_name) };
       opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(data, data.cursor_unit_format), data.side_names[side], name });
     }
   }

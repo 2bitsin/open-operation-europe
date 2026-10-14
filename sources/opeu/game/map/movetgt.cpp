@@ -84,12 +84,12 @@ auto opeu_move_unit_target(Game& game) -> OrderTarget {
     auto const side{ static_cast<uint8_t>(opeu_unit_side(target)) };
     auto const seen{ side == data.current_side ? opeu_unit_selection_eligible(game, target) : opeu_unit_special(game, target) };
     if (seen) return { target, cell };
-    ServiceLocals const locals{ REPORT_RESERVE };
-    auto const          report{ locals.At(REPORT_AT) };
-    opeu_request_format(game, report,
-                        std::array<FormatArgument, 4>{ Near(data, data.lost_sight_format), side == 0 ? SIDE_0_LOST : SIDE_1_LOST, data.side_names[side],
-                                                       opeu_unit_name(game, target, static_cast<std::uint16_t>(locals.At(NAME_AT))) });
-    opeu_unit_report(game, static_cast<std::uint16_t>(current), static_cast<std::uint16_t>(report));
+    TextBuffer<REPORT_RESERVE> locals;
+    auto const                 report{ locals.At(REPORT_AT) };
+    opeu_request_format(
+        game, report,
+        std::array<FormatArgument, 4>{ Near(data, data.lost_sight_format), side == 0 ? SIDE_0_LOST : SIDE_1_LOST, data.side_names[side], opeu_unit_name(game, target, locals.At(NAME_AT)) });
+    opeu_unit_report(game, static_cast<std::uint16_t>(current), report);
   }
   opeu_restore_unit_order(game, current);
   return { 0, {} };

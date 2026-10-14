@@ -147,14 +147,14 @@ void opeu_cargo_drop_present(Game& game) {
 
 // The airlift flies (see the file comment).
 void opeu_cargo_drop_event(Game& game) {
-  ServiceLocals const locals{ DROP_LOCALS };
-  auto&               data{ Data(game) };
-  auto const          side{ data.air_side };
-  auto&               record{ data.sides[side] };
-  auto&               lift{ record.lift };
-  auto const          x{ lift.x };
-  auto const          y{ lift.y };
-  auto                planes{ lift.planes };
+  TextBuffer<DROP_LOCALS> locals;
+  auto&                   data{ Data(game) };
+  auto const              side{ data.air_side };
+  auto&                   record{ data.sides[side] };
+  auto&                   lift{ record.lift };
+  auto const              x{ lift.x };
+  auto const              y{ lift.y };
+  auto                    planes{ lift.planes };
   record.planes = SubWord(record.planes, planes);
   for (int i{ 0 }; i < 3; ++i) record.stock[i] = SubWord(record.stock[i], lift.supplies[i]);
   planes = SubWord(planes, opeu_air_damage_roll(game, x, y, opeu_min16(planes, 0x1d) / 10));

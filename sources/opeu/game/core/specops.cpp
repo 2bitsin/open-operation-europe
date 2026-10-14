@@ -168,11 +168,11 @@ auto Refusal(Game& game, Mission const& mission) -> int {
 
 // Plans one mission; the side's command phase ends unless the player abandons the map pick.
 void Plan(Game& game, Mission const& mission) {
-  ServiceLocals const locals{ PLAN_LOCALS };
-  auto&               data{ Data(game) };
-  auto const          text{ locals.At(TEXT_AT) };
-  auto const          name{ locals.At(NAME_AT) };
-  GridCell            cell{};
+  TextBuffer<PLAN_LOCALS> locals;
+  auto&                   data{ Data(game) };
+  auto const              text{ locals.At(TEXT_AT) };
+  auto const              name{ locals.At(NAME_AT) };
+  GridCell                cell{};
   auto& [x, y]{ cell };
   opeu_army_title(game, mission.title);
   for (;;) {

@@ -106,13 +106,13 @@ void opeu_end_palette_show(Game& game) {
 // the side by its score, min(strength + points, 1000), 100 more for reason 1. The routine's two text buffers, which services
 // write, lie in its reserve.
 void opeu_scenario_end(Game& game) {
-  ServiceLocals const locals{ 0x1fc };
-  auto&               data{ Data(game) };
-  uint16_t const      pattern{ locals.At(0) };
-  uint16_t const      caption{ locals.At(0xfa) };
-  auto const          side{ data.outcome_side };
-  auto const          reason{ data.outcome_reason };
-  int16_t             picture;
+  TextBuffer<0x1fc> locals;
+  auto&             data{ Data(game) };
+  auto const        pattern{ locals.At(0) };
+  auto const        caption{ locals.At(0xfa) };
+  auto const        side{ data.outcome_side };
+  auto const        reason{ data.outcome_reason };
+  int16_t           picture;
 
   auto const copy_text{ [&](FarPointer const& text) { opeu_string_copy_far(game, pattern, FarBytes(game, text.segment, text.offset)); } };
   auto const format_caption{ [&](uint8_t record_side) {

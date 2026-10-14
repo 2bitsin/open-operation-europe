@@ -27,7 +27,7 @@ constexpr std::uint8_t  CURRENT{ 0 };
 constexpr std::uint8_t  CAPACITY{ 1 };
 
 // Draws the dialog for two units; a and b are the name buffers. The second name is formatted first.
-auto DrawUnits(Game& game, std::uint16_t first, std::uint16_t a, std::uint16_t second, std::uint16_t b) -> void {
+auto DrawUnits(Game& game, std::uint16_t first, TextTarget a, std::uint16_t second, TextTarget b) -> void {
   auto const second_name{ opeu_unit_name(game, second, b) };
   opeu_supply_draw(game, opeu_unit_name(game, first, a), second_name);
 }
@@ -67,8 +67,8 @@ void opeu_supply_load_objective(Game& game, uint16_t objective) {
 
 // Exchanges supplies between two units; the units' names are formatted into the routine's two 32-byte buffers.
 void opeu_supply_exchange_units(Game& game, uint16_t first, uint16_t second) {
-  auto&               data{ Data(game) };
-  ServiceLocals const names{ 2 * NAME_BYTES };
+  auto&                      data{ Data(game) };
+  TextBuffer<2 * NAME_BYTES> names;
   data.supply_objective = NO_OBJECTIVE;
   opeu_supply_load_unit(game, first, 0);
   opeu_supply_load_unit(game, second, 1);
@@ -80,8 +80,8 @@ void opeu_supply_exchange_units(Game& game, uint16_t first, uint16_t second) {
 
 // Exchanges supplies between a unit and an objective; the unit's name is formatted into the routine's 32-byte buffer.
 void opeu_supply_exchange_objective(Game& game, uint16_t unit, uint16_t objective) {
-  auto&               data{ Data(game) };
-  ServiceLocals const name{ NAME_BYTES };
+  auto&                  data{ Data(game) };
+  TextBuffer<NAME_BYTES> name;
   data.supply_objective = objective;
   opeu_supply_load_unit(game, unit, 0);
   opeu_supply_load_objective(game, objective);

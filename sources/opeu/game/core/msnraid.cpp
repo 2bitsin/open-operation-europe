@@ -66,11 +66,11 @@ void opeu_mission_raid_objective(Game& game, uint8_t side) {
 }
 
 void opeu_mission_raid_unit(Game& game, uint8_t side) {
-  ServiceLocals const locals{ 0x3e };
-  auto const          name{ locals.At(0x32) };
-  auto const          text{ locals.At(0) };
-  auto const          target{ Target(game, side) };
-  auto const&         unit{ Record<Unit>(Data(game), target) };
+  TextBuffer<0x3e> locals;
+  auto const       name{ locals.At(0x32) };
+  auto const       text{ locals.At(0) };
+  auto const       target{ Target(game, side) };
+  auto const&      unit{ Record<Unit>(Data(game), target) };
   opeu_string_copy(game, text, At(offsetof(DataSegment, raid_unit_text)));
   opeu_string_append(game, text, opeu_unit_name(game, target, name));
   if (!Succeeds(game, side, 4)) {
@@ -133,12 +133,12 @@ void opeu_mission_objective_3(Game& game, uint8_t side) {
 
 // Cuts a unit's communications.
 void opeu_mission_unit_4(Game& game, uint8_t side) {
-  ServiceLocals const locals{ 0x6e };
-  auto const          text{ locals.At(0x1e) };
-  auto const          name{ locals.At(0) };
-  auto const          target{ Target(game, side) };
-  auto&               data{ Data(game) };
-  auto&               unit{ Record<Unit>(data, target) };
+  TextBuffer<0x6e> locals;
+  auto const       text{ locals.At(0x1e) };
+  auto const       name{ locals.At(0) };
+  auto const       target{ Target(game, side) };
+  auto&            data{ Data(game) };
+  auto&            unit{ Record<Unit>(data, target) };
   opeu_string_copy(game, text, MissionText(game, CUT_LINES_TEXT));
   opeu_string_append(game, text, opeu_unit_name(game, target, name));
   if (!Succeeds(game, side, 2)) {

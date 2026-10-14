@@ -238,6 +238,25 @@ def RewriteReserves(text: str, hand: frozenset[str] = frozenset()) -> tuple[str,
   return text, Counter({"text_buffer": count}) if count else Counter()
 
 
+# Reserves that hold no texts, or texts that outlive the routine: left for the hand pass.
+NOT_TEXT = {
+  "core/aiops4.cpp", "core/airshow.cpp", "core/evwound.cpp", "core/persmenu.cpp", "core/rqcommon.cpp", "core/supstep.cpp",
+  "map/btlicon.cpp", "map/btlpath.cpp", "map/influenc.cpp", "map/mapover.cpp", "map/mapview.cpp", "map/moveunit.cpp",
+  "map/objdamag.cpp", "units/casualty.cpp", "units/ordact.cpp", "units/ordattk.cpp", "units/ordissue.cpp",
+  "units/organize.cpp", "units/xferstep.cpp",
+}
+SHARED = re.compile(r"ServiceLocals const\s+(\w+)\{ ([^;]+?) \};")
+
+
+def RewriteSharedReserves(text: str) -> tuple[str, Counter]:
+  """Turns every remaining reserve into one TextBuffer under its name; its clears go (the buffer starts zeroed)."""
+  names = SHARED.findall(text)
+  text, count = SHARED.subn(lambda m: f"TextBuffer<{m.group(2)}> {m.group(1)};", text)
+  for name, _ in names:
+    text = re.sub(rf"^[ \t]*{name}\.Clear\(\w+\);[^\n]*\n", "", text, flags=re.M)
+  return text, Counter({"shared_buffer": count}) if count else Counter()
+
+
 def B6Pass(tree: Path) -> B6Result:
   """Rewrites every game/ source of the tree in place."""
   result = B6Result()
@@ -249,7 +268,10 @@ def B6Pass(tree: Path) -> B6Result:
     text, casts = RewriteCasts(text)
     name = path.relative_to(game).as_posix()
     text, buffers = RewriteReserves(text, frozenset(HAND.get(name, ())))
-    counts += spans + casts + buffers
+    shared: Counter = Counter()
+    if name not in NOT_TEXT:
+      text, shared = RewriteSharedReserves(text)
+    counts += spans + casts + buffers + shared
     result.left += [f"{name}: {call}" for call in left]
     if text != before:
       path.write_text(text)

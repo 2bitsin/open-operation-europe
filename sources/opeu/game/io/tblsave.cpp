@@ -36,12 +36,11 @@ auto opeu_tbl_save_accept() -> std::uint8_t {
 // Draws the saved-game table: slot number, scenario, difficulty, date and players. Its reserve holds the text buffer.
 void opeu_tbl_draw_saves(Game& game, DrawRequest const& request) {
   auto const [column, first, last_column, last, flags]{ request };
-  ServiceLocals const locals{ SCRATCH_SIZE };
-  locals.Clear(game);
-  auto&              data{ Data(game) };
-  auto const         buffer{ locals.At(BUFFER_OFFSET) };
-  auto const&        window{ ListWindowAt(data, data.list_window) };
-  std::uint8_t const row_width{ Byte(game, window.widths) };
+  TextBuffer<SCRATCH_SIZE> locals;
+  auto&                    data{ Data(game) };
+  auto const               buffer{ locals.At(BUFFER_OFFSET) };
+  auto const&              window{ ListWindowAt(data, data.list_window) };
+  std::uint8_t const       row_width{ Byte(game, window.widths) };
   auto const [x, start, count]{ TableColumnLayout(game, column, last_column) };
   auto const text_x{ row_width + x + window.x - 0x20 };
   if (flags & DRAW_HEADER) {

@@ -39,10 +39,10 @@ constexpr std::uint16_t CONFIRM_BUFFER{ 4 };
 // "What kind of battalion would you like sent?": cancels a filed battalion request, or has the player choose one of
 // the side's available equipment types and the own city that receives it, then files the request.
 void opeu_request_arms(Game& game) {
-  auto&               data{ Data(game) };
-  ServiceLocals const buffers{ REQUEST_SCRATCH };
-  auto const          buffer{ buffers.At(CONFIRM_BUFFER) };
-  GridCell            cell{};
+  auto&                       data{ Data(game) };
+  TextBuffer<REQUEST_SCRATCH> buffers;
+  auto const                  buffer{ buffers.At(CONFIRM_BUFFER) };
+  GridCell                    cell{};
   auto& [x, y]{ cell };
   auto const battalion{ std::to_underlying(RequestKind::BATTALION) };
   if (opeu_request_pending(game, static_cast<uint8_t>(battalion))) {
