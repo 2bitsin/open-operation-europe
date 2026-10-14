@@ -3,6 +3,7 @@
 #pragma once
 
 #include <algorithm>
+#include <concepts>
 #include <cstdint>
 #include <functional>
 #include <ranges>
@@ -11,14 +12,14 @@
 namespace opeu::intro::detail::repeat {
 
 // Runs `step` until it returns true: a loop whose test follows its body.
-template <class _Step>
-auto RepeatUntil(_Step&& step) -> void {
+template <std::invocable _Step>
+auto RepeatUntil(_Step step) -> void {
   std::ignore = std::ranges::find_if(std::views::iota(std::uint64_t{ 0 }), [&](std::uint64_t) { return std::invoke(step); });
 }
 
 // Runs `body` while `condition` holds: a loop whose test precedes its body.
-template <class _Condition, class _Body>
-auto RepeatWhile(_Condition&& condition, _Body&& body) -> void {
+template <std::invocable _Condition, std::invocable _Body>
+auto RepeatWhile(_Condition condition, _Body body) -> void {
   RepeatUntil([&] {
     if (!std::invoke(condition)) return true;
     std::invoke(body);

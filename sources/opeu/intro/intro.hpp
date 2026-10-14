@@ -5,13 +5,15 @@
 // recovered/scenes.cpp) and then the game starts with the same window, VGA state and driver.
 //
 //   IntroOptions(arguments)  takes --no-intro / --intro out of the command line (before the entry's own parser)
-//   RunIntro(request)        the opening, unless disabled; afterwards the data arena holds the game's initial image
+//   RunIntro(run)            the opening, unless disabled; afterwards the data arena holds the game's initial image
 //
 // The opening runs by default in a window; headless runs (--headless) skip it unless --intro is given, so the scripted
 // runs, their PNGs and their audio keep their timings.
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -31,9 +33,16 @@ struct IntroCommandLine {
   std::vector<std::string_view> remaining;
 };
 
+// How the opening runs: whether (with the run's presentation), and where its song-bank memory is written at the exit
+// (a diagnostic, OPEU_OPEN_DUMP), if anywhere.
+struct IntroRun {
+  IntroRequest                         request{ IntroRequest::IN_A_WINDOW_ONLY };
+  std::optional<std::filesystem::path> bank_dump;
+};
+
 [[nodiscard]] auto IntroOptions(std::span<std::string_view const> arguments) -> IntroCommandLine;
-// The opening as the launcher ran it, when `request` and the run's presentation ask for it.
-auto RunIntro(IntroRequest request) -> void;
+// The opening as the launcher ran it, when the run asks for it.
+auto RunIntro(IntroRun const& run) -> void;
 
 }
 
@@ -41,5 +50,6 @@ namespace opeu::intro {
 using detail::intro::IntroCommandLine;
 using detail::intro::IntroOptions;
 using detail::intro::IntroRequest;
+using detail::intro::IntroRun;
 using detail::intro::RunIntro;
 }

@@ -12,15 +12,19 @@
 #include "services.hpp"
 
 #include <array>
+#include <charconv>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
+#include <memory>
 #include <optional>
 #include <print>
 #include <ranges>
 #include <span>
 #include <string_view>
+#include <tuple>
 #include <vector>
 #if defined(__APPLE__) || defined(__linux__)
 #include <execinfo.h>
@@ -56,24 +60,47 @@ auto CrashBacktrace(int sig) -> void {
 }
 #endif
 
+// The environment variable `name`, if it is set (read at start-up, before any thread).
+auto Environment(char const* name) -> std::optional<std::string_view> {
+  auto const* const value{ std::getenv(name) };
+  if (value == nullptr) return std::nullopt;
+  return std::string_view{ value };
+}
+
+// Diagnostic (OPEU_OPEN_DUMP=file): where the opening writes its song bank's memory at the exit.
+auto BankDumpPath() -> std::optional<std::filesystem::path> {
+  return Environment("OPEU_OPEN_DUMP").transform([](std::string_view path) { return std::filesystem::path{ path }; });
+}
+
 auto ShutdownPlatform() -> void {
   plat_shutdown();
 }
 
+// A number in decimal, or in hexadecimal after 0x; 0 when the text is not one.
+template <class _Number>
+auto NumberIn(std::string_view text) -> _Number {
+  auto const hexadecimal{ text.starts_with("0x") || text.starts_with("0X") };
+  auto const digits{ hexadecimal ? text.substr(2) : text };
+  auto       number{ _Number{} };
+  std::ignore = std::from_chars(std::to_address(digits.begin()), std::to_address(digits.end()), number, hexadecimal ? 16 : 10);
+  return number;
+}
+
 auto Milliseconds(std::string_view text) -> std::uint32_t {
-  return static_cast<std::uint32_t>(std::strtoul(text.data(), nullptr, 0));
+  return NumberIn<std::uint32_t>(text);
 }
 
 auto Number(std::string_view text) -> int {
-  return std::atoi(text.data());
+  return NumberIn<int>(text);
 }
 
-// What the command line asks of the entry itself; the rest goes into port_options.
+// What the command line asks of the entry itself; the run's other options go into the glue's options.
 struct EntryOptions {
   std::optional<std::string_view> dump_path; // --dump-arena: write the initial arena there and stop
 };
 
-// The command line into port_options (its text fields point into argv, which outlives the run); nothing on a bad option.
+// The command line into the glue's run options (its text fields point into argv, which outlives the run); nothing on a
+// bad option.
 auto ParseOptions(std::span<std::string_view const> args) -> std::optional<EntryOptions> {
   auto entry{ EntryOptions{} };
   // A hand loop: an option consumes the values after it.
@@ -114,11 +141,11 @@ auto ParseOptions(std::span<std::string_view const> args) -> std::optional<Entry
 
 // Diagnostic: the initial conventional memory (the far data and the data segment as composed from the game's data
 // modules).
-auto DumpArena(std::string_view path) -> void {
-  std::ofstream file{ std::string{ path }, std::ios::binary };
+auto DumpArena(std::filesystem::path const& path) -> void {
+  std::ofstream file{ path, std::ios::binary };
   auto const    image{ opeu::game::InitialArenaImage() };
   file.write(reinterpret_cast<char const*>(image.data()), static_cast<std::streamsize>(image.size())); // NOLINT(*-reinterpret-cast): bytes out
-  if (!file) port_fatal("cannot write %s", path.data());                                               // NOLINT(*-pro-type-vararg): the glue's printf-shaped fatal exit
+  if (!file) port_fatal("cannot write %s", path.string().c_str());                                     // NOLINT(*-pro-type-vararg): the glue's printf-shaped fatal exit
 }
 
 // The game's application entry on its initial state and the machine it runs on, the native devices (adapters over the
@@ -142,7 +169,7 @@ auto Main(std::span<std::string_view const> const command_line) -> int {
   }
 
 #if defined(__APPLE__) || defined(__linux__)
-  if (std::getenv("OPEU_BACKTRACE") != nullptr) {
+  if (Environment("OPEU_BACKTRACE")) {
     std::signal(SIGSEGV, CrashBacktrace);
     std::signal(SIGBUS, CrashBacktrace);
     std::signal(SIGABRT, CrashBacktrace);
@@ -163,14 +190,14 @@ auto Main(std::span<std::string_view const> const command_line) -> int {
   vgalib_init();
   port_memory_init();
   if (options->dump_path) {
-    DumpArena(*options->dump_path);
+    DumpArena(std::filesystem::path{ *options->dump_path });
     return 0;
   }
 
   // The FM driver was resident before the game started.
   port_fm_init();
   // The launcher ran the opening between the FM driver and the game.
-  opeu::intro::RunIntro(intro.request);
+  opeu::intro::RunIntro({ .request = intro.request, .bank_dump = BankDumpPath() });
   RunGame();
   port_exit(0);
   return 0;

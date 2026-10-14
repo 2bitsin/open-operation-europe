@@ -17,7 +17,8 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdlib>
+#include <filesystem>
+#include <format>
 #include <fstream>
 #include <functional>
 #include <iterator>
@@ -51,25 +52,17 @@ auto Wanted(IntroRequest request) -> bool {
   return false;
 }
 
-// The file OPEU_OPEN_DUMP names, if it is set.
-auto DumpPath() -> std::optional<std::string> {
-  auto const* const path{ std::getenv("OPEU_OPEN_DUMP") }; // NOLINT(concurrency-mt-unsafe): read once at start-up
-  return path == nullptr ? std::nullopt : std::optional<std::string>{ path };
-}
-
-// Diagnostic (OPEU_OPEN_DUMP=file): the opening's memory from the song bank's segment on (64 KiB), as the resident
-// driver saw it at the exit, to replay the shutdown's song 5 (whose track offsets point into this memory) from it.
-auto DumpBankSegment(OpenMemory const& memory) -> void {
-  auto const path{ DumpPath() };
-  if (!path) return;
-  std::ofstream file{ *path, std::ios::binary };
+// Diagnostic: the opening's memory from the song bank's segment on (64 KiB), as the resident driver saw it at the exit,
+// to replay the shutdown's song 5 (whose track offsets point into this memory) from it.
+auto DumpBankSegment(OpenMemory const& memory, std::filesystem::path const& path) -> void {
+  std::ofstream file{ path, std::ios::binary };
   auto const    bank{ std::as_bytes(memory.Segment(OPEN_BANK_SEGMENT)) };
   file.write(reinterpret_cast<char const*>(bank.data()), static_cast<std::streamsize>(bank.size())); // NOLINT(*-reinterpret-cast): bytes out
-  if (!file) port_fatal("cannot write %s", path->c_str());
+  if (!file) port_fatal("cannot write %s", path.string().c_str());
 }
 
 // The opening as DOS ran it: its image loaded into the conventional memory, its main() run to the end.
-auto RunOpenExe() -> void {
+auto RunOpenExe(std::optional<std::filesystem::path> const& bank_dump) -> void {
   port_arena_prepare();
   OpenMemory memory{
     std::span{ port_arena, PORT_ARENA_SIZE + SEGMENT_SIZE }
@@ -79,24 +72,24 @@ auto RunOpenExe() -> void {
   services::Machine machine;
   Open              open{ state, memory, machine };
   RunOpening(open);
-  port_trace("svc", "OPEN.EXE: exit at %llu us", static_cast<unsigned long long>(port_time_us()));
-  DumpBankSegment(memory);
+  port_trace("svc", "%s", std::format("OPEN.EXE: exit at {} us", port_time_us()).c_str());
+  if (bank_dump) DumpBankSegment(memory, *bank_dump);
 }
 } // namespace
 
 auto IntroOptions(std::span<std::string_view const> const arguments) -> IntroCommandLine {
   auto const options{ arguments | std::views::drop(1) };
-  auto const request{ std::ranges::fold_left(options | std::views::filter(IsIntroFlag), IntroRequest::IN_A_WINDOW_ONLY,
-                                             [](IntroRequest /*earlier*/, std::string_view flag) { return RequestOf(flag); }) };
+  auto       flags{ options | std::views::reverse | std::views::filter(IsIntroFlag) };
+  auto const request{ flags.empty() ? IntroRequest::IN_A_WINDOW_ONLY : RequestOf(flags.front()) };
   auto       remaining{ arguments | std::views::take(1) | std::ranges::to<std::vector>() };
   std::ranges::copy(options | std::views::filter(std::not_fn(IsIntroFlag)), std::back_inserter(remaining));
   return { .request = request, .remaining = std::move(remaining) };
 }
 
-auto RunIntro(IntroRequest const request) -> void {
-  if (!Wanted(request)) return;
+auto RunIntro(IntroRun const& run) -> void {
+  if (!Wanted(run.request)) return;
   port_trace("svc", "OPEN.EXE: start");
-  RunOpenExe();
+  RunOpenExe(run.bank_dump);
   port_memory_init();
 }
 
