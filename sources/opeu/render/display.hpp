@@ -31,12 +31,20 @@ enum class Flip : std::uint8_t {
   BOTH,
 };
 
+// How a texture's pixels meet the target's: laid over them by their alpha, or multiplying their colours (the target's
+// alpha kept: a layer cut to a shape).
+enum class Blending : std::uint8_t {
+  OVER,
+  MULTIPLY,
+};
+
 // How a texture lands on the target.
 struct Blit {
-  Rect                destination{};       // scaled to fit when its size is not the source's
-  std::optional<Rect> source{};            // the whole texture when empty
-  Flip                flip{ Flip::NONE };  //
-  Rgba                modulation{ WHITE }; // every pixel's colour and alpha are multiplied by it
+  Rect                destination{};              // scaled to fit when its size is not the source's
+  std::optional<Rect> source{};                   // the whole texture when empty
+  Flip                flip{ Flip::NONE };         //
+  Rgba                modulation{ WHITE };        // every pixel's colour and alpha are multiplied by it
+  Blending            blending{ Blending::OVER }; //
 };
 
 // A rectangle of the target as it was, to be put back: what an XOR highlight drawn twice did.
@@ -65,6 +73,9 @@ public:
   auto Plot(Point at, Rgba colour) -> void;
   auto Plot(std::span<Point const> points, Rgba colour) -> void;
   auto Draw(Texture const& texture, Blit const& blit) -> void;
+  // Drawing from now on changes only the pixels in `area` of the target, or any of them.
+  auto Clip(Rect area) -> void;
+  auto Unclip() -> void;
   // Carries out the drawing SDL has queued so far (Present, Read and a change of target do it anyway).
   auto Flush() -> void;
 
@@ -98,6 +109,7 @@ private:
 }
 
 namespace opeu::render {
+using detail::display::Blending;
 using detail::display::Blit;
 using detail::display::Display;
 using detail::display::Flip;

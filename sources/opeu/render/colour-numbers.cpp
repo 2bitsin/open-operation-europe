@@ -55,13 +55,4 @@ auto NumbersOf(assets::Texture const& pixels, assets::PaletteColours const& colo
   return assets::Image{ pixels.Width(), pixels.Height(), std::move(numbers) };
 }
 
-auto Recoloured(assets::Texture const& pixels, assets::PaletteColours const& from, assets::PaletteColours const& to) -> assets::Texture {
-  auto       finder{ NumberFinder{ from } };
-  auto const recolour{ [&](auto const pixel) {
-    auto const colour{ to.at(finder.NumberOf(Packed(pixel))) };
-    return std::array{ std::byte{ colour.r }, std::byte{ colour.g }, std::byte{ colour.b }, pixel[3] };
-  } };
-  return assets::Texture{ pixels.Width(), pixels.Height(), PixelsOf(pixels) | std::views::transform(recolour) | std::views::join | std::ranges::to<std::vector>() };
-}
-
 }

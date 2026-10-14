@@ -23,12 +23,14 @@
 
 namespace opeu::render::detail::byte_textures {
 
-// An image as the game's bytes: how its planes lie, the bytes (at least the layout's), and the catalogue layout of
-// the shipped assets those bytes may be (none for a layout no asset is stored in, a battle cell buffer say).
+// An image as the game's bytes: how its planes lie, the bytes (at least the layout's), the catalogue layout of the
+// shipped assets those bytes may be (none for a layout no asset is stored in, a battle cell buffer say), and how many
+// lines each row is drawn on.
 struct GameImage {
   assets::PlaneLayout           layout;
   assets::Bytes                 bytes;
   std::optional<assets::Layout> shipped;
+  std::size_t                   repeat{ 1 };
 };
 
 // How a texture is painted: the colour each number shows, and whether colour 0 lets the screen show.
@@ -55,7 +57,7 @@ public:
   // The texture of `image` painted with `paint`, drawn at the game's size its Baked says.
   [[nodiscard]] auto Fetch(GameImage const& image, Paint const& paint) -> Rendered<SharedBaked>;
   // The texture of a picture as its stream drew it, at its drawn size (its rows' overrun included).
-  [[nodiscard]] auto Fetch(assets::DrawnPicture const& picture, Paint const& paint) const -> Rendered<SharedBaked>;
+  [[nodiscard]] auto Fetch(assets::DrawnPicture const& picture, Paint const& paint) -> Rendered<SharedBaked>;
   // The pack's texture of the shipped picture the stream is, drawn at the picture's own size; none for another stream.
   [[nodiscard]] auto FetchShipped(assets::DrawnPicture const& picture, assets::Layout stream, Paint const& paint) -> std::optional<SharedBaked>;
 
@@ -65,6 +67,7 @@ private:
   struct DecodedKey {
     assets::PlaneLayout layout;
     std::uint64_t       fingerprint{};
+    std::size_t         repeat{};
     Paint               paint;
 
     auto operator<=>(DecodedKey const&) const = default;
@@ -79,6 +82,7 @@ private:
   std::reference_wrapper<TextureCache>               _pack_textures;
   std::reference_wrapper<assets::ContentIndex const> _index;
   RecentStore<DecodedKey, SharedBaked>               _decoded;
+  RecentStore<DecodedKey, SharedBaked>               _pictures; // by the stream's fingerprint
   std::size_t                                        _recognised{};
   std::size_t                                        _unpacked{};
 };

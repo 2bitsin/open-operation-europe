@@ -1,13 +1,20 @@
 #include "opeu/render/render-display.hpp"
 
 #include "opeu/assets/picture-stream.hpp"
+#include "opeu/assets/planar.hpp"
+#include "opeu/contract.hpp"
 #include "opeu/render/line-points.hpp"
 #include "opeu/services/syslib-gfx.hpp"
 
 #include <algorithm>
+#include <array>
+#include <iterator>
 #include <ranges>
+#include <set>
 #include <string>
+#include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace opeu::render::detail::render_display {
@@ -22,11 +29,30 @@ constexpr auto CELL_SIZE{
 constexpr auto BLOCK_SIZE{
   Size{ .width = 24, .height = 24 }
 };
-constexpr auto TEXTURE_CAPACITY{ 4096uz };
+constexpr auto GLYPH_SIZE{
+  Size{ .width = 8, .height = 6 }
+};
 
 // Mode bits of the column images: rows drawn twice, and colour bit 3 set by a three-byte copy.
 constexpr Word DOUBLED_ROWS{ 0x8000 };
 constexpr Word SETS_BIT_3{ 0x4000 };
+
+// What the game's memory holds where a saved rectangle's or a battle cell's bytes were: a mark no image of the game
+// begins with, then the handle's id.
+constexpr auto HANDLE_MARK{ std::to_array<std::uint8_t>({ 0x4F, 0x50, 0x45, 0x55, 0x2D, 0x68, 0x61, 0x6E, 0x64, 0x6C, 0x65, 0x00 }) };
+constexpr auto HANDLE_BYTES{ HANDLE_MARK.size() + 4 };
+
+auto WriteHandle(std::span<std::uint8_t> const into, std::uint32_t const id) -> void {
+  Expects(into.size() >= HANDLE_BYTES, "the game's buffer holds a handle");
+  std::ranges::copy(HANDLE_MARK, into.begin());
+  std::ranges::transform(std::views::iota(0U, 4U), into.begin() + HANDLE_MARK.size(), [id](unsigned const n) { return static_cast<std::uint8_t>(id >> (8 * n)); });
+}
+
+[[nodiscard]] auto ReadHandle(std::span<std::uint8_t const> const bytes) -> std::optional<std::uint32_t> {
+  if (bytes.size() < HANDLE_BYTES || !std::ranges::equal(bytes.first(HANDLE_MARK.size()), HANDLE_MARK)) return std::nullopt;
+  auto const id{ bytes.subspan(HANDLE_MARK.size(), 4) };
+  return std::ranges::fold_left(id | std::views::reverse, 0U, [](std::uint32_t const value, std::uint8_t const byte) { return value << 8 | byte; });
+}
 
 // A column rectangle (x and width in 8-pixel columns, y in game lines) inside the game area and not empty.
 [[nodiscard]] constexpr auto Inside(services::Area const area) noexcept -> bool {
@@ -47,12 +73,6 @@ constexpr Word SETS_BIT_3{ 0x4000 };
   return FramePoint(at.x * 8, at.y);
 }
 
-// The largest picture that fits from game pixel `at` (none off the game area).
-[[nodiscard]] auto RoomAt(services::Point const at) -> assets::Room {
-  if (at.x >= FRAME_WIDTH || at.y >= GAME_LINES) return assets::Room{ .width = 0, .height = 0 };
-  return assets::Room{ .width = static_cast<std::size_t>(FRAME_WIDTH - at.x), .height = static_cast<std::size_t>(GAME_LINES - at.y) };
-}
-
 // Half a column right: where a shifted battle cell lies.
 [[nodiscard]] constexpr auto HalfColumnRight(Point const at) noexcept -> Point {
   return Point{ .x = at.x + 4, .y = at.y };
@@ -62,59 +82,127 @@ constexpr Word SETS_BIT_3{ 0x4000 };
   return At(ColumnPoint({ .x = area.x, .y = area.y }), Size{ .width = area.width * 8, .height = area.height });
 }
 
-[[nodiscard]] auto BytesOf(std::span<std::uint8_t const> const bytes) -> assets::Bytes {
-  return std::as_bytes(bytes);
+// A rectangle at pixel x, `width_bytes` whole bytes wide.
+[[nodiscard]] constexpr auto PixelRect(services::Area const area, std::size_t const width_bytes) noexcept -> Rect {
+  return At(FramePoint(area.x, area.y), Size{ .width = static_cast<int>(width_bytes * 8), .height = area.height });
+}
+
+// The whole bytes a row of `width` pixels takes.
+[[nodiscard]] constexpr auto BytesFor(std::size_t const width) noexcept -> std::size_t {
+  return ((width - 1) >> 3) + 1;
+}
+
+[[nodiscard]] constexpr auto Origin(Rect const rect) noexcept -> Point {
+  return Point{ .x = rect.x, .y = rect.y };
+}
+
+// The largest picture that fits from game pixel `at` (none off the game area).
+[[nodiscard]] auto RoomAt(services::Point const at) -> assets::Room {
+  if (at.x >= FRAME_WIDTH || at.y >= GAME_LINES) return assets::Room{ .width = 0, .height = 0 };
+  return assets::Room{ .width = static_cast<std::size_t>(FRAME_WIDTH - at.x), .height = static_cast<std::size_t>(GAME_LINES - at.y) };
+}
+
+// `count` of the game's bytes, kept (0 past their end).
+[[nodiscard]] auto Copied(std::span<std::uint8_t const> const bytes, std::size_t const count) -> std::vector<std::byte> {
+  auto kept{ std::vector<std::byte>(count) };
+  std::ranges::transform(bytes | std::views::take(count), kept.begin(), [](std::uint8_t const byte) { return std::byte{ byte }; });
+  return kept;
+}
+
+[[nodiscard]] auto ImageOf(assets::PlaneLayout const& layout, std::span<std::uint8_t const> const bytes, std::optional<assets::Layout> const shipped) -> SharedImage {
+  return std::make_shared<KeptImage const>(KeptImage{ .bytes = Copied(bytes, layout.Bytes()), .layout = layout, .shipped = shipped, .repeat = 1 });
 }
 
 // The game's column image of `area` in `planes` bytes per column.
-[[nodiscard]] auto ColumnImage(services::Area const area, std::span<std::uint8_t const> const bytes, std::size_t const planes) -> GameImage {
-  return GameImage{ .layout = assets::InterleavedLayout(area.width, area.height, planes), .bytes = BytesOf(bytes), .shipped = planes == 4 ? assets::Layout::PLANES_4 : assets::Layout::PLANES_3 };
+[[nodiscard]] auto ColumnImage(services::Area const area, std::span<std::uint8_t const> const bytes, std::size_t const planes) -> SharedImage {
+  return ImageOf(assets::InterleavedLayout(area.width, area.height, planes), bytes, planes == 4 ? assets::Layout::PLANES_4 : assets::Layout::PLANES_3);
 }
 
-// A one-bit image of `width_bytes` bytes per row.
-[[nodiscard]] auto BitsImage(std::size_t const width_bytes, std::size_t const height, std::span<std::uint8_t const> const bytes) -> GameImage {
-  return GameImage{ .layout = assets::InterleavedLayout(width_bytes, height, 1), .bytes = BytesOf(bytes), .shipped = assets::Layout::BITMAP };
+// A one-bit image of `width_bytes` bytes per row, each row on `repeat` lines.
+[[nodiscard]] auto BitsOf(std::size_t const width_bytes, std::size_t const height, std::span<std::uint8_t const> const bytes, std::size_t const repeat = 1) -> SharedBits {
+  auto       rows{ Copied(bytes, width_bytes * height) };
+  auto const size{
+    Size{ .width = static_cast<int>(width_bytes * 8), .height = static_cast<int>(height * repeat) }
+  };
+  if (repeat == 1) return std::make_shared<Bits const>(std::move(rows), size, assets::Layout::BITMAP);
+  auto repeated{ assets::Indices(height * repeat) | std::views::transform([&](std::size_t const line) { return std::span{ rows }.subspan(line / repeat * width_bytes, width_bytes); })
+                 | std::views::join | std::ranges::to<std::vector>() };
+  return std::make_shared<Bits const>(std::move(repeated), size);
 }
 
-// Colours in which number n shows the colour of n | 8: a three-byte copy that sets colour bit 3.
-[[nodiscard]] auto WithBit3(assets::PaletteColours const& colours) -> assets::PaletteColours {
-  auto shifted{ colours };
-  std::ranges::transform(assets::Indices(colours.size()), shifted.begin(), [&colours](std::size_t const n) { return colours.at(n | 8U); });
-  return shifted;
-}
-
-// The numbers of `image` with every row repeated `times` times.
-[[nodiscard]] auto RowsRepeated(assets::Image const& image, std::size_t const times) -> assets::Image {
-  if (times == 1) return image;
-  auto const rows{ assets::Indices(image.Height() * times) | std::views::transform([&](std::size_t const row) { return image.Pixels().subspan(row / times * image.Width(), image.Width()); }) };
-  return assets::Image{ image.Width(), image.Height() * times, rows | std::views::join | std::ranges::to<std::vector>() };
-}
-
-// The numbers of `under` after `rework(under number, other number)` with the numbers of `other`, pixel by pixel.
-template <class _Rework>
-[[nodiscard]] auto Reworked(assets::Image const& under, assets::Image const& other, _Rework rework) -> assets::Image {
-  auto numbers{ std::views::zip(under.Pixels(), other.Pixels()) | std::views::transform([&rework](auto const pair) { return rework(std::get<0>(pair), std::get<1>(pair)); })
-                | std::ranges::to<std::vector>() };
-  return assets::Image{ under.Width(), under.Height(), std::move(numbers) };
-}
-
-// `image` placed `shift` pixels into an image `width` wide, `outside` around it.
-[[nodiscard]] auto Shifted(assets::Image const& image, std::size_t const shift, std::size_t const width, std::uint8_t const outside) -> assets::Image {
-  auto const pixel{ [&](std::size_t const row, std::size_t const x) { return x >= shift && x - shift < image.Width() ? image.At(x - shift, row) : outside; } };
-  auto       numbers{ assets::Grid(image.Height(), width) | std::views::transform([&pixel](auto const place) { return pixel(place.first, place.second); }) | std::ranges::to<std::vector>() };
-  return assets::Image{ width, image.Height(), std::move(numbers) };
-}
-
-[[nodiscard]] auto Decoded(GameImage const& image) -> assets::Image {
+[[nodiscard]] auto Decoded(KeptImage const& image) -> assets::Image {
   return Required(assets::DecodePlanes(image.bytes, image.layout).transform_error([](assets::DecodeError const error) { return RenderError{ .detail = std::string{ assets::Describe(error) } }; }));
 }
 
-// `bytes` copied into the start of `into`, as much as it holds.
-auto CopyInto(std::vector<std::byte> const& bytes, std::span<std::uint8_t> const into) -> void {
-  std::ranges::transform(bytes | std::views::take(into.size()), into.begin(), [](std::byte const byte) { return std::to_integer<std::uint8_t>(byte); });
+// The steps of a lookup over `area` (under the mask's 1 bits): none when nothing changes, a solid colour when every
+// number becomes the same one.
+[[nodiscard]] auto Looked(Rect const area, std::optional<SharedBits> const& mask, NumberMap const& map) -> std::vector<Step> {
+  if (map == SAME) return {};
+  if (Constant(map) && mask)
+    return {
+      InkStep{ .shape = *mask, .destination = area, .number = map.front() }
+    };
+  if (Constant(map))
+    return {
+      FillStep{ .area = area, .number = map.front() }
+    };
+  return {
+    RemapStep{ .area = area, .mask = mask, .map = map, .overlay = 0 }
+  };
 }
 
-// The colour word of a line point: low nibble the colour, bits 4-7 the operation, high byte the dash pattern.
+// Whether the last step under `area` cleared to colour 0 every pixel `drawn(x, y)` names (x, y from the area's
+// corner): an OR there sets its colour, as the game's mask-then-image sprites rely on.
+template <class _Drawn>
+[[nodiscard]] auto ClearedUnder(Recipe const& under, Rect const area, _Drawn drawn) -> bool {
+  auto const steps{ under.Steps() };
+  if (steps.empty() || steps.back().offset != Point{} || !Contains(steps.back().clip, area)) return false;
+  auto const& last{ *steps.back().step };
+  auto const  pixels{ assets::Grid(static_cast<std::size_t>(area.height), static_cast<std::size_t>(area.width)) };
+  auto const  every{ [&](auto const cleared) {
+    return std::ranges::all_of(pixels, [&](auto const place) {
+      auto const x{ static_cast<int>(place.second) };
+      auto const y{ static_cast<int>(place.first) };
+      return !drawn(x, y) || cleared(area.x + x, area.y + y);
+    });
+  } };
+  if (std::holds_alternative<InkStep>(last)) {
+    auto const& cut{ std::get<InkStep>(last) };
+    return cut.number == 0 && every([&cut](int const x, int const y) { return cut.shape->Set(x - cut.destination.x, y - cut.destination.y); });
+  }
+  if (std::holds_alternative<FillStep>(last)) {
+    auto const& fill{ std::get<FillStep>(last) };
+    return fill.number == 0 && Contains(fill.area, area);
+  }
+  return false;
+}
+
+// An image combined with what is under it, pixel by pixel: one lookup per colour the image holds, through the mask of
+// its pixels of that colour. Over pixels just cleared to 0, an OR (or an XOR) sets the image's colours: the image drawn
+// with colour 0 letting them show.
+template <class _Lookup>
+[[nodiscard]] auto Combined(Recipe const& under, Point const at, SharedImage const& image, _Lookup lookup) -> std::vector<Step> {
+  auto const values{ Decoded(*image) };
+  auto const area{ At(at, image->Dimensions()) };
+  auto const drawn{ [&values](int const x, int const y) { return values.At(static_cast<std::size_t>(x), static_cast<std::size_t>(y)) != 0; } };
+  auto const sets{ std::ranges::all_of(SAME, [&lookup](std::uint8_t const v) { return lookup(v).front() == v; }) };
+  if (sets && lookup(0) == SAME && ClearedUnder(under, area, drawn))
+    return {
+      ImageStep{ .image = image, .at = at, .keying = Keying::COLOUR_ZERO, .numbers = SAME }
+    };
+  auto const colours{ values.Pixels() | std::ranges::to<std::set>() };
+  auto       parts{ colours | std::views::filter([&lookup](std::uint8_t const value) { return lookup(value) != SAME; }) | std::views::transform([&](std::uint8_t const value) {
+                auto const mask{ Bits::Of(Dimensions(area), [&](int const x, int const y) { return values.At(static_cast<std::size_t>(x), static_cast<std::size_t>(y)) == value; }) };
+                return CombineStep::Part{ .mask = std::make_shared<Bits const>(mask), .map = lookup(value) };
+              })
+              | std::ranges::to<std::vector>() };
+  if (parts.empty()) return {};
+  return {
+    CombineStep{ .area = area, .parts = std::move(parts) }
+  };
+}
+
+// The colour word of a line: low nibble the colour, bits 4-7 the operation, high byte the dash pattern.
 struct LineInk {
   std::uint8_t colour;
   std::uint8_t operation;
@@ -125,46 +213,49 @@ struct LineInk {
   return LineInk{ .colour = static_cast<std::uint8_t>(word & 0x0F), .operation = static_cast<std::uint8_t>(word >> 4 & 0x0F), .pattern = static_cast<std::uint8_t>(word >> 8) };
 }
 
-// A point of a line and whether its dash pattern bit draws.
-struct DashedPoint {
-  Point at;
-  bool  on;
+// The line's points on the game area, in order, the ones its dash pattern draws and the gaps (the pattern advances on
+// those points only).
+struct Dashes {
+  std::vector<Point> on;
+  std::vector<Point> off;
 };
 
-// The line's points on the game area, in order, each with its pattern bit (the pattern advances on those points only).
-[[nodiscard]] auto DashedPoints(services::Corners const ends, std::uint8_t const pattern) -> std::vector<DashedPoint> {
+[[nodiscard]] auto DashesOf(services::Corners const ends, std::uint8_t const pattern) -> Dashes {
   auto const inside{ [](LinePoint const point) { return point.x < FRAME_WIDTH && point.y < GAME_LINES; } };
   auto const points{ LinePoints({ .x = ends.from.x, .y = ends.from.y }, { .x = ends.to.x, .y = ends.to.y }) | std::views::filter(inside) | std::ranges::to<std::vector>() };
-  return std::views::zip(points, std::views::iota(0uz)) | std::views::transform([pattern](auto const entry) {
-           auto const& [point, n]{ entry };
-           return DashedPoint{ .at = FramePoint(point.x, point.y), .on = pattern == 0 || (pattern << (n % 8) & 0x80) != 0 };
-         })
-         | std::ranges::to<std::vector>();
-}
-
-// What a line point's operation makes of the number under it.
-[[nodiscard]] constexpr auto LineApplied(std::uint8_t const number, LineInk const ink, bool const on) noexcept -> std::uint8_t {
-  auto const colour{ on ? ink.colour : std::uint8_t{ 0 } };
-  switch (ink.operation) {
-  case 1:  return static_cast<std::uint8_t>(number ^ colour);
-  case 2:  return static_cast<std::uint8_t>(number & colour);
-  case 3:  return static_cast<std::uint8_t>(number | colour);
-  case 4:  return on ? static_cast<std::uint8_t>(number | colour) : number;
-  default: return colour;
-  }
+  auto       dashes{ Dashes{} };
+  std::ranges::for_each(std::views::zip(points, std::views::iota(0uz)), [&](auto const entry) {
+    auto const& [point, n]{ entry };
+    auto const on{ pattern == 0 || (pattern << (n % 8) & 0x80) != 0 };
+    (on ? dashes.on : dashes.off).push_back(FramePoint(point.x, point.y));
+  });
+  return dashes;
 }
 
 // The smallest rectangle holding every point.
-[[nodiscard]] auto Bounds(std::span<DashedPoint const> const points) -> Rect {
-  auto const& [left, right]{ std::ranges::minmax(points | std::views::transform([](DashedPoint const& point) { return point.at.x; })) };
-  auto const& [top, bottom]{ std::ranges::minmax(points | std::views::transform([](DashedPoint const& point) { return point.at.y; })) };
+[[nodiscard]] auto PointBounds(std::span<Point const> const points) -> Rect {
+  auto const [left, right]{ std::ranges::minmax(points | std::views::transform(&Point::x)) };
+  auto const [top, bottom]{ std::ranges::minmax(points | std::views::transform(&Point::y)) };
   return Rect{ .x = left, .y = top, .width = right - left + 1, .height = bottom - top + 1 };
 }
 
+// The points as a shape over their bounds.
+[[nodiscard]] auto ShapeOf(std::span<Point const> const points, Rect const bounds) -> SharedBits {
+  auto const placed{ points | std::views::transform([bounds](Point const at) { return std::pair{ at.x - bounds.x, at.y - bounds.y }; }) | std::ranges::to<std::set>() };
+  return std::make_shared<Bits const>(Bits::Of(Dimensions(bounds), [&placed](int const x, int const y) { return placed.contains(std::pair{ x, y }); }));
 }
 
-RenderDisplay::RenderDisplay(render::Display display, assets::AssetPack const& pack, assets::ContentIndex const& index)
-    : _frame{ std::move(display), _palette.Colours() }, _pack_textures{ _frame.Renderer(), pack, TEXTURE_CAPACITY }, _textures{ _frame.Renderer(), _pack_textures, index, TEXTURE_CAPACITY } { }
+[[nodiscard]] auto Exchanging(std::uint8_t const colour) -> NumberMap {
+  return Lookup(Operation::XOR, colour);
+}
+
+[[nodiscard]] auto Oring(std::uint8_t const colour) -> NumberMap {
+  return Lookup(Operation::OR, colour);
+}
+
+}
+
+RenderDisplay::RenderDisplay(render::Display display, assets::AssetPack const& pack, assets::ContentIndex const& index) : _frame{ std::move(display), pack, index, _palette.Colours() } { }
 
 // ---- the screen ----------------------------------------------------------------------------------------------------
 
@@ -185,7 +276,7 @@ auto RenderDisplay::Reset(Mode const mode) -> void {
 }
 
 auto RenderDisplay::Clear() -> void {
-  _frame.Clear(0);
+  _frame.Add(FillStep{ .area = LOGICAL_SCREEN, .number = 0 });
 }
 
 auto RenderDisplay::ShowIdentityPalette() -> void {
@@ -202,8 +293,8 @@ auto RenderDisplay::ChangeColours() -> void {
   _frame.Recolour(_palette.Colours());
 }
 
-auto RenderDisplay::Paint(Keying const keying) const -> render::Paint {
-  return render::Paint{ .colours = _frame.Colours(), .keying = keying };
+auto RenderDisplay::AddAll(std::vector<Step> steps) -> void {
+  std::ranges::for_each(steps, [this](Step& step) { _frame.Add(std::move(step)); });
 }
 
 // ---- images --------------------------------------------------------------------------------------------------------
@@ -216,43 +307,31 @@ auto RenderDisplay::DrawThreeByteColumns(services::Area const area, services::Im
   return DrawColumnImage(area, image, 3);
 }
 
-// mode & 7FFF (& 3FFF with three bytes): 0 copy, 1 XOR, 2 AND, 3 OR, 4 transparent copy.
+// mode & 7FFF (& 3FFF with three bytes): 0 copy (rows twice with bit 15; three bytes leave colour bit 3 clear, or set
+// with bit 14), 1 XOR, 2 AND, 3 OR (three bytes keep colour bit 3 under AND), 4 transparent copy. A copy of a handle's
+// bytes puts the saved rectangle back.
 auto RenderDisplay::DrawColumnImage(services::Area const area, services::Image const image, std::size_t const planes) -> bool {
   auto const operation{ image.mode & (planes == 4 ? 0x7FFF : 0x3FFF) };
   if (!Inside(area) || operation > 4) return false;
+  auto const at{ ColumnPoint({ .x = area.x, .y = area.y }) };
+  if (auto const handle{ ReadHandle(image.bytes) }; handle && planes == 4 && operation == 0) {
+    Restore(static_cast<services::SnapshotId>(*handle), { .x = area.x, .y = area.y });
+    return true;
+  }
+  auto const kept{ ColumnImage(area, image.bytes, planes) };
   if (operation == 0) {
-    CopyColumnImage(area, image, planes);
+    auto const repeat{ (image.mode & DOUBLED_ROWS) != 0 ? 2uz : 1uz };
+    auto const shown{ std::make_shared<KeptImage const>(KeptImage{ .bytes = kept->bytes, .layout = kept->layout, .shipped = kept->shipped, .repeat = repeat }) };
+    auto const bit_3{ planes == 3 && (image.mode & SETS_BIT_3) != 0 };
+    _frame.Add(ImageStep{ .image = shown, .at = at, .keying = Keying::OPAQUE, .numbers = bit_3 ? Oring(8) : SAME });
   } else if (operation == 4) {
-    _frame.Draw(*Required(_textures.Fetch(ColumnImage(area, image.bytes, planes), Paint(Keying::COLOUR_ZERO))), ColumnPoint({ .x = area.x, .y = area.y }));
+    _frame.Add(ImageStep{ .image = kept, .at = at, .keying = Keying::COLOUR_ZERO, .numbers = SAME });
   } else {
-    CombineColumnImage(area, image, planes);
+    auto const combine{ operation == 1 ? Operation::XOR : operation == 2 ? Operation::AND : Operation::OR };
+    auto const kept_bits{ static_cast<std::uint8_t>(combine == Operation::AND && planes == 3 ? 8 : 0) };
+    AddAll(Combined(_frame.Steps(), at, kept, [combine, kept_bits](std::uint8_t const v) { return Lookup(combine, static_cast<std::uint8_t>(v | kept_bits)); }));
   }
   return true;
-}
-
-// A copy: rows twice with mode bit 15; three bytes leave colour bit 3 clear, or set with mode bit 14.
-auto RenderDisplay::CopyColumnImage(services::Area const area, services::Image const image, std::size_t const planes) -> void {
-  auto paint{ Paint(Keying::OPAQUE) };
-  if (planes == 3 && (image.mode & SETS_BIT_3) != 0) paint.colours = WithBit3(paint.colours);
-  auto       destination{ ColumnRect(area) };
-  auto const doubled{ (image.mode & DOUBLED_ROWS) != 0 };
-  if (doubled) destination.height *= 2;
-  _frame.Draw(*Required(_textures.Fetch(ColumnImage(area, image.bytes, planes), paint)), destination);
-}
-
-// XOR, AND or OR with the screen's colour numbers; three bytes keep colour bit 3 under AND.
-auto RenderDisplay::CombineColumnImage(services::Area const area, services::Image const image, std::size_t const planes) -> void {
-  auto const operation{ image.mode & 0x03 };
-  auto const kept{ planes == 3 ? 0x08 : 0x00 };
-  auto const rect{ ColumnRect(area) };
-  auto const over{ Decoded(ColumnImage(area, image.bytes, planes)) };
-  auto const under{ _frame.Numbers(rect) };
-  auto const combined{ Reworked(under, over, [operation, kept](std::uint8_t const screen, std::uint8_t const value) {
-    if (operation == 1) return static_cast<std::uint8_t>(screen ^ value);
-    if (operation == 2) return static_cast<std::uint8_t>(screen & (value | kept));
-    return static_cast<std::uint8_t>(screen | value);
-  }) };
-  _frame.Put(combined, Point{ .x = rect.x, .y = rect.y });
 }
 
 // Low byte of mode the colour; (mode & 7FFF) >> 8: 0 opaque (0 bits colour 0), 4 set, 1-3 the pen, others the
@@ -260,16 +339,19 @@ auto RenderDisplay::CombineColumnImage(services::Area const area, services::Imag
 auto RenderDisplay::DrawBits(services::Area const area, services::Image const image) -> bool {
   auto const code{ static_cast<std::uint8_t>((image.mode & 0x7FFF) >> 8) };
   if (!Inside(area)) return false;
-  auto const bits{ BitsImage(area.width, area.height, image.bytes) };
+  auto const repeat{ (image.mode & DOUBLED_ROWS) != 0 ? 2uz : 1uz };
+  auto const bits{ BitsOf(area.width, area.height, image.bytes, repeat) };
   auto       destination{ ColumnRect(area) };
-  if ((image.mode & DOUBLED_ROWS) != 0) destination.height *= 2;
+  destination.height *= static_cast<int>(repeat);
   if (code == 0) {
-    _frame.Fill(destination, 0);
-    _frame.DrawInk(*Shape(bits), destination, static_cast<std::uint8_t>(image.mode));
+    AddAll({
+        FillStep{ .area = destination, .number = 0 },
+        InkStep{ .shape = bits, .destination = destination, .number = static_cast<std::uint8_t>(image.mode & 0x0F) }
+    });
     return true;
   }
   _pen.Select(code == 4 ? 0 : code, static_cast<std::uint8_t>(image.mode));
-  DrawWithPen(bits, destination);
+  DrawPen(bits, destination);
   return true;
 }
 
@@ -277,8 +359,10 @@ auto RenderDisplay::DrawBits(services::Area const area, services::Image const im
 auto RenderDisplay::DrawBitsOnPaper(services::Area const area, services::Image const image) -> void {
   if (!Inside(area)) return;
   auto const destination{ ColumnRect(area) };
-  _frame.Fill(destination, static_cast<std::uint8_t>(image.mode >> 8));
-  _frame.DrawInk(*Shape(BitsImage(area.width, area.height, image.bytes)), destination, static_cast<std::uint8_t>(image.mode));
+  AddAll({
+      FillStep{ .area = destination, .number = static_cast<std::uint8_t>(image.mode >> 8 & 0x0F) },
+      InkStep{ .shape = BitsOf(area.width, area.height, image.bytes), .destination = destination, .number = static_cast<std::uint8_t>(image.mode & 0x0F) }
+  });
 }
 
 // x and width in pixels, whole source bytes drawn (the bits past the width included); high byte of mode: 0 or 4
@@ -287,44 +371,50 @@ auto RenderDisplay::DrawShiftedBits(services::Area const area, services::Image c
   if (!InsidePixels(area)) return false;
   auto const code{ static_cast<std::uint8_t>(image.mode >> 8) };
   _pen.Select(code == 4 ? 0 : code, static_cast<std::uint8_t>(image.mode));
-  auto const width_bytes{ ((area.width - 1uz) >> 3) + 1 };
-  DrawWithPen(BitsImage(width_bytes, area.height, image.bytes), At(FramePoint(area.x, area.y), Size{ .width = static_cast<int>(width_bytes * 8), .height = area.height }));
+  auto const width_bytes{ BytesFor(area.width) };
+  DrawPen(BitsOf(width_bytes, area.height, image.bytes), PixelRect(area, width_bytes));
   return true;
 }
 
-// The set bits with the pen: a shape blit for a set pen, the screen's numbers combined for the others.
-auto RenderDisplay::DrawWithPen(GameImage const& bits, Rect const destination) -> void {
-  if (!_pen.Draws()) return;
-  if (_pen.Sets()) {
-    _frame.DrawInk(*Shape(bits), destination, _pen.Colour());
+// The set bits with the pen: its colour set, an XOR shown (or undone by the same XOR), an AND's lookup under the clear
+// bits, an OR's under the set ones (its colour set where the pixels were just cleared to 0).
+auto RenderDisplay::DrawPen(SharedBits const& bits, Rect const destination) -> void {
+  switch (_pen.Operation()) {
+  case PenOperation::NONE: return;
+  case PenOperation::SET:  _frame.Add(InkStep{ .shape = bits, .destination = destination, .number = _pen.Colour() }); return;
+  case PenOperation::XOR:  Exchange(RemapStep{ .area = destination, .mask = bits, .map = _pen.UnderSetBit(), .overlay = 0 }); return;
+  case PenOperation::AND:  AddAll(Looked(destination, std::make_shared<Bits const>(bits->Inverted()), _pen.UnderClearBit())); return;
+  case PenOperation::OR:   break;
+  }
+  if (ClearedUnder(_frame.Steps(), destination, [&bits](int const x, int const y) { return bits->Set(x, y); })) {
+    _frame.Add(InkStep{ .shape = bits, .destination = destination, .number = _pen.Colour() });
     return;
   }
-  auto const shape{ RowsRepeated(Decoded(bits), static_cast<std::size_t>(destination.height) / bits.layout.height) };
-  auto const drawn{ Reworked(_frame.Numbers(destination), shape,
-                             [this](std::uint8_t const number, std::uint8_t const bit) { return bit != 0 ? _pen.UnderSetBit(number) : _pen.UnderClearBit(number); }) };
-  _frame.Put(drawn, Point{ .x = destination.x, .y = destination.y });
+  AddAll(Looked(destination, bits, _pen.UnderSetBit()));
 }
 
-// The set bits as a white shape, the clear ones transparent.
-auto RenderDisplay::Shape(GameImage const& bits) -> SharedBaked {
-  return Required(_textures.Fetch(bits, render::Paint{ .colours = INK, .keying = Keying::OPAQUE }));
+// An XOR: the same XOR drawn last over its pixels (XORs aside) is taken back, as the second XOR put the pixels back.
+auto RenderDisplay::Exchange(RemapStep step) -> void {
+  if (step.map == SAME || _frame.WithdrawLast(step)) return;
+  _frame.Add(std::move(step));
 }
 
 // A transparent copy from pixel x (colour 0 keeps the screen), unclipped; no rectangle draws nothing.
 auto RenderDisplay::DrawShiftedColumns(services::Area const area, std::span<std::uint8_t const> const image) -> void {
   if (area.width == 0 || area.height == 0) return;
-  auto const game_image{ ColumnImage({ .x = 0, .y = 0, .width = area.width, .height = area.height }, image, 4) };
-  _frame.Draw(*Required(_textures.Fetch(game_image, Paint(Keying::COLOUR_ZERO))), FramePoint(area.x, area.y));
+  _frame.Add(
+      ImageStep{ .image = ColumnImage({ .x = 0, .y = 0, .width = area.width, .height = area.height }, image, 4), .at = FramePoint(area.x, area.y), .keying = Keying::COLOUR_ZERO, .numbers = SAME });
 }
 
 auto RenderDisplay::SaveColumns(services::Area const area, std::span<std::uint8_t> const into) -> void {
   if (area.width == 0 || area.height == 0) return;
-  CopyInto(assets::EncodePlanes(_frame.Numbers(ColumnRect(area)), assets::InterleavedLayout(area.width, area.height, 4)), into);
+  WriteHandle(into, std::to_underlying(Save(area)));
 }
 
 auto RenderDisplay::CopyColumns(services::Area const from, services::Point const to) -> void {
   if (from.width == 0 || from.height == 0) return;
-  _frame.Copy(ColumnRect(from), ColumnPoint(to));
+  auto const source{ ColumnRect(from) };
+  _frame.AddCopy(_frame.Under(source), source, ColumnPoint(to));
 }
 
 auto RenderDisplay::DecodePicture(services::Point const at, PictureByteReader const& reader) -> bool {
@@ -337,13 +427,10 @@ auto RenderDisplay::DecodeMaskedPicture(services::Point const at, PictureByteRea
 
 // The stream as it draws from pixel x & ~3 of line y, then the pack's picture over it when the stream is a shipped one.
 auto RenderDisplay::DrawPicture(services::Point const at, PictureByteReader const& reader, assets::Layout const stream) -> bool {
-  auto const room{ RoomAt(at) };
   auto const colours{ stream == assets::Layout::STREAM_8 ? assets::Colours::EIGHT : assets::Colours::SIXTEEN };
-  auto const picture{ assets::DecodePictureAsDrawn(reader, colours, room) };
+  auto       picture{ assets::DecodePictureAsDrawn(reader, colours, RoomAt(at)) };
   if (!picture) return false;
-  auto const origin{ FramePoint(at.x & ~3, at.y) };
-  _frame.Draw(*Required(_textures.Fetch(*picture, Paint(Keying::OPAQUE))), origin);
-  if (auto const shipped{ _textures.FetchShipped(*picture, stream, Paint(Keying::OPAQUE)) }) _frame.Draw(**shipped, origin);
+  _frame.Add(PictureStep{ .picture = std::make_shared<assets::DrawnPicture const>(*std::move(picture)), .stream = stream, .at = FramePoint(at.x & ~3, at.y) });
   return true;
 }
 
@@ -351,7 +438,7 @@ auto RenderDisplay::DrawPicture(services::Point const at, PictureByteReader cons
 
 auto RenderDisplay::Box(services::Area const area, Word const colour) -> bool {
   if (!Inside(area)) return false;
-  _frame.Fill(ColumnRect(area), static_cast<std::uint8_t>(colour));
+  _frame.Add(FillStep{ .area = ColumnRect(area), .number = static_cast<std::uint8_t>(colour & 0x0F) });
   return true;
 }
 
@@ -360,34 +447,37 @@ auto RenderDisplay::Highlight(services::Area const area, Word const colour) -> b
   auto const code{ static_cast<std::uint8_t>(colour >> 8) };
   if (!Inside(area) || code == 0 || code >= 4) return false;
   _pen.Select(code, static_cast<std::uint8_t>(colour));
-  if (code == 2) return true;
-  auto const rect{ ColumnRect(area) };
-  auto const under{ _frame.Numbers(rect) };
-  _frame.Put(Reworked(under, under, [this](std::uint8_t const number, std::uint8_t) { return _pen.UnderSetBit(number); }), Point{ .x = rect.x, .y = rect.y });
+  if (code == 1) Exchange(RemapStep{ .area = ColumnRect(area), .mask = std::nullopt, .map = _pen.UnderSetBit(), .overlay = 0 });
+  if (code == 3) AddAll(Looked(ColumnRect(area), std::nullopt, _pen.UnderSetBit()));
   return true;
 }
 
-// Points on the game area only; a set line in two colours (its dashes' gaps in colour 0), any other operation on
-// the screen's numbers.
 auto RenderDisplay::Line(services::Corners const ends, Word const colour) -> void {
+  DrawLine(ends, colour);
+}
+
+// Points on the game area only. Set (operation 0, or above 4): the dashes in the colour, the gaps in colour 0. XOR,
+// AND, OR: the operation's lookup under the dashes, and under the gaps AND's with colour 0. Operation 4: OR under the
+// dashes only.
+auto RenderDisplay::DrawLine(services::Corners const ends, Word const colour) -> void {
   auto const ink{ InkOf(colour) };
-  auto const points{ DashedPoints(ends, ink.pattern) };
-  if (points.empty()) return;
+  auto const dashes{ DashesOf(ends, ink.pattern) };
+  auto const plotted{ [this](std::vector<Point> const& points, std::uint8_t const number) {
+    if (!points.empty()) _frame.Add(PointsStep{ .points = points, .bounds = PointBounds(points), .number = number });
+  } };
   if (ink.operation == 0 || ink.operation > 4) {
-    auto const placed{ [&points](bool const on) {
-      return points | std::views::filter([on](DashedPoint const& point) { return point.on == on; }) | std::views::transform(&DashedPoint::at) | std::ranges::to<std::vector>();
-    } };
-    _frame.Plot(placed(true), ink.colour);
-    _frame.Plot(placed(false), 0);
+    plotted(dashes.on, ink.colour);
+    plotted(dashes.off, 0);
     return;
   }
-  auto const area{ Bounds(points) };
-  auto       numbers{ _frame.Numbers(area).Pixels() | std::ranges::to<std::vector>() };
-  std::ranges::for_each(points, [&](DashedPoint const& point) {
-    auto& number{ numbers.at(static_cast<std::size_t>((point.at.y - area.y) * area.width + point.at.x - area.x)) };
-    number = LineApplied(number, ink, point.on);
-  });
-  _frame.Put(assets::Image{ static_cast<std::size_t>(area.width), static_cast<std::size_t>(area.height), std::move(numbers) }, Point{ .x = area.x, .y = area.y });
+  if (!dashes.on.empty()) {
+    auto const bounds{ PointBounds(dashes.on) };
+    auto const shape{ ShapeOf(dashes.on, bounds) };
+    if (ink.operation == 1) Exchange(RemapStep{ .area = bounds, .mask = shape, .map = Exchanging(ink.colour), .overlay = 0 });
+    if (ink.operation == 2) AddAll(Looked(bounds, shape, Lookup(Operation::AND, ink.colour)));
+    if (ink.operation >= 3) AddAll(Looked(bounds, shape, Oring(ink.colour)));
+  }
+  if (ink.operation == 2) plotted(dashes.off, 0);
 }
 
 // Pixels x1..x2, y1..y2 inclusive; corners in the wrong order draw nothing.
@@ -396,94 +486,241 @@ auto RenderDisplay::Fill(services::Corners const corners, Word const colour) -> 
   auto const size{
     Size{ .width = corners.to.x - corners.from.x + 1, .height = corners.to.y - corners.from.y + 1 }
   };
-  _frame.Fill(At(FramePoint(corners.from.x, corners.from.y), size), static_cast<std::uint8_t>(colour));
+  _frame.Add(FillStep{ .area = At(FramePoint(corners.from.x, corners.from.y), size), .number = static_cast<std::uint8_t>(colour & 0x0F) });
 }
 
-// ---- battle cells --------------------------------------------------------------------------------------------------
+// ---- battle cells through the game's memory --------------------------------------------------------------------
 
 auto RenderDisplay::SaveCell(services::Point const at, services::Cell const into) -> void {
-  SaveCellAt(ColumnPoint(at), into);
+  WriteHandle(into, std::to_underlying(TakeCell(at)));
 }
 
 auto RenderDisplay::SaveShiftedCell(services::Point const at, services::Cell const into) -> void {
-  SaveCellAt(HalfColumnRight(ColumnPoint(at)), into);
+  WriteHandle(into, std::to_underlying(TakeShiftedCell(at)));
 }
 
+// A cell's handle puts the cell back; any other bytes are a cell image of the game's own.
 auto RenderDisplay::RestoreCell(services::Point const at, services::CellImage const cell) -> void {
-  RestoreCellAt(ColumnPoint(at), cell);
+  if (auto const handle{ ReadHandle(cell) }) {
+    PutCell(at, static_cast<services::CellId>(*handle));
+    return;
+  }
+  _frame.Add(ImageStep{ .image = ImageOf(assets::CELL_IMAGE_LAYOUT, cell, std::nullopt), .at = ColumnPoint(at), .keying = Keying::OPAQUE, .numbers = SAME });
 }
 
 auto RenderDisplay::RestoreShiftedCell(services::Point const at, services::CellImage const cell) -> void {
-  RestoreCellAt(HalfColumnRight(ColumnPoint(at)), cell);
-}
-
-auto RenderDisplay::SaveCellAt(Point const at, services::Cell const into) -> void {
-  CopyInto(assets::EncodePlanes(_frame.Numbers(At(at, CELL_SIZE)), assets::CELL_IMAGE_LAYOUT), into);
-}
-
-auto RenderDisplay::RestoreCellAt(Point const at, services::CellImage const cell) -> void {
-  auto const image{
-    GameImage{ .layout = assets::CELL_IMAGE_LAYOUT, .bytes = BytesOf(cell), .shipped = std::nullopt }
-  };
-  _frame.Draw(*Required(_textures.Fetch(image, Paint(Keying::OPAQUE))), at);
+  if (auto const handle{ ReadHandle(cell) }) {
+    PutShiftedCell(at, static_cast<services::CellId>(*handle));
+    return;
+  }
+  _frame.Add(ImageStep{ .image = ImageOf(assets::CELL_IMAGE_LAYOUT, cell, std::nullopt), .at = HalfColumnRight(ColumnPoint(at)), .keying = Keying::OPAQUE, .numbers = SAME });
 }
 
 auto RenderDisplay::CopyCellBlock(services::Point const from, services::Point const to) -> void {
-  _frame.Copy(At(ColumnPoint(from), BLOCK_SIZE), ColumnPoint(to));
+  auto const source{ At(ColumnPoint(from), BLOCK_SIZE) };
+  _frame.AddCopy(_frame.Under(source), source, ColumnPoint(to));
 }
 
-// ---- cell buffers in memory: the game's own bytes, composed by the library's routines --------------------------
-
+// A cell's handle composes the cell; a buffer of the game's own is composed in its memory by the library's routines.
 auto RenderDisplay::OverlayCell(services::Cell const cell, services::CellImage const image) -> void {
+  if (auto const handle{ ReadHandle(cell) }) {
+    OverlayInCell(static_cast<services::CellId>(*handle), image);
+    return;
+  }
   opeu_vram_draw(cell.data(), image.data());
 }
 
 auto RenderDisplay::MaskCell(services::Cell const cell, services::CellMask const mask) -> void {
+  if (auto const handle{ ReadHandle(cell) }) {
+    MaskInCell(static_cast<services::CellId>(*handle), mask);
+    return;
+  }
   opeu_vram_load(cell.data(), mask.data());
 }
 
 auto RenderDisplay::DrawCellGlyph(services::Cell const cell, services::CellGlyph const glyph, services::Point const at) -> void {
+  if (auto const handle{ ReadHandle(cell) }) {
+    GlyphInCell(static_cast<services::CellId>(*handle), glyph, at);
+    return;
+  }
   opeu_vram_glyph(cell.data(), glyph.data(), at.x, at.y);
 }
 
 auto RenderDisplay::DrawColouredCellGlyph(services::Cell const cell, services::CellGlyph const glyph, services::ColouredPlace const place) -> void {
+  if (auto const handle{ ReadHandle(cell) }) {
+    ColouredGlyphInCell(static_cast<services::CellId>(*handle), glyph, place);
+    return;
+  }
   opeu_vram_glyph_color(cell.data(), glyph.data(), place.at.x, place.at.y, place.colour);
 }
 
 // ---- sprites -------------------------------------------------------------------------------------------------------
 
-// The screen rectangle's numbers where the mask keeps them, ORed with the image; the result in the buffer, plane-block
-// by plane-block, and on the screen.
 auto RenderDisplay::ComposeSprite(services::Area const area, services::Sprite const& sprite) -> void {
+  DrawSprite(area, { .and_mask = sprite.and_mask, .or_image = sprite.or_image, .flags = sprite.flags });
+}
+
+auto RenderDisplay::ComposeShiftedSprite(services::Area const area, services::Sprite const& sprite) -> void {
+  DrawShiftedSprite(area, { .and_mask = sprite.and_mask, .or_image = sprite.or_image, .flags = sprite.flags });
+}
+
+// ---- handles -------------------------------------------------------------------------------------------------------
+
+auto RenderDisplay::Save(services::Area const area) -> services::SnapshotId {
+  auto const rect{ ColumnRect(area) };
+  return _kept.Keep(Kept{ .recipe = _frame.Under(rect), .area = rect });
+}
+
+auto RenderDisplay::Restore(services::SnapshotId const snapshot, services::Point const at) -> void {
+  auto const kept{ _kept.Find(snapshot) };
+  if (!kept) return;
+  _frame.AddCopy(kept->get().recipe, kept->get().area, ColumnPoint(at));
+}
+
+auto RenderDisplay::TakeCell(services::Point const at) -> services::CellId {
+  return TakeCellAt(At(ColumnPoint(at), CELL_SIZE));
+}
+
+auto RenderDisplay::TakeShiftedCell(services::Point const at) -> services::CellId {
+  return TakeCellAt(At(HalfColumnRight(ColumnPoint(at)), CELL_SIZE));
+}
+
+auto RenderDisplay::TakeCellAt(Rect const area) -> services::CellId {
+  return _cells.Keep(Composed{ .recipe = _frame.Under(area), .area = area });
+}
+
+auto RenderDisplay::AddToCell(services::CellId const cell, std::vector<Step> steps) -> void {
+  auto const composed{ _cells.Find(cell) };
+  if (!composed) return;
+  std::ranges::for_each(steps, [&composed](Step& step) { composed->get().recipe.Add(Placed{ .step = std::make_shared<Step const>(std::move(step)) }); });
+}
+
+// The mask's 0 bits clear the cell to colour 0.
+auto RenderDisplay::MaskInCell(services::CellId const cell, services::CellMask const mask) -> void {
+  auto const composed{ _cells.Find(cell) };
+  if (!composed) return;
+  auto const cut{ std::make_shared<Bits const>(BitsOf(CELL_SIZE.width / 8, CELL_SIZE.height, mask)->Inverted()) };
+  AddToCell(cell, Looked(composed->get().area, cut, Solid(0)));
+}
+
+// The image ORed into the cell.
+auto RenderDisplay::OverlayInCell(services::CellId const cell, services::CellImage const image) -> void {
+  auto const composed{ _cells.Find(cell) };
+  if (!composed) return;
+  AddToCell(cell, Combined(composed->get().recipe, Origin(composed->get().area), ImageOf(assets::CELL_IMAGE_LAYOUT, image, std::nullopt), Oring));
+}
+
+// Colour 7 under the glyph's bits (bits 0-2 set, bit 3 cleared).
+auto RenderDisplay::GlyphInCell(services::CellId const cell, services::CellGlyph const glyph, services::Point const at) -> void {
+  auto const composed{ _cells.Find(cell) };
+  if (!composed) return;
+  auto const area{ composed->get().area };
+  AddToCell(cell, {
+                      InkStep{ .shape = BitsOf(1, GLYPH_SIZE.height, glyph), .destination = At({ .x = area.x + at.x, .y = area.y + at.y }, GLYPH_SIZE), .number = 7 }
+  });
+}
+
+// Colour 1 under the glyph's bits for a colour word whose low byte is set, else colour 2.
+auto RenderDisplay::ColouredGlyphInCell(services::CellId const cell, services::CellGlyph const glyph, services::ColouredPlace const place) -> void {
+  auto const composed{ _cells.Find(cell) };
+  if (!composed) return;
+  auto const area{ composed->get().area };
+  auto const number{ static_cast<std::uint8_t>((place.colour & 0xFF) != 0 ? 1 : 2) };
+  AddToCell(cell, {
+                      InkStep{ .shape = BitsOf(1, GLYPH_SIZE.height, glyph), .destination = At({ .x = area.x + place.at.x, .y = area.y + place.at.y }, GLYPH_SIZE), .number = number }
+  });
+}
+
+auto RenderDisplay::PutCell(services::Point const at, services::CellId const cell) -> void {
+  PutCellAt(ColumnPoint(at), cell);
+}
+
+auto RenderDisplay::PutShiftedCell(services::Point const at, services::CellId const cell) -> void {
+  PutCellAt(HalfColumnRight(ColumnPoint(at)), cell);
+}
+
+auto RenderDisplay::PutCellAt(Point const at, services::CellId const cell) -> void {
+  auto const composed{ _cells.Find(cell) };
+  if (!composed) return;
+  _frame.AddCopy(composed->get().recipe, composed->get().area, at);
+}
+
+// The screen cleared under the mask's 0 bits, then the image ORed in (x and width in columns).
+auto RenderDisplay::DrawSprite(services::Area const area, services::SpriteImage const& sprite) -> void {
   if (area.width == 0 || area.height == 0) return;
   auto const planes{ (sprite.flags & 1) != 0 ? 4uz : 3uz };
-  auto const keep{ Decoded(BitsImage(area.width, area.height, sprite.and_mask)) };
-  auto const image{ Decoded(ColumnImage(area, sprite.or_image, planes)) };
-  auto const rect{ ColumnRect(area) };
-  auto const composed{ Compose(rect, keep, image) };
-  CopyInto(assets::EncodePlanes(composed, assets::PlaneBlocksLayout(area.width, area.height, 4)), sprite.buffer);
-  _frame.Put(composed, Point{ .x = rect.x, .y = rect.y });
+  DrawSpriteAt(ColumnRect(area), ImageOf(assets::InterleavedLayout(area.width, area.height, planes), sprite.or_image, std::nullopt), sprite);
 }
 
-// x and width in pixels: (width >> 3) + 1 columns from column x >> 3, the mask and image (width >> 3 bytes a row)
-// shifted right by x & 7 within them; the screen is written only with flags bit 0.
-auto RenderDisplay::ComposeShiftedSprite(services::Area const area, services::Sprite const& sprite) -> void {
+// x and width in pixels: the mask and the image (width >> 3 bytes a row) at pixel x, the pixels around them in their
+// columns kept; drawn only with flags bit 0.
+auto RenderDisplay::DrawShiftedSprite(services::Area const area, services::SpriteImage const& sprite) -> void {
   auto const source_bytes{ static_cast<std::size_t>(area.width >> 3) };
-  if (source_bytes == 0 || area.height == 0) return;
-  auto const columns{ source_bytes + 1 };
-  auto const planes{ (sprite.flags & 1) != 0 ? 4uz : 3uz };
-  auto const shift{ area.x & 7uz };
-  auto const keep{ Shifted(Decoded(BitsImage(source_bytes, area.height, sprite.and_mask)), shift, columns * 8, 1) };
-  auto const image{ Shifted(Decoded(ColumnImage({ .x = 0, .y = 0, .width = static_cast<Word>(source_bytes), .height = area.height }, sprite.or_image, planes)), shift, columns * 8, 0) };
-  auto const rect{ At(FramePoint(area.x & ~7, area.y), Size{ .width = static_cast<int>(columns * 8), .height = area.height }) };
-  auto const composed{ Compose(rect, keep, image) };
-  CopyInto(assets::EncodePlanes(composed, assets::PlaneBlocksLayout(columns, area.height, 4)), sprite.buffer);
-  if ((sprite.flags & 1) != 0) _frame.Put(composed, Point{ .x = rect.x, .y = rect.y });
+  if (source_bytes == 0 || area.height == 0 || (sprite.flags & 1) == 0) return;
+  DrawSpriteAt(PixelRect(area, source_bytes), ImageOf(assets::InterleavedLayout(source_bytes, area.height, 4), sprite.or_image, std::nullopt), sprite);
 }
 
-auto RenderDisplay::Compose(Rect const area, assets::Image const& keep, assets::Image const& image) -> assets::Image {
-  auto const kept{ Reworked(_frame.Numbers(area), keep, [](std::uint8_t const number, std::uint8_t const bit) { return bit != 0 ? number : std::uint8_t{ 0 }; }) };
-  return Reworked(kept, image, [](std::uint8_t const number, std::uint8_t const value) { return static_cast<std::uint8_t>(number | value); });
+auto RenderDisplay::DrawSpriteAt(Rect const cut, SharedImage const& image, services::SpriteImage const& sprite) -> void {
+  auto const keep{ BitsOf(static_cast<std::size_t>(cut.width / 8), static_cast<std::size_t>(cut.height), sprite.and_mask) };
+  AddAll(Looked(cut, std::make_shared<Bits const>(keep->Inverted()), Solid(0)));
+  AddAll(Combined(_frame.Steps(), Origin(cut), image, Oring));
+}
+
+auto RenderDisplay::DrawStamp(services::Area const area, services::Stamp const& stamp) -> void {
+  if (!Inside(area)) return;
+  DrawStampAt(ColumnRect(area), stamp);
+}
+
+auto RenderDisplay::DrawShiftedStamp(services::Area const area, services::Stamp const& stamp) -> void {
+  if (!InsidePixels(area)) return;
+  DrawStampAt(PixelRect(area, BytesFor(area.width)), stamp);
+}
+
+// The cut's 0 bits to colour 0, then the ink's 1 bits in the colour (an OR, which over the cut sets it).
+auto RenderDisplay::DrawStampAt(Rect const destination, services::Stamp const& stamp) -> void {
+  auto const width_bytes{ static_cast<std::size_t>(destination.width / 8) };
+  auto const height{ static_cast<std::size_t>(destination.height) };
+  AddAll(Looked(destination, std::make_shared<Bits const>(BitsOf(width_bytes, height, stamp.cut)->Inverted()), Solid(0)));
+  if (stamp.ink.empty()) return;
+  auto const ink{ BitsOf(width_bytes, height, stamp.ink) };
+  if (ClearedUnder(_frame.Steps(), destination, [&ink](int const x, int const y) { return ink->Set(x, y); })) {
+    _frame.Add(InkStep{ .shape = ink, .destination = destination, .number = static_cast<std::uint8_t>(stamp.colour & 0x0F) });
+    return;
+  }
+  AddAll(Looked(destination, ink, Oring(stamp.colour)));
+}
+
+auto RenderDisplay::NextOverlay() -> std::uint32_t {
+  return ++_last_overlay;
+}
+
+// The pixels under the overlay's shape through the XOR of its exchanged bits, kept apart in the recipe so that hiding
+// it paints them again without it.
+auto RenderDisplay::ShowOverlay(services::Overlay const& overlay) -> services::OverlayId {
+  auto const id{ NextOverlay() };
+  auto const map{ Exchanging(static_cast<std::uint8_t>(overlay.exchange & 0x0F)) };
+  auto const shown{ [&](Rect const area, std::optional<SharedBits> mask) { _frame.Add(RemapStep{ .area = area, .mask = std::move(mask), .map = map, .overlay = id }); } };
+  std::visit(
+      [&](auto const& shape) {
+        using Shape = std::remove_cvref_t<decltype(shape)>;
+        if constexpr (std::is_same_v<Shape, services::Bar>) shown(ColumnRect(shape.columns), std::nullopt);
+        if constexpr (std::is_same_v<Shape, services::Mark>) {
+          auto const width_bytes{ BytesFor(shape.pixels.width) };
+          shown(PixelRect(shape.pixels, width_bytes), BitsOf(width_bytes, shape.pixels.height, shape.bits));
+        }
+        if constexpr (std::is_same_v<Shape, services::Trace>) {
+          auto const dashes{ DashesOf(shape.ends, shape.dashes) };
+          if (dashes.on.empty()) return;
+          auto const bounds{ PointBounds(dashes.on) };
+          shown(bounds, ShapeOf(dashes.on, bounds));
+        }
+      },
+      overlay.shape);
+  return static_cast<services::OverlayId>(id);
+}
+
+auto RenderDisplay::HideOverlay(services::OverlayId const overlay) -> void {
+  _frame.Withdraw(std::to_underlying(overlay));
 }
 
 // ---- the platform's side -------------------------------------------------------------------------------------------
@@ -496,14 +733,19 @@ auto RenderDisplay::Capture() -> assets::Texture {
   return _frame.Capture(_mode == Mode::GRAPHICS ? WHITE : BLACK);
 }
 
-auto RenderDisplay::RenderIndexed(std::span<std::uint8_t, FRAME_PIXELS> const frame, std::span<std::uint8_t, PALETTE_LEVELS> const palette) -> void {
-  std::ranges::copy(_palette.EntryLevels(), palette.begin());
+// The frame is written every time (the pump draws its pointer into it); the recipe is painted and read only after a
+// change.
+auto RenderDisplay::RenderIndexed(std::span<std::uint8_t, FRAME_PIXELS> const frame, std::span<std::uint8_t, PALETTE_LEVELS> const palette) -> bool {
+  auto const levels{ _palette.EntryLevels() };
+  auto const changed{ _frame.Changed() || levels != _shown.levels || _mode != _shown.mode };
+  _shown = Shown{ .levels = levels, .mode = _mode };
+  std::ranges::copy(levels, palette.begin());
   if (_mode == Mode::TEXT) {
     std::ranges::fill(frame, 0);
-    return;
+    return changed;
   }
-  auto const numbers{ _frame.Numbers(LOGICAL_SCREEN) };
-  std::ranges::transform(numbers.Pixels(), frame.begin(), [this](std::uint8_t const number) { return _palette.EntryOf(number); });
+  std::ranges::transform(_frame.Numbers().Pixels(), frame.begin(), [this](std::uint8_t const number) { return _palette.EntryOf(number); });
+  return changed;
 }
 
 }

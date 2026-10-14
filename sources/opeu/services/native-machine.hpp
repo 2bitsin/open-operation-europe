@@ -3,7 +3,12 @@
 // the services' own (the screen, the file table, the keyboard and mouse, the FM driver).
 #pragma once
 
+#include "kept-handles.hpp"
 #include "machine.hpp"
+
+#include <array>
+#include <cstdint>
+#include <vector>
 
 namespace opeu::services::detail::native_machine {
 
@@ -39,6 +44,45 @@ public:
   auto DrawColouredCellGlyph(Cell cell, CellGlyph glyph, ColouredPlace place) -> void override;
   auto ComposeSprite(Area area, Sprite const& sprite) -> void override;
   auto ComposeShiftedSprite(Area area, Sprite const& sprite) -> void override;
+  auto Save(Area area) -> SnapshotId override;
+  auto Restore(SnapshotId snapshot, Point at) -> void override;
+  auto TakeCell(Point at) -> CellId override;
+  auto TakeShiftedCell(Point at) -> CellId override;
+  auto MaskInCell(CellId cell, CellMask mask) -> void override;
+  auto OverlayInCell(CellId cell, CellImage image) -> void override;
+  auto GlyphInCell(CellId cell, CellGlyph glyph, Point at) -> void override;
+  auto ColouredGlyphInCell(CellId cell, CellGlyph glyph, ColouredPlace place) -> void override;
+  auto PutCell(Point at, CellId cell) -> void override;
+  auto PutShiftedCell(Point at, CellId cell) -> void override;
+  auto DrawSprite(Area area, SpriteImage const& sprite) -> void override;
+  auto DrawShiftedSprite(Area area, SpriteImage const& sprite) -> void override;
+  auto DrawStamp(Area area, Stamp const& stamp) -> void override;
+  auto DrawShiftedStamp(Area area, Stamp const& stamp) -> void override;
+  auto ShowOverlay(Overlay const& overlay) -> OverlayId override;
+  auto HideOverlay(OverlayId overlay) -> void override;
+  auto Present() -> void override;
+
+private:
+  // A saved column rectangle: its size and its bytes in the 4-byte-column format.
+  struct Saved {
+    Area                      area;
+    std::vector<std::uint8_t> bytes;
+  };
+  using CellBytes = std::array<std::uint8_t, SYSLIB_CELL_BYTES>;
+  // A shown overlay and the bits of its mark, kept to XOR it off again.
+  struct Shown {
+    Overlay                   overlay;
+    std::vector<std::uint8_t> bits;
+  };
+
+  auto Toggle(Shown const& shown) -> void;
+
+  KeptHandles<SnapshotId, Saved>  _saved{ KEPT_SNAPSHOTS };
+  KeptHandles<CellId, CellBytes>  _cells{ KEPT_CELLS };
+  KeptHandles<OverlayId, Shown>   _overlays{ KEPT_OVERLAYS };
+  std::vector<std::uint8_t>       _frame = std::vector<std::uint8_t>(640uz * 480uz); // what Present shows, as palette entries
+  std::array<std::uint8_t, 768uz> _palette{};
+  bool                            _presented{};
 };
 
 class NativeFiles final : public services::Files {

@@ -34,11 +34,16 @@ constexpr auto PRESENTATION{ SDL_LOGICAL_PRESENTATION_INTEGER_SCALE };
   return SDL_FLIP_NONE;
 }
 
-// The modulation, and copying instead of blending where the result is the same: an opaque texture drawn opaque.
-auto Modulate(Texture const& texture, Rgba const modulation) -> void {
-  SDL_SetTextureColorMod(&texture.Handle(), modulation.r, modulation.g, modulation.b);
-  SDL_SetTextureAlphaMod(&texture.Handle(), modulation.a);
-  SDL_SetTextureBlendMode(&texture.Handle(), texture.Opaque() && modulation.a == 0xFF ? SDL_BLENDMODE_NONE : SDL_BLENDMODE_BLEND);
+// The blend mode of a blit: copying instead of blending where the result is the same (an opaque texture drawn opaque).
+[[nodiscard]] auto BlendOf(Texture const& texture, Blit const& blit) noexcept -> SDL_BlendMode {
+  if (blit.blending == Blending::MULTIPLY) return SDL_BLENDMODE_MOD;
+  return texture.Opaque() && blit.modulation.a == 0xFF ? SDL_BLENDMODE_NONE : SDL_BLENDMODE_BLEND;
+}
+
+auto Modulate(Texture const& texture, Blit const& blit) -> void {
+  SDL_SetTextureColorMod(&texture.Handle(), blit.modulation.r, blit.modulation.g, blit.modulation.b);
+  SDL_SetTextureAlphaMod(&texture.Handle(), blit.modulation.a);
+  SDL_SetTextureBlendMode(&texture.Handle(), BlendOf(texture, blit));
 }
 
 // A surface's pixels, row by row without the padding SDL may add to each row.
@@ -125,10 +130,19 @@ auto Display::Plot(std::span<Point const> const points, Rgba const colour) -> vo
 }
 
 auto Display::Draw(Texture const& texture, Blit const& blit) -> void {
-  Modulate(texture, blit.modulation);
+  Modulate(texture, blit);
   auto const destination{ ToSdl(blit.destination) };
   auto const source{ ToSdl(blit.source.value_or(texture.Whole())) };
   SDL_RenderTextureRotated(&Renderer(), &texture.Handle(), &source, &destination, 0.0, nullptr, ToSdl(blit.flip));
+}
+
+auto Display::Clip(Rect const area) -> void {
+  auto const rect{ ToSdlPixels(area) };
+  SDL_SetRenderClipRect(&Renderer(), &rect);
+}
+
+auto Display::Unclip() -> void {
+  SDL_SetRenderClipRect(&Renderer(), nullptr);
 }
 
 auto Display::Flush() -> void {

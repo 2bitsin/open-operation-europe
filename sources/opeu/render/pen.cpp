@@ -13,20 +13,20 @@ auto BitPen::Select(std::uint8_t const code, std::uint8_t const colour) -> void 
   _colour    = colour;
 }
 
-auto BitPen::UnderSetBit(std::uint8_t const number) const noexcept -> std::uint8_t {
+auto BitPen::UnderSetBit() const noexcept -> NumberMap {
   switch (_operation) {
-  case PenOperation::SET:  return Colour();
-  case PenOperation::XOR:  return static_cast<std::uint8_t>(number ^ Colour());
-  case PenOperation::OR:   return static_cast<std::uint8_t>(number | Colour());
+  case PenOperation::SET:  return Solid(Colour());
+  case PenOperation::XOR:  return Lookup(Operation::XOR, Colour());
+  case PenOperation::OR:   return Lookup(Operation::OR, Colour());
   case PenOperation::AND:
   case PenOperation::NONE: break;
   }
-  return number;
+  return SAME;
 }
 
-auto BitPen::UnderClearBit(std::uint8_t const number) const noexcept -> std::uint8_t {
-  if (_operation == PenOperation::AND) return static_cast<std::uint8_t>(number & ~Colour());
-  return number;
+auto BitPen::UnderClearBit() const noexcept -> NumberMap {
+  if (_operation == PenOperation::AND) return Lookup(Operation::AND, static_cast<std::uint8_t>(~Colour() & 0x0F));
+  return SAME;
 }
 
 }

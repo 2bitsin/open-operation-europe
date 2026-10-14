@@ -134,6 +134,61 @@ public:
   auto ComposeShiftedSprite(Area const area, Sprite const& sprite) -> void override {
     Record("ComposeShiftedSprite", area.x, area.y, area.width, area.height, sprite.flags);
   }
+  auto Save(Area const area) -> SnapshotId override {
+    Record("Save", area.x, area.y, area.width, area.height);
+    return static_cast<SnapshotId>(++_handles);
+  }
+  auto Restore(SnapshotId const snapshot, Point const at) -> void override {
+    Record("Restore", std::to_underlying(snapshot), at.x, at.y);
+  }
+  auto TakeCell(Point const at) -> CellId override {
+    Record("TakeCell", at.x, at.y);
+    return static_cast<CellId>(++_handles);
+  }
+  auto TakeShiftedCell(Point const at) -> CellId override {
+    Record("TakeShiftedCell", at.x, at.y);
+    return static_cast<CellId>(++_handles);
+  }
+  auto MaskInCell(CellId const cell, CellMask) -> void override {
+    Record("MaskInCell", std::to_underlying(cell));
+  }
+  auto OverlayInCell(CellId const cell, CellImage) -> void override {
+    Record("OverlayInCell", std::to_underlying(cell));
+  }
+  auto GlyphInCell(CellId const cell, CellGlyph, Point const at) -> void override {
+    Record("GlyphInCell", std::to_underlying(cell), at.x, at.y);
+  }
+  auto ColouredGlyphInCell(CellId const cell, CellGlyph, ColouredPlace const place) -> void override {
+    Record("ColouredGlyphInCell", std::to_underlying(cell), place.at.x, place.at.y, place.colour);
+  }
+  auto PutCell(Point const at, CellId const cell) -> void override {
+    Record("PutCell", at.x, at.y, std::to_underlying(cell));
+  }
+  auto PutShiftedCell(Point const at, CellId const cell) -> void override {
+    Record("PutShiftedCell", at.x, at.y, std::to_underlying(cell));
+  }
+  auto DrawSprite(Area const area, SpriteImage const& sprite) -> void override {
+    Record("DrawSprite", area.x, area.y, area.width, area.height, sprite.flags);
+  }
+  auto DrawShiftedSprite(Area const area, SpriteImage const& sprite) -> void override {
+    Record("DrawShiftedSprite", area.x, area.y, area.width, area.height, sprite.flags);
+  }
+  auto DrawStamp(Area const area, Stamp const& stamp) -> void override {
+    Record("DrawStamp", area.x, area.y, area.width, area.height, stamp.colour);
+  }
+  auto DrawShiftedStamp(Area const area, Stamp const& stamp) -> void override {
+    Record("DrawShiftedStamp", area.x, area.y, area.width, area.height, stamp.colour);
+  }
+  auto ShowOverlay(Overlay const& overlay) -> OverlayId override {
+    Record("ShowOverlay", overlay.shape.index(), overlay.exchange);
+    return static_cast<OverlayId>(++_handles);
+  }
+  auto HideOverlay(OverlayId const overlay) -> void override {
+    Record("HideOverlay", std::to_underlying(overlay));
+  }
+  auto Present() -> void override {
+    Record("Present");
+  }
 
 private:
   template <typename... _Arguments>
@@ -145,7 +200,8 @@ private:
     return Answer(call, area.x, area.y, area.width, area.height, image.mode, image.bytes.size());
   }
 
-  bool _drawn{ true };
+  bool          _drawn{ true };
+  std::uint32_t _handles{};
 };
 
 // Files in memory, by name; a handle reads and writes at its own position.
