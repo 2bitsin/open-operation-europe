@@ -15,8 +15,10 @@
 #include <algorithm>
 #include <charconv>
 #include <cstddef>
+#include <exception>
 #include <expected>
 #include <filesystem>
+#include <format>
 #include <limits>
 #include <optional>
 #include <print>
@@ -29,7 +31,7 @@
 namespace opeu::probes::render_demo {
 namespace {
 
-constexpr auto DEFAULT_PACK{ std::string_view{ "_local/packs/classic.opeupack" } };
+constexpr auto DEFAULT_PACK{ std::string_view{ "sources/opeu/assets/packs.embed/classic" } }; // the checked-in classic pack
 constexpr auto CACHE_CAPACITY{ std::size_t{ 512 } };
 constexpr auto WINDOW_SCALE{ 2 };
 
@@ -48,8 +50,9 @@ struct Options {
 
 [[nodiscard]] auto ParseCount(std::string_view const text) -> std::optional<std::size_t> {
   auto              count{ std::size_t{} };
+  auto const* const begin{ std::to_address(text.begin()) };
   auto const* const end{ std::to_address(text.end()) };
-  auto const        parsed{ std::from_chars(text.data(), end, count) };
+  auto const        parsed{ std::from_chars(begin, end, count) };
   if (parsed.ec != std::errc{} || parsed.ptr != end || count == 0) return std::nullopt;
   return count;
 }
@@ -65,13 +68,19 @@ struct Options {
   return options;
 }
 
+// The palette `name` of the pack, or the failure naming it.
+[[nodiscard]] auto PaletteOf(assets::Pack const& pack, std::string_view const name) -> render::Rendered<assets::PaletteColours> {
+  if (auto const colours{ pack.Palette(name) }) return *colours;
+  return render::Failed(std::format("the pack has no palette {}", name));
+}
+
 // Everything a frame is drawn with, on one renderer. Building it throws the first failure (an asset or font the pack
 // cannot give, a texture SDL refuses) as std::bad_expected_access<RenderError>.
 class Stage {
 public:
   Stage(SDL_Renderer& renderer, assets::Pack const& pack)
       : _display{ render::Display::Open(renderer).value() }, _textures{ renderer, pack, CACHE_CAPACITY }, _text{ render::AtlasTextRenderer::Build(renderer, pack).value() },
-        _day{ pack.Palette("main/day").value() } { }
+        _day{ PaletteOf(pack, "main/day").value() } { }
 
   auto Show(std::size_t const frame) -> render::Rendered<render::Scene> {
     auto       scene{ DemoScene(frame, _day) };
@@ -93,20 +102,20 @@ private:
   assets::PaletteColours    _day;
 };
 
-auto Headless(assets::Pack const& pack, Options const& options) -> render::Rendered<void> {
+auto Headless(assets::Pack const& pack, std::size_t const frames, std::filesystem::path const& png) -> render::Rendered<void> {
   auto const host{ platform::SurfaceRenderer::Open(render::LOGICAL_SIZE.width, render::LOGICAL_SIZE.height) };
   if (!host) return render::Failed(host.error());
   auto stage{
     Stage{ host->Renderer(), pack }
   };
   auto last{ render::Rendered<render::Scene>{} };
-  for (auto const frame : std::views::iota(0uz, options.frames.value_or(1))) {
+  for (auto const frame : std::views::iota(0uz, frames)) {
     last = stage.Show(frame);
     if (!last) return std::unexpected{ last.error() };
   }
   auto const image{ stage.Capture(*last) };
   if (!image) return std::unexpected{ image.error() };
-  return render::WritePng(*image, *options.png);
+  return render::WritePng(*image, png);
 }
 
 auto Windowed(assets::Pack const& pack, Options const& options) -> render::Rendered<void> {
@@ -117,7 +126,7 @@ auto Windowed(assets::Pack const& pack, Options const& options) -> render::Rende
     Stage{ window->Renderer(), pack }
   };
   for (auto const frame : std::views::iota(0uz, options.frames.value_or(std::numeric_limits<std::size_t>::max()))) {
-    if (window->DrainEvents() == platform::WindowState::CLOSE_REQUESTED) break;
+    if (platform::WindowRenderer::DrainEvents() == platform::WindowState::CLOSE_REQUESTED) break;
     if (auto const shown{ stage.Show(frame) }; !shown) return std::unexpected{ shown.error() };
   }
   return {};
@@ -135,11 +144,13 @@ auto Run(std::span<std::string_view const> const args) -> int {
     return 1;
   }
   try {
-    auto const done{ options->png ? Headless(*pack, *options) : Windowed(*pack, *options) };
+    auto const done{ options->png ? Headless(*pack, options->frames.value_or(1), *options->png) : Windowed(*pack, *options) };
     if (done) return 0;
     std::println(stderr, "{}", done.error().detail);
   } catch (std::bad_expected_access<render::RenderError> const& failure) {
     std::println(stderr, "{}", failure.error().detail);
+  } catch (std::exception const& failure) {
+    std::println(stderr, "{}", failure.what());
   }
   return 1;
 }
@@ -148,10 +159,14 @@ auto Run(std::span<std::string_view const> const args) -> int {
 }
 
 auto main(int const argc, char const* const* const argv) -> int {
-  auto const args{
-    std::span{ argv, static_cast<std::size_t>(argc) }
-    | std::views::transform([](char const* const arg) { return std::string_view{ arg }; }
-    ) | std::ranges::to<std::vector>()
-  };
-  return opeu::probes::render_demo::Run(args);
+  try {
+    auto const args{
+      std::span{ argv, static_cast<std::size_t>(argc) }
+      | std::views::transform([](char const* const arg) { return std::string_view{ arg }; }
+      ) | std::ranges::to<std::vector>()
+    };
+    return opeu::probes::render_demo::Run(args);
+  } catch (...) {
+    return 1;
+  }
 }
