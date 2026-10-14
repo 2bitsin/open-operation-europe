@@ -73,8 +73,8 @@ struct Delivery {
 // What the report on a delivery names: the text buffer it is written into, its format and the receiver's colour and name.
 struct ReportHeading {
   TextTarget     text;
-  std::uint16_t  format;
-  std::uint16_t  color;
+  std::uint16_t  format{};
+  std::uint16_t  color{};
   FormatArgument name;
 };
 

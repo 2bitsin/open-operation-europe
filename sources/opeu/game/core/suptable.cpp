@@ -27,7 +27,8 @@ constexpr std::uint8_t  HELD_COLOUR{ 3 };  // the rows of types the side holds
 constexpr std::uint8_t  OTHER_COLOUR{ 5 }; // the rows below them
 constexpr std::uint8_t  SIDE0_COLOUR{ 6 }; // the type rows of the first side
 constexpr std::uint16_t HIGHLIGHT_COLOUR{ 0x107 };
-constexpr std::uint16_t NAME_BUFFER{ 32 }; // the type name's buffer, below the nation's in the scratch space
+constexpr std::uint16_t NAME_BUFFER{ 32 };                             // the type name's buffer, below the nation's in the scratch space
+constexpr std::size_t   NAMES_BYTES{ std::size_t{ NAME_BUFFER } * 2 }; // the type name's and the nation's buffers
 
 // The near pointer of an equipment type record (an index past the table addresses what follows it).
 auto TypeAt(std::uint8_t type) -> std::uint16_t {
@@ -73,9 +74,9 @@ uint8_t opeu_supply_true(void) {
 // Draws the type rows first..last (last below 255); the reserve holds the nation's buffer.
 void opeu_supply_draw_types(Game& game, DrawRequest const& request) {
   auto const [column, first, last_column, last, flags]{ request };
-  TextBuffer<2 * NAME_BUFFER> scratch;
-  auto const&                 data{ Data(game) };
-  auto const&                 window{ ActiveWindow(data) };
+  TextBuffer<NAMES_BYTES> scratch;
+  auto const&             data{ Data(game) };
+  auto const&             window{ ActiveWindow(data) };
   if (flags & 3) {
     opeu_army_position(game, window.x + 2, window.y + 1);
     opeu_cursor_print(game, std::array<FormatArgument, 1>{ offsetof(DataSegment, supply_type_header) });
@@ -115,9 +116,9 @@ uint8_t opeu_supply_return_slot(Game& game) {
 // Draws the slot rows first..last; the reserve holds the type name's and, above it, the nation's buffer.
 void opeu_supply_draw_slots(Game& game, DrawRequest const& request) {
   auto const [column, first, last_column, last, flags]{ request };
-  TextBuffer<2 * NAME_BUFFER> scratch;
-  auto const&                 data{ Data(game) };
-  auto const&                 window{ ActiveWindow(data) };
+  TextBuffer<NAMES_BYTES> scratch;
+  auto const&             data{ Data(game) };
+  auto const&             window{ ActiveWindow(data) };
   if (flags & 3) {
     opeu_army_position(game, window.x + 2, window.y + 1);
     opeu_cursor_print(game, std::array<FormatArgument, 1>{ offsetof(DataSegment, supply_slot_header) });

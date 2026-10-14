@@ -7,10 +7,12 @@
 
 #include <string>
 
-// Copies source with its terminator to destination; returns destination.
+// Copies source with its terminator to destination; returns destination. The characters are taken first: the source may
+// lie inside the destination.
 TextTarget opeu_string_copy(Game& game, TextTarget destination, Text source) {
-  auto& data{ Data(game) };
-  StoreText(data, destination, std::string{ source.View(data) });
+  auto&             data{ Data(game) };
+  std::string const characters{ source.View(data) };
+  StoreText(data, destination, characters);
   return destination;
 }
 
