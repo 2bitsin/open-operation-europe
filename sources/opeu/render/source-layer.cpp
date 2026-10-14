@@ -76,7 +76,7 @@ struct CellRange {
 }
 
 [[nodiscard]] constexpr auto GridIndex(Point const cell) noexcept -> std::size_t {
-  return static_cast<std::size_t>((cell.y * CELL_COLUMNS) + cell.x);
+  return (static_cast<std::size_t>(cell.y) * static_cast<std::size_t>(CELL_COLUMNS)) + static_cast<std::size_t>(cell.x);
 }
 
 // Where `cell` is among the kept cells of `range`; none outside it.
@@ -163,7 +163,10 @@ auto SourceLayer::Put(KeptSources const& kept, Point const at) -> void {
     Point{ .x = at.x - kept.area.x, .y = at.y - kept.area.y }
   };
   auto const destination{ geometry::At(at, Dimensions(kept.area)) };
-  if (shift.x % CELL != 0 || shift.y % CELL != 0) return Clear(destination); // no cell moved whole
+  if (shift.x % CELL != 0 || shift.y % CELL != 0) { // no cell moved whole
+    Clear(destination);
+    return;
+  }
   auto const from{ Touched(kept.area) };
   auto const covered{ Covered(destination) };
   std::ranges::for_each(CellsOf(Touched(destination)), [&](Point const cell) {
@@ -174,8 +177,14 @@ auto SourceLayer::Put(KeptSources const& kept, Point const at) -> void {
 
 auto SourceLayer::Move(Rect const from, Point const to) -> void {
   auto const destination{ geometry::At(to, Dimensions(from)) };
-  if ((to.x - from.x) % CELL != 0 || (to.y - from.y) % CELL != 0) return Clear(destination); // no cell moved whole
-  if (WholeCells(from) && WholeCells(destination)) return MoveCells(from, to);
+  if ((to.x - from.x) % CELL != 0 || (to.y - from.y) % CELL != 0) { // no cell moved whole
+    Clear(destination);
+    return;
+  }
+  if (WholeCells(from) && WholeCells(destination)) {
+    MoveCells(from, to);
+    return;
+  }
   _moving.area = from;
   _moving.cells.clear();
   std::ranges::transform(CellsOf(Touched(from)), std::back_inserter(_moving.cells), [this](Point const cell) { return At(cell); });

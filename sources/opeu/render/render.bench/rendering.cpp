@@ -21,6 +21,7 @@
 #include <vector>
 
 namespace opeu::render::bench {
+namespace {
 
 // The tests' sample pack, beside this directory.
 [[nodiscard]] auto SamplePack() -> assets::Pack {
@@ -45,7 +46,7 @@ auto BlitSprite(benchmark::State& state) -> void {
   auto       bench{ Bench{} };
   auto const unit{ bench.Unit() };
   bench.display.Begin();
-  for (auto _ : state) {
+  for (auto const _ : state) {
     bench.display.Draw(unit->texture, Blit{ .destination = At(Point{ .x = 83, .y = 40 }, unit->size) });
     bench.display.Flush();
   }
@@ -63,7 +64,7 @@ auto BlitScaledFlipped(benchmark::State& state) -> void {
     Blit{ .destination = Rect{ .x = 80, .y = 40, .width = 160, .height = 104 }, .flip = Flip::HORIZONTAL, .modulation = translucent }
   };
   bench.display.Begin();
-  for (auto _ : state) {
+  for (auto const _ : state) {
     bench.display.Draw(unit->texture, blit);
     bench.display.Flush();
   }
@@ -74,7 +75,7 @@ BENCHMARK(BlitScaledFlipped);
 auto FillRect(benchmark::State& state) -> void {
   auto bench{ Bench{} };
   bench.display.Begin();
-  for (auto _ : state) {
+  for (auto const _ : state) {
     bench.display.Fill(Rect{ .x = 10, .y = 50, .width = 320, .height = 100 }, Rgba{ .r = 0x10, .g = 0x41, .b = 0x92 });
     bench.display.Flush();
   }
@@ -92,7 +93,7 @@ auto TextLine(benchmark::State& state) -> void {
             .at     = Point{ .x = 8, .y = 100 } }
   };
   bench.display.Begin();
-  for (auto _ : state) {
+  for (auto const _ : state) {
     benchmark::DoNotOptimize(text.Draw(bench.display, run));
     bench.display.Flush();
   }
@@ -103,7 +104,7 @@ BENCHMARK(TextLine);
 auto SnapshotRestore(benchmark::State& state) -> void {
   auto bench{ Bench{} };
   bench.display.Begin();
-  for (auto _ : state) {
+  for (auto const _ : state) {
     auto const snapshot{ bench.display.Take(Rect{ .x = 100, .y = 100, .width = 48, .height = 16 }).value() };
     bench.display.Restore(snapshot);
   }
@@ -116,13 +117,13 @@ auto CacheHit(benchmark::State& state) -> void {
     TextureKey{ .asset = "view-tile/map-2/17", .palette = "main/night" }
   };
   benchmark::DoNotOptimize(bench.textures.Fetch(key));
-  for (auto _ : state) benchmark::DoNotOptimize(bench.textures.Fetch(key));
+  for (auto const _ : state) benchmark::DoNotOptimize(bench.textures.Fetch(key));
 }
 BENCHMARK(CacheHit);
 
 auto CacheMissBake(benchmark::State& state) -> void {
-  auto bench{ Bench{} };
-  auto textures{
+  auto const bench{ Bench{} };
+  auto       textures{
     TextureCache{ bench.host.Renderer(), bench.pack, 1 }
   };
   auto const day{
@@ -131,7 +132,7 @@ auto CacheMissBake(benchmark::State& state) -> void {
   auto const night{
     TextureKey{ .asset = "view-tile/map-2/17", .palette = "main/night" }
   };
-  for (auto _ : state) {
+  for (auto const _ : state) {
     benchmark::DoNotOptimize(textures.Fetch(day));
     benchmark::DoNotOptimize(textures.Fetch(night));
   }
@@ -146,7 +147,7 @@ auto TextOnPaper(benchmark::State& state) -> void {
     TextRun{ .font = std::string{ TEXT_FONT }, .glyphs = GlyphsOf("Operation Europe, 1940-1945", 0x20), .colour = WHITE, .at = Point{ .x = 8, .y = 100 }, .paper = BLACK }
   };
   bench.display.Begin();
-  for (auto _ : state) {
+  for (auto const _ : state) {
     benchmark::DoNotOptimize(text.Draw(bench.display, run));
     bench.display.Flush();
   }
@@ -157,7 +158,7 @@ BENCHMARK(TextOnPaper);
 auto CopyScroll(benchmark::State& state) -> void {
   auto bench{ Bench{} };
   bench.display.Begin();
-  for (auto _ : state) {
+  for (auto const _ : state) {
     benchmark::DoNotOptimize(bench.display.Copy(Rect{ .x = 16, .y = 40, .width = 336, .height = 336 }, Point{ .x = 16, .y = 64 }));
     bench.display.Flush();
   }
@@ -179,7 +180,7 @@ auto MapViewTiles(benchmark::State& state) -> void {
     SceneRenderer{ bench.display, bench.textures, text }
   };
   bench.display.Begin();
-  for (auto _ : state) {
+  for (auto const _ : state) {
     benchmark::DoNotOptimize(scenes.Compose(scene));
     bench.display.Flush();
   }
@@ -190,29 +191,30 @@ BENCHMARK(MapViewTiles);
 auto Present(benchmark::State& state) -> void {
   auto bench{ Bench{} };
   bench.display.Begin();
-  for (auto _ : state) bench.display.Present(Dimmed(WHITE, 0xC0));
+  for (auto const _ : state) bench.display.Present(Dimmed(WHITE, 0xC0));
 }
 BENCHMARK(Present);
 
 auto PresentUntinted(benchmark::State& state) -> void {
   auto bench{ Bench{} };
   bench.display.Begin();
-  for (auto _ : state) bench.display.Present();
+  for (auto const _ : state) bench.display.Present();
 }
 BENCHMARK(PresentUntinted);
 
 auto ReadbackFrame(benchmark::State& state) -> void {
   auto bench{ Bench{} };
   bench.display.Begin();
-  for (auto _ : state) benchmark::DoNotOptimize(bench.display.Read(LOGICAL_SCREEN));
+  for (auto const _ : state) benchmark::DoNotOptimize(bench.display.Read(LOGICAL_SCREEN));
 }
 BENCHMARK(ReadbackFrame);
 
 auto ReadbackCell(benchmark::State& state) -> void {
   auto bench{ Bench{} };
   bench.display.Begin();
-  for (auto _ : state) benchmark::DoNotOptimize(bench.display.Read(Rect{ .x = 20, .y = 100, .width = 32, .height = 32 }));
+  for (auto const _ : state) benchmark::DoNotOptimize(bench.display.Read(Rect{ .x = 20, .y = 100, .width = 32, .height = 32 }));
 }
 BENCHMARK(ReadbackCell);
 
-}
+} // namespace
+} // namespace opeu::render::bench

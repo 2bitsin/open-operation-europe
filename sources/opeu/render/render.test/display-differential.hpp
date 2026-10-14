@@ -159,10 +159,10 @@ inline auto ExpectSame(Script const& script) -> RenderedRun {
   return RenderedRun{ .frame = std::move(run.frame), .statistics = rendered.Screen().Statistics() };
 }
 
-// `_Count` bytes of every value, from a seed: images in any format.
-template <std::size_t _Count>
-[[nodiscard]] constexpr auto Noise(std::uint32_t const seed) -> std::array<std::uint8_t, _Count> {
-  auto bytes{ std::array<std::uint8_t, _Count>{} };
+// `COUNT` bytes of every value, from a seed: images in any format.
+template <std::size_t COUNT>
+[[nodiscard]] constexpr auto Noise(std::uint32_t const seed) -> std::array<std::uint8_t, COUNT> {
+  auto bytes{ std::array<std::uint8_t, COUNT>{} };
   auto state{ seed };
   std::ranges::generate(bytes, [&state] {
     state = (state * 1664525U) + 1013904223U;

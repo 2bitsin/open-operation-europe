@@ -87,7 +87,7 @@ public:
   auto               Restore(Snapshot const& snapshot) const -> void;
   // The target's `source` rectangle drawn again with its top left corner at `destination`, as it was before the copy
   // even where the two overlap: a scroll, a block moved or repeated across the screen.
-  auto Copy(Rect source, Point destination) const -> Rendered<void>;
+  [[nodiscard]] auto Copy(Rect source, Point destination) const -> Rendered<void>;
   // The target's pixels in `area`, RGBA.
   [[nodiscard]] auto Read(Rect area) const -> Rendered<assets::Texture>;
 

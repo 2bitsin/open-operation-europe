@@ -28,6 +28,7 @@
 #include <vector>
 
 namespace opeu::render::bench::display_frame {
+namespace {
 
 [[nodiscard]] auto Here() -> std::filesystem::path {
   return std::filesystem::path{ std::source_location::current().file_name() }.parent_path();
@@ -42,9 +43,10 @@ public:
     return _index;
   }
   [[nodiscard]] auto Record(std::string_view const id, std::size_t const count) const -> std::vector<std::uint8_t> {
-    auto const asset{ _catalogue.Find(id).value() };
-    auto const file{ _catalogue.File(asset.file).value() };
-    return file.subspan(asset.at, count) | std::views::transform([](std::byte const byte) { return std::to_integer<std::uint8_t>(byte); }) | std::ranges::to<std::vector>();
+    auto const asset{ _catalogue.Find(id) };
+    if (!asset) throw std::runtime_error{ std::format("no asset {}", id) };
+    auto const file{ _catalogue.File(asset->file).value() };
+    return file.subspan(asset->at, count) | std::views::transform([](std::byte const byte) { return std::to_integer<std::uint8_t>(byte); }) | std::ranges::to<std::vector>();
   }
 
 private:
@@ -71,8 +73,8 @@ struct FrameBytes {
 
 auto Map(services::Display& display, FrameBytes const& bytes) -> void {
   std::ranges::for_each(assets::Grid(14, 14), [&](auto const cell) {
-    auto const& tile{ bytes.tiles.at((cell.first * 5 + cell.second * 3) % bytes.tiles.size()) };
-    std::ignore = display.DrawColumns({ .x = static_cast<Word>(1 + cell.second * 3), .y = static_cast<Word>(16 + cell.first * 24), .width = 3, .height = 24 }, { .mode = 0, .bytes = tile });
+    auto const& tile{ bytes.tiles.at(((cell.first * 5) + (cell.second * 3)) % bytes.tiles.size()) };
+    std::ignore = display.DrawColumns({ .x = static_cast<Word>(1 + (cell.second * 3)), .y = static_cast<Word>(16 + (cell.first * 24)), .width = 3, .height = 24 }, { .mode = 0, .bytes = tile });
   });
 }
 
@@ -81,7 +83,7 @@ auto Dialog(services::Display& display, FrameBytes const& bytes) -> void {
   std::ranges::for_each(std::views::zip(bytes.glyphs, std::views::iota(0)), [&display](auto const entry) {
     auto const& [glyph, n]{ entry };
     auto const at{
-      services::Area{ .x = static_cast<Word>(52 + n % 19), .y = static_cast<Word>(64 + n / 19 * 16), .width = 1, .height = 16 }
+      services::Area{ .x = static_cast<Word>(52 + (n % 19)), .y = static_cast<Word>(64 + (n / 19 * 16)), .width = 1, .height = 16 }
     };
     display.DrawBitsOnPaper(at, { .mode = 0x000F, .bytes = glyph });
   });
@@ -113,7 +115,9 @@ auto Frame(services::Display& display, FrameBytes const& bytes) -> void {
 auto Start(services::Display& display) -> void {
   display.EnterGraphics();
   display.ShowIdentityPalette();
-  display.LoadPalette(0, assets::FindPalette("main/day").value().levels);
+  auto const day{ assets::FindPalette("main/day") };
+  if (!day) throw std::runtime_error{ "no palette main/day" };
+  display.LoadPalette(0, day->levels);
 }
 
 auto NativeFrame(benchmark::State& state) -> void {
@@ -124,7 +128,7 @@ auto NativeFrame(benchmark::State& state) -> void {
   Start(native);
   auto frame{ std::vector<std::uint8_t>(FRAME_PIXELS) };
   auto palette{ std::array<std::uint8_t, PALETTE_LEVELS>{} };
-  for (auto _ : state) {
+  for (auto const _ : state) {
     Frame(native, bytes);
     benchmark::DoNotOptimize(VgalibRender(std::span<std::uint8_t, FRAME_PIXELS>{ frame.data(), FRAME_PIXELS }, palette));
   }
@@ -136,15 +140,15 @@ auto RenderedFrame(benchmark::State& state) -> void {
   auto const bytes{ BytesOf(shipped) };
   auto       pack{ assets::OpenPack(Here().parent_path() / "render.test/packs/classic.opeupack") };
   if (!pack) throw std::runtime_error{ assets::Describe(pack.error()) };
-  auto host{ platform::SurfaceRenderer::Open(LOGICAL_SIZE.width, LOGICAL_SIZE.height).value() };
-  auto display{
+  auto const host{ platform::SurfaceRenderer::Open(LOGICAL_SIZE.width, LOGICAL_SIZE.height).value() };
+  auto       display{
     RenderDisplay{ Display::Open(host.Renderer()).value(), *pack, shipped.Index() }
   };
   vgalib_init();
   Start(display);
   auto frame{ std::vector<std::uint8_t>(FRAME_PIXELS) };
   auto palette{ std::array<std::uint8_t, PALETTE_LEVELS>{} };
-  for (auto _ : state) {
+  for (auto const _ : state) {
     Frame(display, bytes);
     benchmark::DoNotOptimize(display.RenderIndexed(std::span<std::uint8_t, FRAME_PIXELS>{ frame.data(), FRAME_PIXELS }, palette));
   }
@@ -159,13 +163,13 @@ auto PresentedFrame(benchmark::State& state) -> void {
   auto const bytes{ BytesOf(shipped) };
   auto       pack{ assets::OpenPack(Here().parent_path() / "render.test/packs/classic.opeupack") };
   if (!pack) throw std::runtime_error{ assets::Describe(pack.error()) };
-  auto host{ platform::SurfaceRenderer::Open(LOGICAL_SIZE.width, LOGICAL_SIZE.height).value() };
-  auto display{
+  auto const host{ platform::SurfaceRenderer::Open(LOGICAL_SIZE.width, LOGICAL_SIZE.height).value() };
+  auto       display{
     RenderDisplay{ Display::Open(host.Renderer()).value(), *pack, shipped.Index() }
   };
   vgalib_init();
   Start(display);
-  for (auto _ : state) {
+  for (auto const _ : state) {
     Frame(display, bytes);
     display.Present();
   }
@@ -176,10 +180,11 @@ BENCHMARK(PresentedFrame)->Unit(benchmark::kMicrosecond);
 auto IndexShippedContent(benchmark::State& state) -> void {
   auto const source{ assets::DirectorySource::Open(Here().parent_path().parent_path() / "opeu/assets.embed").value() };
   auto const catalogue{ assets::Catalogue{ source } };
-  for (auto _ : state) {
+  for (auto const _ : state) {
     benchmark::DoNotOptimize(assets::ContentIndex{ catalogue }.Size());
   }
 }
 BENCHMARK(IndexShippedContent)->Unit(benchmark::kMillisecond);
 
-}
+} // namespace
+} // namespace opeu::render::bench::display_frame

@@ -105,14 +105,21 @@ constexpr auto AND_PEN{ 2 };
   });
 }
 
-// The frame in its colours, RGBA.
-[[nodiscard]] auto Coloured(std::span<std::uint8_t const> const frame, std::span<std::uint8_t const> const palette) -> assets::Texture {
-  auto colours{ std::array<std::array<std::byte, 4>, 256>{} };
+using Colours = std::array<std::array<std::byte, 4>, 256>;
+
+// The colour of each palette entry, RGBA.
+[[nodiscard]] auto ColoursOf(std::span<std::uint8_t const, PALETTE_LEVELS> const palette) -> Colours {
+  auto colours{ Colours{} };
   std::ranges::transform(std::views::iota(0uz, colours.size()), colours.begin(), [palette](std::size_t const entry) {
     auto const level{ [&](std::size_t const channel) { return std::byte{ palette[(entry * 3) + channel] }; } };
     return std::array{ level(0), level(1), level(2), std::byte{ 0xFF } };
   });
-  auto rgba{ frame | std::views::transform([&colours](std::uint8_t const number) { return colours[number]; }) | std::views::join | std::ranges::to<std::vector>() };
+  return colours;
+}
+
+// The frame in its colours, RGBA.
+[[nodiscard]] auto Coloured(std::span<std::uint8_t const> const frame, Colours const& colours) -> assets::Texture {
+  auto rgba{ frame | std::views::transform([&colours](std::uint8_t const number) { return colours.at(number); }) | std::views::join | std::ranges::to<std::vector>() };
   return assets::Texture{ 640uz, 480uz, std::move(rgba) };
 }
 
@@ -123,7 +130,10 @@ RenderDisplay::RenderDisplay(render::Display display, assets::AssetPack const& p
 // ---- recognition ----------------------------------------------------------------------------------------------------
 
 auto RenderDisplay::Lay(Handed const& handed) -> void {
-  if (!handed.id) return _sources.Clear(handed.area);
+  if (!handed.id) {
+    _sources.Clear(handed.area);
+    return;
+  }
   auto const placed{
     Placed{ .image = _sources.Number(*handed.id), .at = { .x = handed.area.x, .y = handed.area.y }, .colours = handed.colours }
   };
@@ -231,7 +241,10 @@ auto RenderDisplay::CopyColumns(services::Area const from, services::Point const
   _native.CopyColumns(from, to);
   auto const source{ ColumnRect(from) };
   auto const destination{ At(ColumnPoint(to), Dimensions(source)) };
-  if (!OnTheFrame(source) || !OnTheFrame(destination)) return _sources.Clear(Reach(destination));
+  if (!OnTheFrame(source) || !OnTheFrame(destination)) {
+    _sources.Clear(Reach(destination));
+    return;
+  }
   _sources.Move(source, ColumnPoint(to));
 }
 
@@ -325,7 +338,10 @@ auto RenderDisplay::CopyCellBlock(services::Point const from, services::Point co
   _native.CopyCellBlock(from, to);
   auto const source{ At(ColumnPoint(from), BLOCK_SIZE) };
   auto const destination{ At(ColumnPoint(to), BLOCK_SIZE) };
-  if (!OnTheFrame(source) || !OnTheFrame(destination)) return _sources.Clear(Reach(destination));
+  if (!OnTheFrame(source) || !OnTheFrame(destination)) {
+    _sources.Clear(Reach(destination));
+    return;
+  }
   _sources.Move(source, ColumnPoint(to));
 }
 
@@ -414,7 +430,10 @@ auto RenderDisplay::DrawSprite(services::Area const area, services::SpriteImage 
   auto const drawn{ Reach(ColumnRect(area)) };
   auto const layout{ (sprite.flags & 1) != 0 ? assets::Layout::PLANES_4 : assets::Layout::PLANES_3 };
   auto const id{ OnTheFrame(drawn) ? _images.Raw(ColumnShape(layout, area), sprite.or_image) : std::nullopt };
-  if (!id) return _sources.Clear(drawn);
+  if (!id) {
+    _sources.Clear(drawn);
+    return;
+  }
   LayCut(Handed{ .id = id, .area = drawn, .colours = 0 }, sprite.and_mask);
 }
 
@@ -428,7 +447,10 @@ auto RenderDisplay::DrawStamp(services::Area const area, services::Stamp const& 
   _native.DrawStamp(area, stamp);
   if (!Inside(area)) return;
   auto const id{ stamp.ink.empty() ? std::nullopt : _images.Raw(ColumnShape(assets::Layout::BITMAP, area), stamp.ink) };
-  if (!id) return _sources.Clear(ColumnRect(area));
+  if (!id) {
+    _sources.Clear(ColumnRect(area));
+    return;
+  }
   LayCut(Handed{ .id = id, .area = ColumnRect(area), .colours = static_cast<std::uint8_t>(stamp.colour & 0x0F) }, stamp.cut);
 }
 
@@ -480,7 +502,7 @@ auto RenderDisplay::Capture() const -> assets::Texture {
   auto frame{ std::vector<std::uint8_t>(FRAME_PIXELS) };
   auto palette{ std::array<std::uint8_t, PALETTE_LEVELS>{} };
   services::Screen().Render(std::span<std::uint8_t, FRAME_PIXELS>{ frame.data(), FRAME_PIXELS }, palette);
-  return Coloured(frame, palette);
+  return Coloured(frame, ColoursOf(palette));
 }
 
 auto RenderDisplay::RenderIndexed(std::span<std::uint8_t, FRAME_PIXELS> const frame, std::span<std::uint8_t, PALETTE_LEVELS> const palette) -> bool {

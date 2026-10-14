@@ -29,7 +29,7 @@ constexpr auto UNIT{ std::string_view{ "battle-unit/class-03/facing-1" } };
 
 class TextureCaches : public testing::TestWithParam<PackUnderTest> {
 public:
-  [[nodiscard]] auto Cache(std::size_t const capacity) -> TextureCache {
+  [[nodiscard]] auto Cache(std::size_t const capacity) const -> TextureCache {
     return TextureCache{ headless.display.Renderer(), pack, capacity };
   }
 
