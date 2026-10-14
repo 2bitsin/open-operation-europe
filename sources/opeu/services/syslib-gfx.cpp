@@ -90,7 +90,7 @@ struct Rect {
 
 auto SaveRect(Rect const& rect, std::span<std::uint8_t> const buffer) noexcept -> void {
   auto const& screen{ Screen() };
-  auto const plane_bytes{ rect.PlaneBytes() };
+  auto const  plane_bytes{ rect.PlaneBytes() };
   for (auto const line : std::views::iota(0uz, rect.lines)) {
     for (auto const column : std::views::iota(0uz, rect.columns)) {
       auto const bits{ screen.Column(rect.ScreenAt(line, column)) };

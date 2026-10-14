@@ -77,7 +77,7 @@ auto Opl2::Render(std::span<std::int16_t> const stereo) -> void {
     auto const sample{ queued ? _queued.front() : NextSample() };
     if (queued) _queued.pop_front();
     auto const loud{ static_cast<std::int16_t>(std::clamp(sample * OUTPUT_GAIN, std::int32_t{ -32768 }, std::int32_t{ 32767 })) };
-    stereo[2 * frame]     = loud;
+    stereo[2 * frame]       = loud;
     stereo[(2 * frame) + 1] = loud;
   });
 }
