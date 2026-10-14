@@ -7,6 +7,7 @@
 #include <array>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -29,8 +30,9 @@ auto AddTiles(Scene& scene) -> void {
   for (auto const [row, hour] : std::views::zip(std::views::iota(0), HOURS)) {
     std::ranges::for_each(std::views::iota(0, TILES_PER_ROW), [&scene, row, hour](int const n) {
       scene.Add(Sprite{
-          .asset = std::format("view-tile/map-2/{:02}", n), .palette = std::string{ hour },
-                .at = Point{ .x = 32 + (n * TILE), .y = 16 + (row * TILE) }
+          .asset = std::format("view-tile/map-2/{:02}", n), .frame = std::nullopt, .palette = std::string{ hour },
+                   .at = Point{ .x = 32 + (n * TILE), .y = 16 + (row * TILE) },
+                   .size = std::nullopt
       });
     });
   }
@@ -40,32 +42,40 @@ auto AddUnits(Scene& scene) -> void {
   std::ranges::for_each(std::views::iota(0, 8), [&scene](int const n) {
     auto const unit{ std::format("battle-unit/class-{:02}/facing-1", n) };
     scene.Add(Sprite{
-        .asset = unit, .at = Point{ .x = 32 + (n * 48), .y = 120 }
+        .asset = unit, .frame = std::nullopt, .palette = {},
+                .at = Point{ .x = 32 + (n * 48), .y = 120 },
+                .size = std::nullopt
     });
     scene.Add(Sprite{
-        .asset = unit + "/side-0", .at = Point{ .x = 32 + (n * 48), .y = 150 },
-               .flip = render::Flip::HORIZONTAL
+        .asset = unit + "/side-0", .frame = std::nullopt, .palette = {},
+                  .at = Point{ .x = 32 + (n * 48), .y = 150 },
+                  .size = std::nullopt, .flip = render::Flip::HORIZONTAL
     });
   });
 }
 
 auto AddPictures(Scene& scene, std::size_t const frame) -> void {
   scene.Add(Sprite{
-      .asset = "battle-blast/large", .frame = frame / 8 % 4, .at = Point{ .x = 440, .y = 120 }
+      .asset = "battle-blast/large", .frame = frame / 8 % 4, .palette = {},
+                  .at = Point{ .x = 440, .y = 120 },
+                  .size = std::nullopt
   });
   std::ranges::for_each(std::views::iota(0, 4), [&scene](int const n) {
     auto const flip{ n % 2 == 0 ? render::Flip::NONE : render::Flip::HORIZONTAL };
     scene.Add(Sprite{
-        .asset = std::format("portrait/{:03}", n), .at = Point{ .x = 32 + (n * 72), .y = 190 },
-              .flip = flip
+        .asset = std::format("portrait/{:03}", n), .frame = std::nullopt, .palette = {},
+                 .at = Point{ .x = 32 + (n * 72), .y = 190 },
+                 .size = std::nullopt, .flip = flip
     });
   });
   scene.Add(Sprite{
-      .asset = "portrait/004", .at = Point{ .x = 320,     .y = 190      },
-           .size = render::Size{ .width = 128, .height = 160 }
+      .asset = "portrait/004", .frame = std::nullopt, .palette = {},
+              .at = Point{ .x = 320, .y = 190 },
+              .size = render::Size{ .width = 128, .height = 160 }
   });
   scene.Add(Sprite{
-      .asset = "logo/presents", .palette = "main/title", .at = Point{ .x = 32, .y = 290 }
+      .asset = "logo/presents", .frame = std::nullopt, .palette = "main/title", .at = Point{ .x = 32, .y = 290 },
+                 .size = std::nullopt
   });
 }
 
@@ -73,19 +83,23 @@ auto AddText(Scene& scene, assets::PaletteColours const& day) -> void {
   auto const run{ [](unsigned const first) { return std::views::iota(first, first + 16u) | std::ranges::to<std::vector<render::GlyphIndex>>(); } };
   scene.Add(render::Text{
       .font = std::string{ render::GAME_FONT },
-        .glyphs = run(0), .colour = render::Pen(day, 7), .at = Point{ .x = 32, .y = 380 }
+        .glyphs = run(0), .colour = render::Pen(day, 7), .at = Point{ .x = 32, .y = 380 },
+        .paper = std::nullopt
   });
   scene.Add(render::Text{
       .font = std::string{ render::GAME_FONT },
-        .glyphs = run(16), .colour = render::Pen(day, 14), .at = Point{ .x = 32, .y = 398 }
+        .glyphs = run(16), .colour = render::Pen(day, 14), .at = Point{ .x = 32, .y = 398 },
+        .paper = std::nullopt
   });
   scene.Add(render::Text{
       .font = std::string{ render::ENDING_FONT },
-        .glyphs = run(0), .colour = render::Pen(day, 2), .at = Point{ .x = 32, .y = 416 }
+        .glyphs = run(0), .colour = render::Pen(day, 2), .at = Point{ .x = 32, .y = 416 },
+        .paper = std::nullopt
   });
   scene.Add(render::Text{
       .font = std::string{ render::ENDING_FONT },
-        .glyphs = run(16), .colour = render::Pen(day, 5), .at = Point{ .x = 32, .y = 434 }
+        .glyphs = run(16), .colour = render::Pen(day, 5), .at = Point{ .x = 32, .y = 434 },
+        .paper = std::nullopt
   });
 }
 
