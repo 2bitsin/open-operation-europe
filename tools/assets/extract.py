@@ -17,6 +17,8 @@ Runs the extract-assets probe (sources/opeu/probes/extract-assets) over the ship
     tables/epilogue-token.json ENDGRP.NPK's one-shot token
     texts/messages.json        every text of the shipped files as UTF-8 by id (docs/asset-pack.md, "Texts")
     texts/code-table.json      tools/assets/code-table.json, the code that turns them back into the files' bytes
+    music/*.json               the FM song and effect banks (docs/asset-pack.md, "Music"); manifest.json's
+                               music_checks says each encodes into its bank and plays the bank's register stream
 
 The output directory is replaced, so a run is idempotent: the same inputs give the same bytes.
 docs/asset-formats.md describes the formats and the manifest.
@@ -85,6 +87,7 @@ def extract(out, assets, probe):
         'counts': {group: len(m['assets']) for group, m in sorted(manifests.items())},
         'palettes': 'palettes.json',
         'tables': tables + ['tables/epilogue-token.json'],
+        'music_checks': strip_kind(by_kind['music-check']),
     })
     return {group: len(m['assets']) for group, m in manifests.items()}
 

@@ -1,4 +1,5 @@
-"""tools/assets/extract.py over the shipped files: every asset written, and a second run byte-identical."""
+"""tools/assets/extract.py over the shipped files: every asset written, the music tables checked against their banks, and
+a second run byte-identical."""
 import hashlib
 import importlib.util
 import json
@@ -39,3 +40,7 @@ def test_extraction_is_complete_and_byte_stable(tmp_path):
     setups = json.loads((first / 'tables' / 'scenarios.json').read_text(encoding='utf-8'))['scenario_file']['setups']
     assert [f"{s['year']}-{s['month']:02}-{s['day']:02}" for s in setups[1:]] == [
         '1940-05-10', '1942-05-26', '1943-07-05', '1944-06-06', '1944-12-16', '1945-04-16']
+    assert [(m['path'], m['bytes'], m['entries'], m['identical']) for m in manifest['music_checks']] == [
+        ('music/main-songs.json', 31674, 19, True), ('music/main-effects.json', 847, 16, True),
+        ('music/opening-songs.json', 8856, 3, True)]
+    assert all(m['register_writes'] > 0 for m in manifest['music_checks'])

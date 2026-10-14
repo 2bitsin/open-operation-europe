@@ -2,10 +2,13 @@
 // Writes every shipped asset to open formats: a PNG and an index PNG per graphic under <out>/images/, and one JSON
 // record per line on the output stream for each asset and palette, one per table file (tables/*.json: the scenarios,
 // map layers, battle fields, palettes and glyph codes, written by the assets module's table writers) and the epilogue's
-// token; Texts adds texts/messages.json, the game's texts decoded by the code table.
+// token; Texts adds texts/messages.json, the game's texts decoded by the code table. The music tables (music/*.json)
+// come from the FM banks the recovered programs hold, each checked to read back into the same bank bytes and the same
+// FM driver register stream; a music-check record per bank says so.
 
 #include "opeu/assets/catalogue.hpp"
 #include "opeu/assets/code-table.hpp"
+#include "opeu/assets/music-table.hpp"
 #include "opeu/assets/source.hpp"
 
 #include <cstdio>
@@ -14,6 +17,7 @@
 #include <functional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace opeu::probes::extract_assets::detail::extractor {
 
@@ -33,6 +37,8 @@ private:
   [[nodiscard]] auto Palettes() const -> std::expected<void, std::string>;
   [[nodiscard]] auto Tables() const -> std::expected<void, std::string>;
   [[nodiscard]] auto EpilogueToken() const -> std::expected<void, std::string>;
+  [[nodiscard]] auto Music() const -> std::expected<void, std::string>;
+  [[nodiscard]] auto MusicTable(assets::MusicTable const& table, std::vector<std::byte> const& bank) const -> std::expected<void, std::string>;
 
   std::reference_wrapper<assets::Source const> _source;
   assets::Catalogue                            _catalogue;

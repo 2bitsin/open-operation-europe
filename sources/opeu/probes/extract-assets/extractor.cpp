@@ -1,6 +1,7 @@
 #include "extractor.hpp"
 
 #include "json.hpp"
+#include "music-banks.hpp"
 #include "png.hpp"
 
 #include "opeu/assets/glyph-code-table.hpp"
@@ -8,6 +9,7 @@
 #include "opeu/assets/map-tables.hpp"
 #include "opeu/assets/maps.hpp"
 #include "opeu/assets/messages.hpp"
+#include "opeu/assets/music-bank.hpp"
 #include "opeu/assets/palette-table.hpp"
 #include "opeu/assets/palette.hpp"
 #include "opeu/assets/scenario-table.hpp"
@@ -46,6 +48,14 @@ auto TableRecord(std::string_view const path, std::string const& table) -> std::
   return json::Object{}.Text("kind", "table").Text("path", path).Raw("table", table).Encoded();
 }
 
+auto TextBytes(std::string_view const text) -> std::vector<std::byte> {
+  return text | std::views::transform([](char const c) { return static_cast<std::byte>(c); }) | std::ranges::to<std::vector>();
+}
+
+auto MusicFailed(std::string_view const path, std::string_view const why) -> Done {
+  return std::unexpected{ std::format("extract-assets: {}: {}", path, why) };
+}
+
 auto AssetRecord(Asset const& asset, assets::Image const& image) -> json::Object {
   auto record{ json::Object{} };
   record.Text("kind", "asset")
@@ -76,7 +86,7 @@ auto AssetRecord(Asset const& asset, assets::Image const& image) -> json::Object
 Extractor::Extractor(assets::Source const& source, std::filesystem::path out, Emit emit) : _source{ source }, _catalogue{ source }, _out{ std::move(out) }, _emit{ std::move(emit) } { }
 
 auto Extractor::Run() const -> Done {
-  return Palettes().and_then([this] { return Graphics(); }).and_then([this] { return Tables(); });
+  return Palettes().and_then([this] { return Graphics(); }).and_then([this] { return Tables(); }).and_then([this] { return Music(); });
 }
 
 auto Extractor::Palettes() const -> Done {
@@ -131,6 +141,37 @@ auto Extractor::Texts(assets::CodeTable const& table) const -> Done {
   auto const file{ _source.get().File("SCEDATA").and_then(assets::DecodeScenarioFile) };
   if (!file) return Failed("SCEDATA", file.error());
   _emit(TableRecord(assets::MESSAGES, assets::MessagesText(assets::MessagesOf(assets::ScenarioTexts(*file), table))));
+  return {};
+}
+
+auto Extractor::Music() const -> Done {
+  auto const banks{ ShippedBanks() };
+  return std::ranges::fold_left(std::views::zip(assets::MUSIC_TABLES, banks), Done{},
+                                [this](Done const& done, auto const table_bank) { return done.and_then([&] { return MusicTable(std::get<0>(table_bank), std::get<1>(table_bank)); }); });
+}
+
+// One bank: decoded, written, read back into the same parts, encoded into the same bytes, and played by the FM driver
+// into the same register stream as the bank itself.
+auto Extractor::MusicTable(assets::MusicTable const& table, std::vector<std::byte> const& bank) const -> Done {
+  auto const decoded{ assets::DecodeMusicBank(bank, table.layout) };
+  if (!decoded) return Failed(table.path, decoded.error());
+  auto const text{ assets::MusicBankText(*decoded) };
+  auto const read{ assets::ReadMusicBank(TextBytes(text)) };
+  if (!read) return MusicFailed(table.path, assets::Describe(read.error()));
+  if (*read != *decoded) return MusicFailed(table.path, "the table reads back into another bank");
+  auto const encoded{ assets::EncodeMusicBank(*read) };
+  if (encoded != bank) return MusicFailed(table.path, "the table encodes into other bytes");
+  auto const played{ RegisterStream(bank, table.layout) };
+  if (RegisterStream(encoded, table.layout) != played) return MusicFailed(table.path, "the table plays another register stream");
+  _emit(TableRecord(table.path, text));
+  _emit(json::Object{}
+            .Text("kind", "music-check")
+            .Text("path", table.path)
+            .Number("bytes", bank.size())
+            .Number("entries", table.layout.entries)
+            .Number("register_writes", played.size())
+            .Flag("identical", true)
+            .Encoded());
   return {};
 }
 

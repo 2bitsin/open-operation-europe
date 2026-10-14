@@ -65,6 +65,7 @@ enum class DecodeError : std::uint8_t {
   BAD_SIZE,     // a file whose size is not the shipped format's
   OUT_OF_RANGE, // an index or offset past the end of the file
   MISSING_FILE, // the source has no file of that name
+  BAD_LAYOUT,   // a music bank whose table, instruments, drum kits and tracks do not tile it end to end
 };
 
 template <class _Value>
@@ -77,6 +78,7 @@ using Decoded = std::expected<_Value, DecodeError>;
   case DecodeError::BAD_SIZE:     return "unexpected file size";
   case DecodeError::OUT_OF_RANGE: return "out of range";
   case DecodeError::MISSING_FILE: return "missing file";
+  case DecodeError::BAD_LAYOUT:   return "bad music bank layout";
   }
   return "unknown";
 }
