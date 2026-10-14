@@ -4,7 +4,8 @@
 /analysis/** -whitespace
 /verification/** -whitespace
 /docs/** -whitespace
-# Asset packs: the archive and the assets module's sample pack are compared byte for byte.
+# Asset packs: the checked-in packs (and the tests' remaster sample) are compared byte for byte with what the tools
+# write, so no checkout (Windows autocrlf included) may change their bytes.
 *.opeupack binary
-/sources/opeu/assets/assets.test/packs/**/*.png binary
-/sources/opeu/assets/assets.test/packs/**/pack.json -text eol=lf
+/sources/opeu/assets/**/*.png binary
+/sources/opeu/assets/**/pack.json -text eol=lf
