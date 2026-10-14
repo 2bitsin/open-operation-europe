@@ -48,9 +48,7 @@ void opeu_objective_loss_line(Game& game, uint16_t objective, uint8_t kind, uint
   SetWord(game, stock, value);
   auto const after{ Word(game, stock) };
   auto const colour{ SideColorCode(static_cast<uint8_t>(opeu_objective_side(game, objective))) };
-  opeu_request_format(
-      game, text,
-      std::array<FormatArgument, 7>{ Near(data, data.damage_supply_format), colour, objective, data.supply_names[kind], static_cast<uint16_t>(before - after), data.supply_names[kind], after });
+  opeu_request_format(game, text, std::array<FormatArgument, 7>{ Near(data, data.damage_supply_format), colour, objective, data.supply_names[kind], before - after, data.supply_names[kind], after });
   opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(text));
 }
 

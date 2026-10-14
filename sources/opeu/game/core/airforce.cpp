@@ -63,9 +63,8 @@ void opeu_air_header(Game& game) {
 
 // The Air Force command loop.
 void opeu_turn_action_8(Game& game) {
-  ServiceLocals const locals{ LOCATION_BYTES };
-  auto&               data{ Data(game) };
-  auto const          buffer{ locals.At(0) };
+  TextBuffer<LOCATION_BYTES> buffer;
+  auto&                      data{ Data(game) };
   opeu_air_officer(game);
   do {
     auto const&   side{ Record<Side>(data, data.current_side_ptr) };

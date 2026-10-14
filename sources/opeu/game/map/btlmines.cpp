@@ -6,6 +6,7 @@
 #include "common/memory.hpp"
 #include "common/side-color.hpp"
 #include "core/limits.hpp"
+#include "core/strings.hpp"
 #include "core/textout.hpp"
 #include "map/btlcell.hpp"
 #include "map/btlcmdr.hpp"
@@ -32,23 +33,16 @@ constexpr uint16_t COMMANDER_REPORT{ 2 };
 constexpr uint16_t HIT_PERCENT{ 10 };
 constexpr uint16_t BLAST_ANIMATION{ 0x6fb8 }; // in the icon segment
 
-// Appends the string at DS offset source to the one at destination.
-void Append(Game& game, uint16_t destination, uint16_t source) {
-  while (Byte(game, destination)) ++destination;
-  while ((Byte(game, destination++) = Byte(game, source++)) != 0) {
-  }
-}
 } // namespace
 
 // "<side> <type>: We discovered mines when we retreated!" for a side a player commands.
 void opeu_battle_mine_report(Game& game, uint16_t element) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ REPORT_TEXT_BYTES };
-  auto const          buffer{ locals.At(0) };
-  auto const          side{ static_cast<uint8_t>(opeu_battle_element_side(game, element)) };
+  auto&                         data{ Data(game) };
+  TextBuffer<REPORT_TEXT_BYTES> buffer;
+  auto const                    side{ static_cast<uint8_t>(opeu_battle_element_side(game, element)) };
   if (data.side_status[side] == SIDE_COMPUTER) return;
   opeu_request_format(game, buffer, std::array<FormatArgument, 4>{ Near(data, data.mine_text), SideColorCode(side), data.side_names[side], ElementTypeOf(data, element).name });
-  Append(game, buffer, Near(data, data.retreat_mines_text));
+  opeu_string_append(game, buffer, Near(data, data.retreat_mines_text));
   opeu_battle_commander_wait(game, buffer, static_cast<uint8_t>(side), static_cast<uint8_t>(COMMANDER_REPORT));
 }
 

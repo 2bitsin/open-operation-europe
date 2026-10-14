@@ -42,10 +42,9 @@ constexpr uint16_t BUNKER_ROW{ 0x40 };
 } // namespace
 
 void opeu_battle_wiped_notice(Game& game, uint16_t element) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ MESSAGE_BYTES };
-  auto const          message{ locals.At(0) };
-  auto const          side{ opeu_battle_element_side(game, element) };
+  auto&                     data{ Data(game) };
+  TextBuffer<MESSAGE_BYTES> message;
+  auto const                side{ opeu_battle_element_side(game, element) };
   opeu_request_format(game, message, std::array<FormatArgument, 3>{ Near(data, data.battle_fmt_wiped), SideColorCode(side), ElementTypeOf(data, element).name });
   opeu_battle_commander_wait(game, message, static_cast<uint8_t>(side), static_cast<uint8_t>(2));
 }

@@ -68,11 +68,10 @@ struct OfficerTexts {
 // One officer draw: under 10 in 100 the officer (if any, and not already lost) is hit unless the staff trait saves
 // him half the time; under 5 the hit is fatal. kind 0 is the division's general, otherwise the side's staff post.
 void OfficerDraw(Game& game, uint8_t kind, OfficerTexts const& texts) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ DRAW_TEXT_BYTES };
-  auto const          text{ locals.At(0) };
-  auto const          side{ data.battle_active_side };
-  auto const          draw{ static_cast<uint8_t>(game.State().RandomBounded(100)) };
+  auto&                       data{ Data(game) };
+  TextBuffer<DRAW_TEXT_BYTES> text;
+  auto const                  side{ data.battle_active_side };
+  auto const                  draw{ static_cast<uint8_t>(game.State().RandomBounded(100)) };
   if (draw >= 10) return;
   auto const record{ kind ? opeu_find_side_record(game, side, kind) : opeu_find_group_record(game, side, data.battle_active_group) };
   if (!record || Record<Person>(data, record).role & Bits(PersonRole::DEPUTY)) return;
@@ -88,11 +87,10 @@ void OfficerDraw(Game& game, uint8_t kind, OfficerTexts const& texts) {
 } // namespace
 
 void opeu_battle_pick_hq(Game& game) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ PICK_NAME_BYTES };
-  auto const          name{ locals.At(0) };
-  auto const          side{ data.battle_active_side };
-  auto const          panels{ [&] {
+  auto&                       data{ Data(game) };
+  TextBuffer<PICK_NAME_BYTES> name;
+  auto const                  side{ data.battle_active_side };
+  auto const                  panels{ [&] {
     opeu_text_paper_set(game, static_cast<uint8_t>(0));
     opeu_battle_panel_side1(game);
     opeu_battle_panel_side0(game);
@@ -146,7 +144,7 @@ void opeu_battle_auto_hq(Game& game) {
   opeu_battle_commander_wait(game, locals.At(AUTO_TEXT), side, MESSAGE_MODE);
 }
 
-void opeu_battle_officer_hit(Game& game, uint16_t record, uint16_t text, uint16_t killed) {
+void opeu_battle_officer_hit(Game& game, uint16_t record, Text text, uint16_t killed) {
   auto&      data{ Data(game) };
   auto const side{ data.battle_active_side };
   data.battle_hq_intact[side] = 0;

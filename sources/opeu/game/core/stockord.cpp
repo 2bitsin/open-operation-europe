@@ -78,9 +78,8 @@ void opeu_stock_show_titled(Game& game, uint16_t objective) {
 
 // Asks how much of one resource to store (0..60000); MENU_CANCELLED when refused.
 uint16_t opeu_stock_ask(Game& game, uint16_t what) {
-  ServiceLocals const locals{ 0x64 }; // the question the format service writes
-  auto const&         data{ Data(game) };
-  auto const          question{ locals.At(0) };
+  TextBuffer<0x64> question;
+  auto const&      data{ Data(game) };
   opeu_request_format(game, question, std::array<FormatArgument, 2>{ data.input_mode ? offsetof(DataSegment, stock_question_short) : offsetof(DataSegment, stock_question), what });
   return opeu_control_choose(game, question, 0, STOCK_LIMIT, 1, data.context_record2, 0);
 }

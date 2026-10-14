@@ -46,7 +46,7 @@ void opeu_scenario_clear_text(Game& game) {
 }
 
 // The scenario description, scrolled inside its window.
-void opeu_scenario_description(Game& game, uint16_t text) {
+void opeu_scenario_description(Game& game, Text text) {
   opeu_text_scroll_mode(game, 1);
   opeu_text_window(game, 4, 0x25, 0x1a, 0x164);
   opeu_army_position(game, 4, 0x1e);

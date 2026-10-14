@@ -20,10 +20,10 @@ namespace opeu::game::detail::unit_table {
 // Bits of a row-draw callback's flags: draw the heading, draw the row names.
 inline constexpr std::uint8_t DRAW_HEADING{ 3 };
 inline constexpr std::uint8_t DRAW_NAMES{ 5 };
-// The bytes of a callback's buffers (the column layout bytes, the row text and its other texts), which it reserves
-// itself: the services format and print them in the data segment.
+// The bytes of a callback's frame in the original (the column layout bytes, the row text and its other texts). Each text
+// is a buffer of the callback's own, with the room from its offset in that frame to the frame's end.
 inline constexpr std::uint16_t TABLE_SCRATCH{ 0xc0 };
-// The row text buffer at the start of the frame buffers.
+// The row text's offset in the frame.
 inline constexpr std::uint16_t ROW_TEXT{ 4 };
 
 // The rows `first` to `last` a row-draw callback draws, none when `first` is past `last`.
@@ -37,7 +37,7 @@ inline constexpr std::uint16_t ROW_TEXT{ 4 };
 }
 
 // Formats the heading `format` into `text` and prints the column's part of it above the rows.
-inline auto DrawHeading(Game& game, ListWindow const& window, TableColumns const& layout, std::uint16_t text, std::uint16_t format) -> void {
+inline auto DrawHeading(Game& game, ListWindow const& window, TableColumns const& layout, TextTarget text, std::uint16_t format) -> void {
   auto const& data{ Data(game) };
   opeu_request_format(game, text, std::array<FormatArgument, 1>{ format });
   opeu_army_position(game, static_cast<int16_t>(BodyX(data, window, layout)), static_cast<int16_t>(window.y + 1));
@@ -46,7 +46,7 @@ inline auto DrawHeading(Game& game, ListWindow const& window, TableColumns const
 }
 
 // Prints the column's part of the row text at row `entry`.
-inline auto DrawRowText(Game& game, ListWindow const& window, TableColumns const& layout, std::uint8_t entry, std::uint16_t text) -> void {
+inline auto DrawRowText(Game& game, ListWindow const& window, TableColumns const& layout, std::uint8_t entry, Text text) -> void {
   auto const& data{ Data(game) };
   opeu_army_position(game, static_cast<int16_t>(BodyX(data, window, layout)), static_cast<int16_t>(RowY(data, window, entry)));
   opeu_text_color(game, TABLE_TEXT_COLOR);

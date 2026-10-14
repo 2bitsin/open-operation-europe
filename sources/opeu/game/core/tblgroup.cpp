@@ -39,13 +39,11 @@ constexpr std::uint16_t PLACE_AT{ 60 };
 // its fuel, ammunition and food percentages.
 void opeu_tbl_draw_groups(Game& game, DrawRequest const& request) {
   auto const [column, first, last_column, last, flags]{ request };
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ ROW_TEXT_BYTES };
-  locals.Clear(game);
-  auto const  buffer{ locals.At(0) };
-  auto const& window{ ActiveWindow(data) };
-  auto const  columns{ TableColumnLayout(game, column, last_column) };
-  auto const  side{ data.current_side };
+  auto&                      data{ Data(game) };
+  TextBuffer<ROW_TEXT_BYTES> buffer;
+  auto const&                window{ ActiveWindow(data) };
+  auto const                 columns{ TableColumnLayout(game, column, last_column) };
+  auto const                 side{ data.current_side };
   if (flags & DRAW_HEADER) {
     opeu_request_format(game, buffer, std::array<FormatArgument, 1>{ Near(data, data.tbl_group_header) });
     opeu_army_position(game, ColumnX(data, window, columns, -0x20), window.y + 1);

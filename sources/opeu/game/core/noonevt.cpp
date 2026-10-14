@@ -197,11 +197,10 @@ void LeaderSpeaks(Game& game, std::span<std::uint8_t const> far_text, NoonEvent 
 
 // The day's noon events (at 12:00).
 void opeu_turn_noon_events(Game& game, std::span<std::uint8_t const> far_text) {
-  ServiceLocals const locals{ NEWS_BYTES };
-  auto&               data{ Data(game) };
-  auto const          news{ locals.At(0) };
-  auto const          listed{ [](NoonEvent const& noon) { return noon.date != END_OF_EVENTS; } };
-  auto const          today{ [&data](NoonEvent const& noon) { return noon.date >> 4 == data.year && (noon.date & 0x0f) == data.month && noon.day == data.day; } };
+  TextBuffer<NEWS_BYTES> news;
+  auto&                  data{ Data(game) };
+  auto const             listed{ [](NoonEvent const& noon) { return noon.date != END_OF_EVENTS; } };
+  auto const             today{ [&data](NoonEvent const& noon) { return noon.date >> 4 == data.year && (noon.date & 0x0f) == data.month && noon.day == data.day; } };
   opeu_daily_context(game, data.current_side);
   for (auto const& noon : data.noon_events | std::views::take_while(listed) | std::views::filter(today)) {
     if (noon.action != NoonAction::NONE) Dispatch(NOON_ACTIONS, noon.action, game);

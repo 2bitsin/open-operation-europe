@@ -100,9 +100,8 @@ void opeu_end_occupy_present(Game& game) {
 // The defender retreats in battle_direction; when the battle cell is then empty and the attacker may enter it (an
 // objective there must be his own side's), the attacker moves in, and an objective taken is reported and shown.
 void opeu_end_occupy(Game& game) {
-  ServiceLocals const locals{ 0x6c };
-  auto&               data{ Data(game) };
-  uint16_t const      text{ locals.At(0) };
+  TextBuffer<0x6c> text;
+  auto&            data{ Data(game) };
   data.view_side     = 255;
   data.overview_side = 255;
   opeu_arrival_location(game, data.battle_x, data.battle_y, data.side_status[0] == SIDE_PLAYED ? 0 : 1);

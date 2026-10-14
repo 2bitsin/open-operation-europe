@@ -83,10 +83,9 @@ uint32_t opeu_element_icon(Game const& game, uint16_t element) {
 
 // Icon, name and count of each element of the unit with a nonzero count, two per row from y.
 void opeu_panel_elements(Game& game, uint16_t unit, int y) {
-  ServiceLocals const locals{ NAME_BUFFER };
-  auto&               data{ Data(game) };
-  auto const          buffer{ locals.At(0) };
-  int                 shown{ 0 };
+  TextBuffer<NAME_BUFFER> buffer;
+  auto&                   data{ Data(game) };
+  int                     shown{ 0 };
   // The walk starts at the unit's first element and stops after the element whose next link is 0.
   for (auto near{ Record<Unit>(data, unit).first };;) {
     auto const& element{ Record<Element>(data, near) };

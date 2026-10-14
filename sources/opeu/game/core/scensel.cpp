@@ -40,16 +40,15 @@ constexpr uint16_t TEXT_BYTES{ 0x648 };
 
 // The text buffer the scenario text and the setting lines are loaded and formatted into, in the routine's reserve.
 int opeu_new_game_setup(Game& game) {
-  ServiceLocals const locals{ TEXT_BYTES };
-  auto&               data{ Data(game) };
-  uint16_t const      buf{ locals.At(0) };
-  auto const          at{ [&](auto const& field) -> uint16_t { return Near(data, field); } };
-  auto&               side_control{ data.side_control };
-  auto&               side_status{ data.side_status };
-  int16_t             handle;
-  uint8_t             selection;
-  uint8_t             scenario;
-  int                 new_game;
+  TextBuffer<TEXT_BYTES> buf;
+  auto&                  data{ Data(game) };
+  auto const             at{ [&](auto const& field) -> uint16_t { return Near(data, field); } };
+  auto&                  side_control{ data.side_control };
+  auto&                  side_status{ data.side_status };
+  int16_t                handle;
+  uint8_t                selection;
+  uint8_t                scenario;
+  int                    new_game;
 
   opeu_load_message_graphics(game);
   handle = static_cast<uint16_t>(opeu_open_resource(game, at(data.scensel_file)));

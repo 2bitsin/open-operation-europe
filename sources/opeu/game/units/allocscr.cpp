@@ -68,9 +68,8 @@ auto DrawSecondColumn(Game& game, std::uint8_t above, std::uint8_t rows) -> void
 
 // The type list: each type's name and nation code, written to the routine's 22-byte text buffer for printing.
 auto DrawTypeList(Game& game, std::uint8_t count) -> void {
-  auto&               data{ Data(game) };
-  ServiceLocals const nation{ NATION_BYTES };
-  auto const          buffer{ nation.At(0) };
+  auto&                    data{ Data(game) };
+  TextBuffer<NATION_BYTES> buffer;
   game.Machine().Display().Box({ 2, 0x1c, 0x1e, 0xde }, 0);
   opeu_ui_outline(game, 0x10, 0x1c, 0x100, 0xf9, 7);
   opeu_army_position(game, 3, 0x1d);

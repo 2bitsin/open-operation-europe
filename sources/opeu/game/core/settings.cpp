@@ -111,10 +111,9 @@ void opeu_settings_print(Game& game) {
 
 // Which battles to watch: all, none or a choice before each.
 void opeu_settings_battles(Game& game) {
-  ServiceLocals const locals{ 102 }; // the message the format service writes
-  auto&               data{ Data(game) };
-  uint16_t const      message{ locals.At(0) };
-  auto const          choice{ opeu_delay_dialog(game, Near(data, data.battles_question), 3, data.context_record2, Near(data, data.battles_menu)) };
+  TextBuffer<102> message;
+  auto&           data{ Data(game) };
+  auto const      choice{ opeu_delay_dialog(game, Near(data, data.battles_question), 3, data.context_record2, Near(data, data.battles_menu)) };
   switch (choice) {
   case 1:  data.battle_view = std::to_underlying(BattleView::ALL); break;
   case 2:  data.battle_view = std::to_underlying(BattleView::NONE); break;
@@ -127,9 +126,8 @@ void opeu_settings_battles(Game& game) {
 
 // How long messages stay on screen.
 void opeu_settings_delay(Game& game) {
-  ServiceLocals const locals{ 100 }; // the message the format service writes
-  auto&               data{ Data(game) };
-  uint16_t const      message{ locals.At(0) };
+  TextBuffer<100> message;
+  auto&           data{ Data(game) };
   data.message_delay = (static_cast<uint8_t>(opeu_choose_dialog(game, Near(data, data.delay_question), 10, data.context_record2, 0)));
   opeu_request_format(game, message, std::array<FormatArgument, 2>{ Near(data, data.delay_reply), data.message_delay });
   opeu_control_message(game, message, data.context_record2);
@@ -137,9 +135,8 @@ void opeu_settings_delay(Game& game) {
 
 // Switches between the aerial and the field map and shows the current unit's place on it.
 void opeu_settings_map(Game& game) {
-  ServiceLocals const locals{ 100 }; // the message the format service writes
-  auto&               data{ Data(game) };
-  uint16_t const      message{ locals.At(0) };
+  TextBuffer<100> message;
+  auto&           data{ Data(game) };
   data.map_mode[0]++;
   data.map_mode[0] &= 1;
   opeu_request_format(game, message, std::array<FormatArgument, 2>{ Near(data, data.map_reply), (!data.map_mode[0] ? Near(data, data.map_aerial) : Near(data, data.map_field)) });
@@ -150,9 +147,8 @@ void opeu_settings_map(Game& game) {
 
 // Turns the music off or on.
 void opeu_settings_sound(Game& game) {
-  ServiceLocals const locals{ 100 }; // the message the format service writes
-  auto&               data{ Data(game) };
-  uint16_t const      message{ locals.At(0) };
+  TextBuffer<100> message;
+  auto&           data{ Data(game) };
   if (data.sound_enabled == 1) {
     opeu_music_stop(game);
     data.sound_enabled = 0;
@@ -166,9 +162,8 @@ void opeu_settings_sound(Game& game) {
 
 // Turns the event pictures off or on.
 void opeu_settings_pictures(Game& game) {
-  ServiceLocals const locals{ 100 }; // the message the format service writes
-  auto&               data{ Data(game) };
-  uint16_t const      message{ locals.At(0) };
+  TextBuffer<100> message;
+  auto&           data{ Data(game) };
   data.event_pictures = data.event_pictures == 1 ? 0 : 1;
   opeu_request_format(game, message,
                       std::array<FormatArgument, 2>{ Near(data, data.pictures_reply), (data.event_pictures == 1 ? Near(data, data.pictures_will) : Near(data, data.pictures_will_not)) });

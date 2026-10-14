@@ -13,7 +13,7 @@
 using namespace opeu::game;
 
 // The name of an item's equipment type; tanks that are not self-propelled guns get " Tank" appended.
-uint16_t opeu_item_type_name(Game& game, uint16_t item, uint16_t buffer) {
+TextTarget opeu_item_type_name(Game& game, uint16_t item, TextTarget buffer) {
   auto&       data{ Data(game) };
   auto const& type{ data.element_types[Record<Item>(data, item).type] };
   opeu_string_copy(game, buffer, type.name);
@@ -22,7 +22,7 @@ uint16_t opeu_item_type_name(Game& game, uint16_t item, uint16_t buffer) {
 }
 
 // The three-letter code of the nation that fields an equipment type; the combined bits 12 (8|4) also print as USA.
-uint16_t opeu_nation_code(Game& game, uint16_t type, uint16_t buffer) {
+TextTarget opeu_nation_code(Game& game, uint16_t type, TextTarget buffer) {
   auto&         data{ Data(game) };
   std::uint16_t code;
   switch (Record<ElementType>(data, type).sides) {

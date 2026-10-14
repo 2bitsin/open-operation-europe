@@ -72,11 +72,10 @@ void opeu_air_sprite_restore(Game& game, uint16_t load, uint16_t x, uint16_t y) 
 }
 
 uint8_t opeu_air_report(Game& game, uint16_t what, uint8_t wait) {
-  ServiceLocals const locals{ REQUEST_BUFFER_SIZE };
-  auto&               data{ Data(game) };
-  std::uint16_t const buffer{ locals.At(0) };
-  auto const&         commander{ Record<Person>(data, opeu_find_side_record(game, data.air_side, FLIGHT_COMMANDER_KIND)) };
-  std::uint16_t const person{ opeu_find_person_template(game, commander.status, AIR_OFFICER_TEMPLATE) };
+  TextBuffer<REQUEST_BUFFER_SIZE> buffer;
+  auto&                           data{ Data(game) };
+  auto const&                     commander{ Record<Person>(data, opeu_find_side_record(game, data.air_side, FLIGHT_COMMANDER_KIND)) };
+  std::uint16_t const             person{ opeu_find_person_template(game, commander.status, AIR_OFFICER_TEMPLATE) };
   if (data.weather != 0 && data.weather != 1) {
     if (wait != 0 && wait != 6) return 1;
     std::uint16_t const format{ wait ? POSTPONED_TEXT : CANCELED_TEXT };

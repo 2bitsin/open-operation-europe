@@ -27,13 +27,10 @@ constexpr std::uint16_t NAME_INDENT{ 3 };
 
 void opeu_tbl_draw_types(Game& game, DrawRequest const& request) {
   auto const [column, first, last_column, last, flags]{ request };
-  auto&               data{ Data(game) };
-  ServiceLocals const buffers{ TABLE_SCRATCH };
-  buffers.Clear(game);
-  auto const  scratch{ buffers.At(0) };
-  auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
-  auto const& window{ ActiveWindow(data) };
-  auto const  layout{ TableColumnLayout(game, column, last_column) };
+  auto&                                data{ Data(game) };
+  TextBuffer<TABLE_SCRATCH - ROW_TEXT> text;
+  auto const&                          window{ ActiveWindow(data) };
+  auto const                           layout{ TableColumnLayout(game, column, last_column) };
   if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.tbl_type_header));
   for (auto const entry : DrawnRows(first, last)) {
     auto const  near{ data.tbl_type_list[entry] };

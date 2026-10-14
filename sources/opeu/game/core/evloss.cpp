@@ -89,7 +89,7 @@ auto FirstSideUnits(DataSegment& data) {
 }
 
 // The partisans or the resistance (movement) strike the regiment.
-void Strike(Game& game, Unit const& unit, std::uint16_t movement, std::uint16_t name) {
+void Strike(Game& game, Unit const& unit, std::uint16_t movement, TextTarget name) {
   auto&      data{ Data(game) };
   auto const near{ Near(data, unit) };
   if (data.side_status[1] == SIDE_PLAYED && opeu_unit_special(game, near)) {
@@ -109,7 +109,7 @@ void Strike(Game& game, Unit const& unit, std::uint16_t movement, std::uint16_t 
 }
 
 // The regiment north of row 10 takes losses.
-void NorthernLosses(Game& game, Unit const& unit, std::uint16_t name) {
+void NorthernLosses(Game& game, Unit const& unit, TextTarget name) {
   auto&      data{ Data(game) };
   auto const near{ Near(data, unit) };
   if (data.side_status[1] == SIDE_PLAYED && opeu_unit_special(game, near)) {
@@ -131,11 +131,10 @@ void opeu_loss_present_a(Game& game) {
 }
 
 void opeu_loss_event_a(Game& game) {
-  ServiceLocals const locals{ NAME_A };
-  auto&               data{ Data(game) };
-  auto const          name{ locals.At(0) };
-  auto const          scenario{ CurrentScenario(data) };
-  std::uint16_t       movement{};
+  TextBuffer<NAME_A> name;
+  auto&              data{ Data(game) };
+  auto const         scenario{ CurrentScenario(data) };
+  std::uint16_t      movement{};
   if (scenario == Scenario::KURSK)
     movement = data.resistance_names[0];
   else if (scenario == Scenario::D_DAY || scenario == Scenario::BULGE)
@@ -155,9 +154,8 @@ void opeu_loss_present_b(Game& game) {
 }
 
 void opeu_loss_event_b(Game& game) {
-  ServiceLocals const locals{ NAME_B };
-  auto&               data{ Data(game) };
-  auto const          name{ locals.At(0) };
+  TextBuffer<NAME_B> name;
+  auto&              data{ Data(game) };
   if (CurrentScenario(data) != Scenario::D_DAY || (data.weather != 0 && data.weather != 1)) return;
   for (auto const& unit : std::span{ data.units }.first(UNITS_PER_SIDE))
     if ((unit.flags & Bits(UnitFlag::READY)) && North(unit) && !game.State().RandomBounded(50)) NorthernLosses(game, unit, name);

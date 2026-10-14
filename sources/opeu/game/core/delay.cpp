@@ -27,9 +27,8 @@ constexpr std::uint16_t PROMPT_BYTES{ 36 }; // the prompt the dialog service sho
 // Copies the prompt into the routine's reserve, asks the context person for the hours and stores them as the current
 // side's delay once confirmed.
 void opeu_choose_turn_delay(Game& game) {
-  ServiceLocals const locals{ PROMPT_BYTES };
-  auto const          scratch{ locals.At(0) };
-  auto&               data{ Data(game) };
+  TextBuffer<PROMPT_BYTES> scratch;
+  auto&                    data{ Data(game) };
   opeu_string_copy(game, scratch, opeu_message_lookup(game, data.input_mode == 0 ? KEYBOARD_PROMPT : MOUSE_PROMPT));
   auto const hours{ opeu_delay_dialog(game, scratch, DIALOG_X, data.context_record2, 0) };
   if (hours != MENU_CANCELLED && opeu_delay_confirm(game, data.context_record2, hours)) data.side_delays[data.current_side] = static_cast<std::uint8_t>(hours);

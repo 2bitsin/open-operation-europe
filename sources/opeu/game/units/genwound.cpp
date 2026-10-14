@@ -47,13 +47,12 @@ constexpr std::uint16_t MESSAGE_BYTES{ 0x88 };
 } // namespace
 
 void opeu_general_casualty(Game& game, uint16_t person) {
-  auto&               data{ Data(game) };
-  auto&               general{ Record<Person>(data, person) };
-  ServiceLocals const message{ MESSAGE_BYTES };
-  auto const          buffer{ message.At(0) };
-  auto const          wounded{ [&] { return (general.flags & Bits(PersonRole::POOR_HEALTH)) != 0; } };
-  auto const          posting{ [&] { return general.flags & Bits(PersonRole::ROLE_MASK); } };
-  auto const          wound{ [&] {
+  auto&                     data{ Data(game) };
+  auto&                     general{ Record<Person>(data, person) };
+  TextBuffer<MESSAGE_BYTES> buffer;
+  auto const                wounded{ [&] { return (general.flags & Bits(PersonRole::POOR_HEALTH)) != 0; } };
+  auto const                posting{ [&] { return general.flags & Bits(PersonRole::ROLE_MASK); } };
+  auto const                wound{ [&] {
     general.health  = SubByte(general.health, game.State().RandomBounded(20) + 10);
     general.flags  |= Bits(PersonRole::POOR_HEALTH);
   } };

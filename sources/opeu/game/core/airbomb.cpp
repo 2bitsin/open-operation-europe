@@ -120,9 +120,8 @@ uint16_t opeu_air_bomb_check(Game& game, uint8_t city, uint16_t type) {
 // air strike. The delay is random(level + 1), one more at night, more in bad weather, less for the lighter missions;
 // the planes are the type's base plus a random extra, at most the side's bombers. 1 when the strike was ordered.
 uint16_t opeu_air_bomb_order(Game& game, uint8_t x, uint8_t y, uint16_t type) {
-  ServiceLocals const locals{ TEXT_BYTES };
-  auto&               data{ Data(game) };
-  auto const          text{ locals.At(0) };
+  TextBuffer<TEXT_BYTES> text;
+  auto&                  data{ Data(game) };
   auto const  hours{ static_cast<std::uint16_t>(game.State().RandomBounded(data.delivery_level + 1) + (opeu_hour_is_night(data.hour) != 0) + static_cast<std::uint16_t>(0x81 - data.air_leadership) / 30
                                                 - type + 2) };
   auto const& flight{ data.bombing_flights[type] };

@@ -180,10 +180,9 @@ void opeu_commander_assign(Game& game) {
 // Sends free generals on leave while there are any: one is chosen from the list and asked for how many days (the
 // answer plus one).
 void opeu_commander_rest(Game& game) {
-  ServiceLocals const locals{ REST_PROMPT_BYTES };
-  auto&               data{ Data(game) };
-  auto const          prompt{ locals.At(0) };
-  bool                rested{ false };
+  TextBuffer<REST_PROMPT_BYTES> prompt;
+  auto&                         data{ Data(game) };
+  bool                          rested{ false };
   for (; FillGenerals(game) != 1; rested = true) {
     SetListPredicate(data.people_dialog, ListSelect::ANY_GENERAL);
     opeu_title_panel_begin(game);

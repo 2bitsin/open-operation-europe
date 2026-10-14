@@ -31,14 +31,11 @@ constexpr std::uint16_t NAME_TEXT{ 0x70 };
 // Draws rows first..last of the regiment table's `column`, with the heading and the unit names as `flags` ask.
 void opeu_rq_draw_units(Game& game, DrawRequest const& request) {
   auto const [column, first, last_column, last, flags]{ request };
-  auto&               data{ Data(game) };
-  ServiceLocals const buffers{ TABLE_SCRATCH };
-  buffers.Clear(game);
-  auto const  scratch{ buffers.At(0) };
-  auto const  name{ static_cast<std::uint16_t>(scratch + NAME_TEXT) };
-  auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
-  auto const& window{ ActiveWindow(data) };
-  auto const  layout{ TableColumnLayout(game, column, last_column) };
+  auto&                                 data{ Data(game) };
+  TextBuffer<TABLE_SCRATCH - NAME_TEXT> name;
+  TextBuffer<TABLE_SCRATCH - ROW_TEXT>  text;
+  auto const&                           window{ ActiveWindow(data) };
+  auto const                            layout{ TableColumnLayout(game, column, last_column) };
   if (flags & DRAW_HEADING) DrawHeading(game, window, layout, text, Near(data, data.rq_unit_header));
   for (auto const entry : DrawnRows(first, last)) {
     auto const unit{ data.ai_unit_list[entry] };

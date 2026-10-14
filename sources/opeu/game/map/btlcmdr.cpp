@@ -92,9 +92,8 @@ void opeu_battle_name_clear_right(Game& game) {
 }
 
 void opeu_battle_commander_panel(Game& game, uint8_t side, uint16_t refresh) {
-  auto&               data{ Data(game) };
-  ServiceLocals const locals{ NAME_BYTES };
-  auto const          name{ locals.At(0) };
+  auto&                  data{ Data(game) };
+  TextBuffer<NAME_BYTES> name;
   if (refresh) {
     if (side == 0)
       opeu_battle_name_clear_right(game);
@@ -139,12 +138,12 @@ void opeu_battle_commander_panel(Game& game, uint8_t side, uint16_t refresh) {
 }
 
 // Shows the side's commander panel with the wait text and its value.
-void opeu_battle_commander_wait(Game& game, uint16_t text, uint8_t side, uint8_t value) {
+void opeu_battle_commander_wait(Game& game, Text text, uint8_t side, uint8_t value) {
   opeu_battle_commander_panel(game, side, 1);
   opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(Data(game), Data(game).battle_wait_format), text, value + '0' });
 }
 
-void opeu_battle_commander_message(Game& game, uint16_t text, uint8_t side, uint8_t value) {
+void opeu_battle_commander_message(Game& game, Text text, uint8_t side, uint8_t value) {
   opeu_battle_commander_panel(game, side, 0);
   opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(Data(game), Data(game).battle_prompt_format), text, value + '0' });
 }

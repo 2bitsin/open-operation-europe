@@ -34,11 +34,10 @@ constexpr auto At(std::size_t offset) -> uint16_t {
 } // namespace
 
 void opeu_mission_recon_objective(Game& game, uint8_t side) {
-  ServiceLocals const locals{ 0x32 };
-  auto&               data{ Data(game) };
-  auto const          text{ locals.At(0) };
-  auto const          target{ data.sides[side].order.target };
-  auto&               city{ Record<Objective>(data, target) };
+  TextBuffer<0x32> text;
+  auto&            data{ Data(game) };
+  auto const       target{ data.sides[side].order.target };
+  auto&            city{ Record<Objective>(data, target) };
   opeu_string_copy(game, text, At(offsetof(DataSegment, recon_objective_text)));
   if (opeu_string_length(game, target) > ONE_LINE_NAME) opeu_string_append(game, text, At(offsetof(DataSegment, recon_newline)));
   opeu_string_append(game, text, target);

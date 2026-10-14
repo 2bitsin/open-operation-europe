@@ -25,13 +25,10 @@ namespace { } // namespace
 // nation shown is the general's (context_record1) when the type is fielded by it, else the type's first nation.
 void opeu_rq_draw_types(Game& game, DrawRequest const& request) {
   auto const [column, first, last_column, last, flags]{ request };
-  auto&               data{ Data(game) };
-  ServiceLocals const buffers{ TABLE_SCRATCH };
-  buffers.Clear(game);
-  auto const  scratch{ buffers.At(0) };
-  auto const  text{ static_cast<std::uint16_t>(scratch + ROW_TEXT) };
-  auto const& window{ ActiveWindow(data) };
-  auto const  layout{ TableColumnLayout(game, column, last_column) };
+  auto&                                data{ Data(game) };
+  TextBuffer<TABLE_SCRATCH - ROW_TEXT> text;
+  auto const&                          window{ ActiveWindow(data) };
+  auto const                           layout{ TableColumnLayout(game, column, last_column) };
   if (flags & DRAW_HEADING) {
     opeu_request_format(game, text, std::array<FormatArgument, 1>{ Near(data, data.rq_type_header) });
     opeu_army_position(game, static_cast<int16_t>(ColumnX(data, window, layout, -0x20)), static_cast<int16_t>(window.y + 1));

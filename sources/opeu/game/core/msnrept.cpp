@@ -35,6 +35,8 @@ using namespace opeu::game;
 
 namespace {
 
+constexpr std::uint16_t TARGET_NAME_BYTES{ 32 }; // the target unit's name
+
 // The message ids of the report formats.
 enum ReportText : uint16_t {
   SUCCESS_FORMAT = 0,
@@ -50,7 +52,7 @@ auto SpecialForcesCommander(Game& game, uint8_t side) -> uint16_t {
 }
 
 // Formats a report into message: format, the side's colour and name, then text.
-void FormatReport(Game& game, uint16_t message, uint16_t format, uint8_t side, uint16_t text) {
+void FormatReport(Game& game, TextTarget message, uint16_t format, uint8_t side, Text text) {
   auto const format_text{ MissionText(game, format) };
   opeu_request_format(game, message, std::array<FormatArgument, 4>{ format_text, SideColorCode(side), Data(game).side_names[side], text });
 }
@@ -82,10 +84,9 @@ void opeu_mission_delay_present(Game& game) {
 }
 
 // The special-forces commander tells his own side of the success and the map flashes the target's cell.
-void opeu_mission_report_success(Game& game, uint8_t side, uint16_t text, uint8_t x, uint8_t y) {
-  ServiceLocals const locals{ 0x64 };
-  auto const          message{ locals.At(0) };
-  auto const          speaker{ SpecialForcesCommander(game, side) };
+void opeu_mission_report_success(Game& game, uint8_t side, Text text, uint8_t x, uint8_t y) {
+  TextBuffer<0x64> message;
+  auto const       speaker{ SpecialForcesCommander(game, side) };
   FormatReport(game, message, SUCCESS_FORMAT, side, text);
   opeu_control_message(game, message, speaker);
   ShowReport(game, MISSION_PICTURE, side, Presenter::MISSION_FINISH);
@@ -93,9 +94,8 @@ void opeu_mission_report_success(Game& game, uint8_t side, uint16_t text, uint8_
 }
 
 // The attacked side's intelligence chief reports the enemy mission.
-void opeu_mission_report_enemy(Game& game, uint8_t side, uint16_t text, uint8_t x, uint8_t y) {
-  ServiceLocals const locals{ 0x64 };
-  auto const          message{ locals.At(0) };
+void opeu_mission_report_enemy(Game& game, uint8_t side, Text text, uint8_t x, uint8_t y) {
+  TextBuffer<0x64> message;
   FormatReport(game, message, ENEMY_FORMAT, side, text);
   auto const enemy{ opeu_opposite_side(side) };
   opeu_control_message(game, message, opeu_find_side_record(game, enemy, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));
@@ -104,29 +104,27 @@ void opeu_mission_report_enemy(Game& game, uint8_t side, uint16_t text, uint8_t 
 }
 
 // The special-forces commander reports the failure.
-void opeu_mission_report_failure(Game& game, uint8_t side, uint16_t text) {
-  ServiceLocals const locals{ 0x64 };
-  auto const          message{ locals.At(0) };
-  auto const          speaker{ SpecialForcesCommander(game, side) };
+void opeu_mission_report_failure(Game& game, uint8_t side, Text text) {
+  TextBuffer<0x64> message;
+  auto const       speaker{ SpecialForcesCommander(game, side) };
   FormatReport(game, message, FAILURE_FORMAT, side, text);
   opeu_control_message(game, message, speaker);
 }
 
 // Writes the unit's name into destination, after "Enemy " when a player commands the side; returns destination.
-uint16_t opeu_mission_target_name(Game& game, uint8_t side, uint16_t unit, uint16_t destination) {
-  ServiceLocals const locals{ 32 }; // the name the unit-name service writes
-  auto const          name{ opeu_unit_name(game, unit, locals.At(0)) };
-  auto const          prefix{ Data(game).side_status[side] == SIDE_PLAYED ? offsetof(DataSegment, mission_enemy_text) : offsetof(DataSegment, mission_empty_text) };
+TextTarget opeu_mission_target_name(Game& game, uint8_t side, uint16_t unit, TextTarget destination) {
+  TextBuffer<TARGET_NAME_BYTES> unit_name;
+  auto const                    name{ opeu_unit_name(game, unit, unit_name) };
+  auto const                    prefix{ Data(game).side_status[side] == SIDE_PLAYED ? offsetof(DataSegment, mission_enemy_text) : offsetof(DataSegment, mission_empty_text) };
   opeu_string_append(game, opeu_string_copy(game, destination, prefix), name);
   return destination;
 }
 
 // A general was assassinated: a deputy takes his post, and a player's side hears of it from its intelligence chief.
 void opeu_mission_person_killed(Game& game, uint16_t person) {
-  ServiceLocals const locals{ 0x32 };
-  auto const          message{ locals.At(0) };
-  auto const          side{ opeu_person_lacks_side0_flag(game, person) };
-  auto const          played{ [game, side] { return Data(game).side_status[side] == SIDE_PLAYED; } };
+  TextBuffer<0x32> message;
+  auto const       side{ opeu_person_lacks_side0_flag(game, person) };
+  auto const       played{ [game, side] { return Data(game).side_status[side] == SIDE_PLAYED; } };
   if (played()) {
     opeu_set_turn_context(game, 0x10);
     opeu_finish_side_initialization(game, 0);

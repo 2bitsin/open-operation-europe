@@ -73,10 +73,9 @@ uint8_t opeu_supply_true(void) {
 // Draws the type rows first..last (last below 255); the reserve holds the nation's buffer.
 void opeu_supply_draw_types(Game& game, DrawRequest const& request) {
   auto const [column, first, last_column, last, flags]{ request };
-  ServiceLocals const locals{ 2 * NAME_BUFFER };
-  auto const          scratch{ locals.At(0) };
-  auto const&         data{ Data(game) };
-  auto const&         window{ ActiveWindow(data) };
+  TextBuffer<2 * NAME_BUFFER> scratch;
+  auto const&                 data{ Data(game) };
+  auto const&                 window{ ActiveWindow(data) };
   if (flags & 3) {
     opeu_army_position(game, window.x + 2, window.y + 1);
     opeu_cursor_print(game, std::array<FormatArgument, 1>{ offsetof(DataSegment, supply_type_header) });
@@ -116,10 +115,9 @@ uint8_t opeu_supply_return_slot(Game& game) {
 // Draws the slot rows first..last; the reserve holds the type name's and, above it, the nation's buffer.
 void opeu_supply_draw_slots(Game& game, DrawRequest const& request) {
   auto const [column, first, last_column, last, flags]{ request };
-  ServiceLocals const locals{ 2 * NAME_BUFFER };
-  auto const          scratch{ locals.At(0) };
-  auto const&         data{ Data(game) };
-  auto const&         window{ ActiveWindow(data) };
+  TextBuffer<2 * NAME_BUFFER> scratch;
+  auto const&                 data{ Data(game) };
+  auto const&                 window{ ActiveWindow(data) };
   if (flags & 3) {
     opeu_army_position(game, window.x + 2, window.y + 1);
     opeu_cursor_print(game, std::array<FormatArgument, 1>{ offsetof(DataSegment, supply_slot_header) });
@@ -131,8 +129,8 @@ void opeu_supply_draw_slots(Game& game, DrawRequest const& request) {
     if (slot.quantity) {
       // The name's buffer lies directly below the nation's, so an overlong name runs into it.
       auto const amount{ slot.quantity };
-      auto const nation{ opeu_nation_code(game, TypeAt(slot.type), scratch + NAME_BUFFER) };
-      auto const name{ opeu_item_type_name(game, Near(data, slot), scratch) };
+      auto const nation{ opeu_nation_code(game, TypeAt(slot.type), scratch.Characters().subspan(NAME_BUFFER)) };
+      auto const name{ opeu_item_type_name(game, Near(data, slot), std::span<char>{ scratch.Characters() }) };
       opeu_cursor_print(game, std::array<FormatArgument, 5>{ offsetof(DataSegment, supply_slot_row), colour, name, nation, amount });
     } else {
       opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, supply_empty_slot), colour });

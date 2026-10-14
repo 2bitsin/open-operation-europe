@@ -109,9 +109,8 @@ void opeu_transfer_present(Game& game) {
 
 // The transfer dialog.
 void opeu_turn_action_3(Game& game) {
-  auto&               data{ Data(game) };
-  ServiceLocals const message{ MESSAGE_BYTES };
-  auto const          buffer{ message.At(0) };
+  auto&                     data{ Data(game) };
+  TextBuffer<MESSAGE_BYTES> buffer;
   enum class Step {
     DIVISION,
     REGIMENT,

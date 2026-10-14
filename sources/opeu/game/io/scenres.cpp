@@ -11,6 +11,8 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
+#include <array>
 #include <concepts>
 #include <span>
 #include <utility>
@@ -105,13 +107,15 @@ auto LoadIconsAndFont(Game& game) -> void {
 }
 } // namespace
 
-// Reads the 800-byte scenario text record number-1 (number 0 reads record 0) from the start of SCEDATA into the DS
-// offset `destination`.
-void opeu_load_scenario_text(Game& game, std::uint8_t number, std::uint16_t destination) {
+// Reads the 800-byte scenario text record number-1 (number 0 reads record 0) from the start of SCEDATA into
+// `destination`; a short file leaves the rest of the record zero.
+void opeu_load_scenario_text(Game& game, std::uint8_t number, TextTarget destination) {
   if (number) number--;
   WithFile(game, Data(game).scenario_filename, [&](std::int16_t file) {
     Seek(game, file, number * TEXT_RECORD);
-    ReadNear(game, file, game.State().Bytes(destination, TEXT_RECORD));
+    std::array<std::uint8_t, TEXT_RECORD> record{};
+    ReadNear(game, file, record);
+    std::ranges::transform(record, destination.Characters(Data(game)).begin(), [](std::uint8_t byte) { return static_cast<char>(byte); });
   });
 }
 

@@ -48,10 +48,9 @@ constexpr auto PlanesFor(std::uint16_t amount) -> std::uint16_t {
 // with "at least %d hours" (returning the lead) when 90 - rand(30) beats the officer's skill, else accepted. A delay
 // that lands in daytime is refused outright (0) when 60 - rand(20) beats the skill. Returns the delay.
 uint8_t opeu_air_lift_lead(Game& game, uint8_t hours, uint16_t planes) {
-  ServiceLocals const locals{ TEXT_BYTES };
-  auto&               data{ Data(game) };
-  auto const          text{ locals.At(0) };
-  auto                lead{ static_cast<std::uint8_t>(opeu_min16(planes - data.air_leadership / 30 + 3, MAX_LEAD)) };
+  TextBuffer<TEXT_BYTES> text;
+  auto&                  data{ Data(game) };
+  auto                   lead{ static_cast<std::uint8_t>(opeu_min16(planes - data.air_leadership / 30 + 3, MAX_LEAD)) };
   if (lead == 1) lead = 2;
   if (hours < lead) {
     if (90 - static_cast<std::uint8_t>(game.State().Generator().Bounded(30)) > data.air_charm) {
@@ -74,9 +73,8 @@ uint8_t opeu_air_lift_lead(Game& game, uint8_t hours, uint16_t planes) {
 // Announces "In %d hour(s), %d plane(s) will start their cargo lift" and, if the staff confirms, records the order.
 // Returns 1 if recorded.
 uint16_t opeu_air_lift_order(Game& game, uint8_t x, uint8_t y, uint8_t hours, uint16_t planes, uint16_t ammo, uint16_t fuel, uint16_t food) {
-  ServiceLocals const locals{ TEXT_BYTES };
-  auto&               data{ Data(game) };
-  auto const          text{ locals.At(0) };
+  TextBuffer<TEXT_BYTES> text;
+  auto&                  data{ Data(game) };
   opeu_request_format(game, text,
                       std::array<FormatArgument, 5>{ Near(data, data.lift_start_format), hours, (hours == 1 ? Near(data, data.air_lift_hour) : Near(data, data.air_lift_hours)), planes,
                                                      (planes == 1 ? Near(data, data.air_lift_plane) : Near(data, data.air_lift_planes)) });

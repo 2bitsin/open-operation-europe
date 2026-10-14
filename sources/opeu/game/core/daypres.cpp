@@ -40,9 +40,8 @@ auto Speaker(Game& game) -> std::uint16_t {
 
 // Announces a new weapon type.
 void opeu_daily_present(Game& game) {
-  ServiceLocals const locals{ TEXT_BYTES };
-  auto&               data{ Data(game) };
-  auto const          text{ locals.At(0) };
+  TextBuffer<TEXT_BYTES> text;
+  auto&                  data{ Data(game) };
   opeu_request_wait(game);
   opeu_element_type_panel(game, data.daily_record);
   auto const& type{ Record<ElementType>(data, data.daily_record) };

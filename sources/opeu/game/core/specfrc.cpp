@@ -82,9 +82,8 @@ uint16_t opeu_special_unit_target(Game& game) {
 }
 
 void opeu_turn_action_9(Game& game) {
-  ServiceLocals const locals{ NAME_BYTES };
-  auto&               data{ Data(game) };
-  auto const          name{ locals.At(0) };
+  TextBuffer<NAME_BYTES> name;
+  auto&                  data{ Data(game) };
   opeu_special_officer(game);
   do {
     auto& order{ Record<Order>(data, data.special_order) };

@@ -38,9 +38,8 @@ constexpr std::uint8_t CITY{ 1 };
 // Shows the speaker panel with the question and "(low-high)? " (or "? " in the mouse input mode), then reads a number
 // in low..high; returns it, or 0xffff when cancelled.
 uint16_t opeu_air_ask_count(Game& game, uint16_t text, uint16_t low, uint16_t high, int cancel, uint16_t person, uint16_t items) {
-  ServiceLocals const locals{ LINE_BYTES };
-  auto&               data{ Data(game) };
-  auto const          line{ locals.At(0) };
+  TextBuffer<LINE_BYTES> line;
+  auto&                  data{ Data(game) };
   opeu_speaker_panel(game, person, 1);
   if (data.input_mode)
     opeu_request_format(game, line, std::array<FormatArgument, 1>{ Near(data, data.air_question_mark) });
@@ -81,8 +80,7 @@ uint16_t opeu_air_target_valid(Game& game, uint8_t x, uint8_t y, uint16_t what) 
   case 10: name = data.terrain_names[kind]; break;
   default: return 1;
   }
-  ServiceLocals const locals{ BUFFER_BYTES };
-  auto const          buffer{ locals.At(0) };
+  TextBuffer<BUFFER_BYTES> buffer;
   opeu_request_format(game, buffer, std::array<FormatArgument, 3>{ opeu_message_lookup(game, CANNOT_TARGET), what, name });
   opeu_control_message(game, buffer, data.context_record3);
   return 0;

@@ -32,9 +32,8 @@ constexpr std::uint16_t NEWS_BYTES{ 0x6c }; // the report text the format servic
 // The level is the delivery level for a side the player commands, else 2: a higher level grows strength more slowly
 // and makes both events rarer.
 void opeu_objective_comms_event(Game& game) {
-  ServiceLocals const locals{ NEWS_BYTES };
-  auto&               data{ Data(game) };
-  auto const          news{ locals.At(0) };
+  TextBuffer<NEWS_BYTES> news;
+  auto&                  data{ Data(game) };
   for (auto& objective : data.objectives) {
     if (!objective.active) continue;
     auto const    camp{ Near(data, objective) };

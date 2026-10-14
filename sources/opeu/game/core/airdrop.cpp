@@ -150,10 +150,9 @@ uint16_t opeu_air_choose_forces(Game& game) {
 // ratings) beats a shorter requested delay: it is announced, or on a rating roll the request stands. A requested
 // landing by daylight may be refused outright (0 returned).
 uint8_t opeu_air_drop_delay(Game& game, uint8_t hours) {
-  ServiceLocals const locals{ TEXT_BYTES };
-  auto&               data{ Data(game) };
-  auto const          text{ locals.At(0) };
-  std::uint8_t const  estimate{ static_cast<std::uint8_t>(opeu_min16(opeu_max16(game.State().RandomBounded(data.delivery_level + 2) - data.air_leadership / 30 + data.air_troops / 300 + 6, 6), 24)) };
+  TextBuffer<TEXT_BYTES> text;
+  auto&                  data{ Data(game) };
+  std::uint8_t const estimate{ static_cast<std::uint8_t>(opeu_min16(opeu_max16(game.State().RandomBounded(data.delivery_level + 2) - data.air_leadership / 30 + data.air_troops / 300 + 6, 6), 24)) };
   if (estimate > hours) {
     if (95 - static_cast<std::uint8_t>(game.State().RandomBounded(20)) > data.air_charm) {
       opeu_request_format(game, text, std::array<FormatArgument, 2>{ opeu_message_lookup(game, AIR_FORCE_DELAY), estimate });
@@ -174,11 +173,10 @@ uint8_t opeu_air_drop_delay(Game& game, uint8_t hours) {
 
 // Reports the planes needed (30 troops each), asks the air force to confirm and records the drop order.
 uint16_t opeu_air_drop_order(Game& game, uint8_t x, uint8_t y, uint8_t hours) {
-  ServiceLocals const locals{ TEXT_BYTES };
-  auto&               data{ Data(game) };
-  auto const          text{ locals.At(0) };
-  auto const          troops{ data.air_troops };
-  auto const          planes{ static_cast<std::uint16_t>((troops % TROOPS_PER_PLANE > 0) + troops / TROOPS_PER_PLANE) };
+  TextBuffer<TEXT_BYTES> text;
+  auto&                  data{ Data(game) };
+  auto const             troops{ data.air_troops };
+  auto const             planes{ static_cast<std::uint16_t>((troops % TROOPS_PER_PLANE > 0) + troops / TROOPS_PER_PLANE) };
   opeu_request_format(game, text, std::array<FormatArgument, 4>{ opeu_message_lookup(game, PLANES_NEEDED), hours, planes, (planes == 1 ? Near(data, data.drop_plane) : Near(data, data.drop_planes)) });
   opeu_control_message(game, text, data.air_person);
   if (opeu_air_confirm(game)) {

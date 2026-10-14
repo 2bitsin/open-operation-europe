@@ -35,9 +35,8 @@ auto FiledRequests(DataSegment const& data) -> auto const& {
 
 // "You cannot increase your %s any more.", spoken by the context's third person.
 void opeu_request_no_more(Game& game, uint16_t what) {
-  ServiceLocals const locals{ TEXT_BYTES };
-  auto&               data{ Data(game) };
-  auto const          buffer{ locals.At(0) };
+  TextBuffer<TEXT_BYTES> buffer;
+  auto&                  data{ Data(game) };
   opeu_request_format(game, buffer, std::array<FormatArgument, 2>{ offsetof(DataSegment, rq_no_more_text), what });
   opeu_control_message(game, buffer, data.context_record3);
 }
@@ -55,9 +54,8 @@ uint16_t opeu_request_mode_is(Game const& game, uint8_t mode) {
 
 // "Your %s request has been sent. Cancel the request?"; returns the context's second person's answer.
 uint16_t opeu_request_cancel_prompt(Game& game, uint16_t what) {
-  ServiceLocals const locals{ TEXT_BYTES };
-  auto&               data{ Data(game) };
-  auto const          buffer{ locals.At(0) };
+  TextBuffer<TEXT_BYTES> buffer;
+  auto&                  data{ Data(game) };
   opeu_request_format(game, buffer, std::array<FormatArgument, 2>{ offsetof(DataSegment, rq_cancel_text), what });
   return opeu_confirm_message(game, buffer, data.context_record2);
 }

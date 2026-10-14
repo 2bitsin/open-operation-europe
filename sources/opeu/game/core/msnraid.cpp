@@ -46,10 +46,9 @@ auto Succeeds(Game& game, uint8_t side, uint16_t divisor) -> bool {
 } // namespace
 
 void opeu_mission_raid_objective(Game& game, uint8_t side) {
-  ServiceLocals const locals{ 0x32 };
-  auto const          text{ locals.At(0) };
-  auto const          target{ Target(game, side) };
-  auto const&         city{ Record<Objective>(Data(game), target) };
+  TextBuffer<0x32> text;
+  auto const       target{ Target(game, side) };
+  auto const&      city{ Record<Objective>(Data(game), target) };
   opeu_string_copy(game, text, At(offsetof(DataSegment, raid_attempt_text)));
   opeu_string_append(game, text, target);
   if (!Succeeds(game, side, 4)) {
@@ -89,10 +88,9 @@ void opeu_mission_raid_unit(Game& game, uint8_t side) {
 }
 
 void opeu_mission_sabotage(Game& game, uint8_t side) {
-  ServiceLocals const locals{ 0x32 };
-  auto const          text{ locals.At(0) };
-  auto const          target{ Target(game, side) };
-  auto const&         city{ Record<Objective>(Data(game), target) };
+  TextBuffer<0x32> text;
+  auto const       target{ Target(game, side) };
+  auto const&      city{ Record<Objective>(Data(game), target) };
   opeu_string_copy(game, text, At(offsetof(DataSegment, sabotage_text)));
   opeu_string_append(game, text, target);
   if (!Succeeds(game, side, 3)) {
@@ -111,10 +109,9 @@ void opeu_mission_sabotage(Game& game, uint8_t side) {
 
 // Cuts a city's communications.
 void opeu_mission_objective_3(Game& game, uint8_t side) {
-  ServiceLocals const locals{ 0x78 };
-  auto const          text{ locals.At(0) };
-  auto const          target{ Target(game, side) };
-  auto&               city{ Record<Objective>(Data(game), target) };
+  TextBuffer<0x78> text;
+  auto const       target{ Target(game, side) };
+  auto&            city{ Record<Objective>(Data(game), target) };
   opeu_string_copy(game, text, MissionText(game, CUT_LINES_TEXT));
   opeu_string_append(game, text, target);
   opeu_string_append(game, text, At(offsetof(DataSegment, mission3_suffix)));
