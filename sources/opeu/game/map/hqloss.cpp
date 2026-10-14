@@ -80,12 +80,9 @@ void OfficerDraw(Game& game, uint8_t kind, OfficerTexts const& texts) {
   auto const fatal{ draw < 5 };
   auto const outcome{ fatal ? texts.killed : texts.injured };
   if (kind)
-    opeu_request_format(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(texts.format), static_cast<std::uint16_t>(SideColorCode(side)),
-                                                            static_cast<std::uint16_t>(data.side_names[side]), static_cast<std::uint16_t>(record), static_cast<std::uint16_t>(outcome) });
+    opeu_request_format(game, text, std::array<FormatArgument, 5>{ texts.format, SideColorCode(side), data.side_names[side], record, outcome });
   else
-    opeu_request_format(game, std::array<std::uint16_t, 7>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(texts.format), static_cast<std::uint16_t>(SideColorCode(side)),
-                                                            static_cast<std::uint16_t>(data.side_names[side]), static_cast<std::uint16_t>(data.battle_active_group + 1),
-                                                            static_cast<std::uint16_t>(record), static_cast<std::uint16_t>(outcome) });
+    opeu_request_format(game, text, std::array<FormatArgument, 6>{ texts.format, SideColorCode(side), data.side_names[side], data.battle_active_group + 1, record, outcome });
   opeu_battle_officer_hit(game, record, text, fatal);
 }
 } // namespace
@@ -101,7 +98,7 @@ void opeu_battle_pick_hq(Game& game) {
     opeu_battle_panel_side0(game);
   } };
   opeu_battle_commander_panel(game, static_cast<uint8_t>(side), 0);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.hq_fmt_side)), static_cast<std::uint16_t>(SideColorCode(side)) });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.hq_fmt_side), SideColorCode(side) });
   if (auto const unit{ data.battle_lost_unit }; unit != Near(data, data.garrison_unit)) {
     auto const unit_name{ opeu_unit_name(game, unit, name) };
     opeu_ui_text(game, unit_name);
@@ -145,8 +142,7 @@ void opeu_battle_auto_hq(Game& game) {
   ServiceLocals const locals{ AUTO_RESERVE };
   auto const          label{ opeu_element_name(game, best, locals.At(AUTO_LABEL)) };
   auto const          name{ opeu_unit_name(game, data.battle_lost_unit, locals.At(AUTO_NAME)) };
-  opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(locals.At(AUTO_TEXT)), static_cast<std::uint16_t>(Near(data, data.hq_fmt_moved)),
-                                                          static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(name), static_cast<std::uint16_t>(label) });
+  opeu_request_format(game, locals.At(AUTO_TEXT), std::array<FormatArgument, 4>{ Near(data, data.hq_fmt_moved), SideColorCode(side), name, label });
   opeu_battle_commander_wait(game, locals.At(AUTO_TEXT), side, MESSAGE_MODE);
 }
 

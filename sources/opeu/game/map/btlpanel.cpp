@@ -61,10 +61,10 @@ void opeu_battle_element_panel(Game& game, uint16_t element, uint16_t orders_hid
   auto                side{ opeu_battle_element_side(game, element) };
   auto const          unit{ opeu_battle_element_unit(game, element) };
   auto const          at{ [&](uint16_t column, uint16_t row) { opeu_army_position(game, static_cast<short>(column), static_cast<short>(row)); } };
-  auto const          print{ [&](auto const& format, auto... words) { opeu_cursor_print(game, std::array<uint16_t, 1 + sizeof...(words)>{ Near(data, format), static_cast<uint16_t>(words)... }); } };
+  auto const          print{ [&](auto const& format, auto... words) { opeu_cursor_print(game, std::array<FormatArgument, 1 + sizeof...(words)>{ Near(data, format), words... }); } };
   opeu_battle_panel_begin(game);
   at(TITLE_COLUMN, 0);
-  uint16_t name;
+  TextTarget name{ unit_name };
   if (unit == GARRISON_AT) {
     auto const objective{ opeu_find_objective_at(game, data.battle_x, data.battle_y) };
     print(data.battle_fmt_garrison, SideColorCode(opeu_objective_side(game, objective)), objective);

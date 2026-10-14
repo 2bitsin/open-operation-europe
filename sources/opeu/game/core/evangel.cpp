@@ -77,11 +77,11 @@ auto Remark(Game& game) -> std::uint8_t {
   auto const& data{ Data(game) };
   opeu_message_panel_begin(game);
   opeu_context_frame(game, 44, 282, 18);
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ NAME });
+  opeu_cursor_print(game, std::array<FormatArgument, 1>{ NAME });
   game.Machine().Files().Seek(HandleOf(data.portrait_handle), static_cast<std::int32_t>(std::uint32_t{ PORTRAIT_LOW } | std::uint32_t{ PORTRAIT_HIGH } << 16), services::SeekOrigin::START);
   opeu_image_read_draw(game, 45, 316, 8, 80, 0, data.portrait_handle);
   auto const remark{ static_cast<std::uint8_t>(game.State().RandomBounded(6)) };
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ BUFFER, REMARK_FORMAT, opeu_message_lookup(game, remark + FIRST_REMARK) });
+  opeu_request_format(game, BUFFER, std::array<FormatArgument, 2>{ REMARK_FORMAT, opeu_message_lookup(game, remark + FIRST_REMARK) });
   opeu_army_position(game, 54, 324);
   opeu_text_feed(game, BUFFER);
   return static_cast<std::uint8_t>(remark >> 1);

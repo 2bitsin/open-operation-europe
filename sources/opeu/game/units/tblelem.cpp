@@ -44,9 +44,9 @@ void opeu_tbl_draw_elements(Game& game, DrawRequest const& request) {
     if (flags & DRAW_NAMES) {
       StartRowName(game, window, entry, NAME_INDENT, side);
       if (element.flags & Bits(ElementFlag::SELECTED)) opeu_ui_text(game, Near(data, data.tbl_element_mark));
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_element_name), opeu_element_name(game, near, name) });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.tbl_element_name), opeu_element_name(game, near, name) });
     }
-    opeu_request_format(game, std::array<std::uint16_t, 7>{ text, Near(data, data.tbl_element_row), element.quantity, element.damage, element.morale, element.training, element.experience });
+    opeu_request_format(game, text, std::array<FormatArgument, 6>{ Near(data, data.tbl_element_row), element.quantity, element.damage, element.morale, element.training, element.experience });
     DrawRowText(game, window, layout, entry, text);
   }
   opeu_text_color(game, TABLE_TEXT_COLOR);

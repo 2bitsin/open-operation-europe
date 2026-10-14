@@ -100,7 +100,7 @@ void opeu_numdlg_digit(Game& game, std::uint8_t i, std::uint8_t digit) {
   auto const& data{ Data(game) };
   opeu_context_save(game);
   opeu_army_position(game, static_cast<std::int16_t>(i * 3 + data.numdlg_x + 2), static_cast<std::int16_t>(data.numdlg_y + 0x40));
-  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.numdlg_format)), static_cast<std::uint16_t>(digit), 0 });
+  opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(data, data.numdlg_format), digit, 0 });
   opeu_context_restore(game);
 }
 

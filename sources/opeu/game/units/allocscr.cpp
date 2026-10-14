@@ -49,7 +49,7 @@ auto DrawFirstColumn(Game& game, std::uint8_t rows) -> void {
   game.Machine().Display().Box({ 0x22, 0x2e, 10, 0x10 }, 3);
   game.Machine().Display().Box({ 0x2c, 0x2e, 2, RowsHeight(rows) }, 3);
   opeu_army_position(game, static_cast<int16_t>(0x28 - (length >> 1)), 0x2e);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.alloc_first_format), name });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.alloc_first_format), name });
 }
 
 // The second column starts below the first one's `above` rows.
@@ -63,7 +63,7 @@ auto DrawSecondColumn(Game& game, std::uint8_t above, std::uint8_t rows) -> void
   game.Machine().Display().Box({ 0x22, static_cast<std::uint16_t>(top + 0x2e), 10, 0x10 }, 5);
   game.Machine().Display().Box({ 0x2c, static_cast<std::uint16_t>(top + 0x2e), 2, static_cast<std::uint16_t>(RowsHeight(rows) - 1) }, 5);
   opeu_army_position(game, static_cast<int16_t>(0x28 - (length >> 1)), static_cast<int16_t>(top + 0x2e));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.alloc_second_format), name });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.alloc_second_format), name });
 }
 
 // The type list: each type's name and nation code, written to the routine's 22-byte text buffer for printing.
@@ -74,12 +74,12 @@ auto DrawTypeList(Game& game, std::uint8_t count) -> void {
   game.Machine().Display().Box({ 2, 0x1c, 0x1e, 0xde }, 0);
   opeu_ui_outline(game, 0x10, 0x1c, 0x100, 0xf9, 7);
   opeu_army_position(game, 3, 0x1d);
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.alloc_heading) });
+  opeu_cursor_print(game, std::array<FormatArgument, 1>{ Near(data, data.alloc_heading) });
   for (auto const [row, supply_type] : std::views::zip(std::views::iota(0u), std::span{ data.supply_types }.first(count))) {
     auto const& type{ data.element_types[supply_type] };
     auto const  top{ RowsHeight(row) };
     opeu_army_position(game, 2, static_cast<int16_t>(top + 0x2e));
-    opeu_cursor_print(game, std::array<std::uint16_t, 4>{ Near(data, data.alloc_row_format), SideTextColor(data.current_side), type.name, opeu_nation_code(game, Near(data, type), buffer) });
+    opeu_cursor_print(game, std::array<FormatArgument, 4>{ Near(data, data.alloc_row_format), SideTextColor(data.current_side), type.name, opeu_nation_code(game, Near(data, type), buffer) });
     opeu_ui_outline(game, 0x10, top + 0x2d, 0x100, top + 0x3e, 7);
   }
   opeu_ui_outline(game, 0x80, 0x1c, 0xa8, 0xf9, 7);
@@ -91,7 +91,7 @@ void opeu_alloc_amounts_show(Game& game, uint8_t count) {
   auto& data{ Data(game) };
   for (auto const [row, amount, other] : std::views::zip(std::views::iota(0u), std::span{ data.supply_amounts }.first(count), data.supply_others)) {
     opeu_army_position(game, 0x16, static_cast<int16_t>(RowsHeight(row) + 0x2e));
-    opeu_cursor_print(game, std::array<std::uint16_t, 4>{ Near(data, data.alloc_amount_format), SideTextColor(data.current_side), amount, other });
+    opeu_cursor_print(game, std::array<FormatArgument, 4>{ Near(data, data.alloc_amount_format), SideTextColor(data.current_side), amount, other });
   }
 }
 

@@ -67,11 +67,6 @@ enum class EscapeState : int16_t {
   FINISH     = 9, // ESC W, ESC E
 };
 
-// The byte at a near pointer.
-auto At(Game& game, uint16_t at) -> uint8_t& {
-  return Byte(game, at);
-}
-
 // The console's word-wrapping printer: buffers a word, wraps it at the window's right column and forwards the escape
 // sequences; it drops DBCS lead bytes 81h..d8h together with the byte that follows the trail byte.
 class WordWrap {
@@ -174,9 +169,9 @@ private:
 };
 
 // The text of a format word followed by its argument words.
-auto FormatWords(DataSegment const& data, std::span<uint16_t const> words) -> std::string {
+auto FormatWords(DataSegment const& data, std::span<FormatArgument const> words) -> std::string {
   if (words.empty()) return {};
-  return FormatText(data, CString(data, words.front()), words.subspan(1));
+  return FormatText(data, words.front().AsText().View(data), words.subspan(1));
 }
 
 // Draws a glyph's 16 rows of bits: transparent (only the ink) or opaque (on its paper colour).
@@ -229,8 +224,8 @@ void opeu_input_flush(Game& game) {
 }
 
 // Word-wrapping text output with embedded escape sequences.
-void opeu_ui_text(Game& game, uint16_t s) {
-  WordWrap{ game, CString(Data(game), s) }.Print();
+void opeu_ui_text(Game& game, Text text) {
+  WordWrap{ game, text.View(Data(game)) }.Print();
 }
 
 // Sets the scroll mode when it is 0 or 1; returns the current mode.
@@ -455,24 +450,21 @@ uint8_t opeu_text_put(Game& game, uint8_t c) {
   return c;
 }
 
-// sprintf: the words are the destination, the format and its arguments. The text goes to the destination and
-// format_output is left at its terminator.
-void opeu_request_format(Game& game, std::span<uint16_t const> words) {
-  auto&      data{ Data(game) };
-  auto const destination{ words.empty() ? uint16_t{ 0 } : words.front() };
-  auto const text{ FormatWords(data, words.subspan(std::min<std::size_t>(words.size(), 1))) };
-  StoreText(data, destination, text);
-  data.format_output = static_cast<uint16_t>(destination + text.size());
+// sprintf: the format and its arguments, formatted into the destination.
+void opeu_request_format(Game& game, TextTarget destination, std::span<FormatArgument const> words) {
+  auto& data{ Data(game) };
+  StoreText(data, destination, FormatWords(data, words));
 }
 
 // printf to the console: the words are the format and its arguments.
-void opeu_cursor_print(Game& game, std::span<uint16_t const> words) {
+void opeu_cursor_print(Game& game, std::span<FormatArgument const> words) {
   WordWrap{ game, FormatWords(Data(game), words) }.Print();
 }
 
-void opeu_text_put_range(Game& game, uint16_t s, uint8_t start, uint8_t count) {
-  auto at{ static_cast<uint16_t>(s + start) };
-  while (count--) opeu_text_put(game, At(game, at++));
+// Puts `count` characters of the text out from `start`, terminators included.
+void opeu_text_put_range(Game& game, Text text, uint8_t start, uint8_t count) {
+  auto const characters{ text.Characters(Data(game)).subspan(start, count) };
+  std::ranges::for_each(characters, [&game](char c) { opeu_text_put(game, static_cast<uint8_t>(c)); });
 }
 
 // Erases the previous character cell, keeping the paper.

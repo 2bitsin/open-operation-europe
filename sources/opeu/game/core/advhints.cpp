@@ -16,13 +16,15 @@
 #include "core/template.hpp"
 #include "port.hpp"
 
+#include <span>
+
 using namespace opeu::game;
 
 namespace {
 
 constexpr std::uint8_t STAFF_TEMPLATE{ 6 }; // the person template kind of the air commander
 
-auto Hints(Game& game, std::uint8_t const* far_text) -> Advisor {
+auto Hints(Game& game, std::span<std::uint8_t const> far_text) -> Advisor {
   return { game, far_text, AdviceTopic::HINTS };
 }
 } // namespace
@@ -31,7 +33,7 @@ auto Hints(Game& game, std::uint8_t const* far_text) -> Advisor {
 // on an intelligence chief of little charm (he and the air commander disagree), then on the scenario: the Ardennes
 // winter (scenario 4), the hurricane season (scenario 3 in July to September), and bridges in any scenario but 1 and
 // 2, worded by the side's stance.
-uint16_t opeu_advice_situational_hint(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_situational_hint(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Hints(game, far_text) };
   auto const side{ data.current_side };
@@ -56,17 +58,17 @@ uint16_t opeu_advice_situational_hint(Game& game, const uint8_t* far_text) {
 }
 
 // One of the twenty general tips.
-uint16_t opeu_advice_general_tip(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_general_tip(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Hints(game, far_text) };
   auto const tip{ advisor.Random(20) };
-  CopyAdvice(game, far_text, advisor.Buffer(), data.advice_tips[tip].offset);
+  opeu_string_copy_far(game, advisor.Buffer(), far_text.subspan(data.advice_tips[tip].offset));
   advisor.Show();
   return 1;
 }
 
 // Operation Hints: a situational hint, else a general tip.
-uint16_t opeu_advice_operation_hints(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_operation_hints(Game& game, std::span<std::uint8_t const> far_text) {
   if (auto const given{ opeu_advice_situational_hint(game, far_text) }) return given;
   return opeu_advice_general_tip(game, far_text);
 }

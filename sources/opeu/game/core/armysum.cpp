@@ -68,18 +68,18 @@ void opeu_army_summary(Game& game) {
   auto const cities{ opeu_count_active_objectives(game, side) };
   auto const row{ [&](std::uint16_t y) { opeu_army_position(game, ROW_X, y); } };
   row(163);
-  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ ROW0, Low(totals[3]), High(totals[3]), Low(totals[0]), High(totals[0]), fuel });
+  opeu_cursor_print(game, std::array<FormatArgument, 6>{ ROW0, Low(totals[3]), High(totals[3]), Low(totals[0]), High(totals[0]), fuel });
   row(181);
-  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ ROW1, Low(totals[2]), High(totals[2]), Low(totals[5]), High(totals[5]), ammunition });
+  opeu_cursor_print(game, std::array<FormatArgument, 6>{ ROW1, Low(totals[2]), High(totals[2]), Low(totals[5]), High(totals[5]), ammunition });
   row(199);
-  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ ROW2, Low(totals[1]), High(totals[1]), Low(totals[7]), High(totals[7]), food });
+  opeu_cursor_print(game, std::array<FormatArgument, 6>{ ROW2, Low(totals[1]), High(totals[1]), Low(totals[7]), High(totals[7]), food });
   row(217);
-  opeu_cursor_print(game, std::array<std::uint16_t, 5>{ ROW3, Low(totals[4]), High(totals[4]), Low(totals[6]), High(totals[6]) });
+  opeu_cursor_print(game, std::array<FormatArgument, 5>{ ROW3, Low(totals[4]), High(totals[4]), Low(totals[6]), High(totals[6]) });
   auto const& own{ Record<Side>(data, data.current_side_ptr) };
   row(245);
-  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ ROW4, own.bombers, static_cast<std::uint16_t>(cities), influence });
+  opeu_cursor_print(game, std::array<FormatArgument, 4>{ ROW4, own.bombers, cities, influence });
   row(263);
-  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ ROW5, own.planes, own.paratroops, static_cast<std::uint16_t>(own.strength) });
+  opeu_cursor_print(game, std::array<FormatArgument, 4>{ ROW5, own.planes, own.paratroops, own.strength });
   opeu_army_position(game, 54, 138);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ HQ_FORMAT, opeu_unit_name(game, opeu_find_side_selected_unit(game, side), locals.At(0)) });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ HQ_FORMAT, opeu_unit_name(game, opeu_find_side_selected_unit(game, side), locals.At(0)) });
 }

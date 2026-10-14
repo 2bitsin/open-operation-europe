@@ -4,9 +4,11 @@
 // Every call that leaves the module goes through the host's event; the scratch buffers live in the DS area at
 // game.Dialogs().scratch (at most 132 bytes; no two buffer owners are active at once).
 #include "core/dialogs.hpp"
+
 #include "common/events.hpp"
 #include "common/host.hpp"
 #include "types.hpp"
+#include <algorithm>
 
 #include "common/data-segment.hpp"
 #include "common/game.hpp"
@@ -97,8 +99,7 @@ void opeu_turn_prepare(Game& game) {
   opeu_picture_memory_masked(game, 0, 0x18, data.frame_segment, 0x1c00);
   opeu_context_save(game);
   opeu_army_position(game, 0x12, 0x20);
-  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ Near(data, data.turn_date_format), static_cast<std::uint16_t>(data.month), static_cast<std::uint16_t>(data.day),
-                                                        static_cast<std::uint16_t>(data.year), static_cast<std::uint16_t>(data.hour), weather });
+  opeu_cursor_print(game, std::array<FormatArgument, 6>{ Near(data, data.turn_date_format), data.month, data.day, data.year, data.hour, weather });
   opeu_context_restore(game);
   opeu_palette_for_hour(game);
 }
@@ -188,12 +189,12 @@ void opeu_screen_reset(Game& game) {
 }
 
 // The title panel with `name` framed.
-void opeu_army_title(Game& game, uint16_t name) {
+void opeu_army_title(Game& game, Text name) {
   auto const& data{ Data(game) };
   opeu_title_panel_begin(game);
   opeu_context_save(game);
   opeu_context_frame(game, 0x2c, 0x7a, static_cast<std::uint8_t>(opeu_string_length(game, name)) + 3);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.title_format), name });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.title_format), name });
   opeu_context_restore(game);
 }
 
@@ -238,13 +239,13 @@ uint16_t opeu_speaker_panel(Game& game, uint16_t person, uint16_t show) {
       auto const division{ (speaker.assignment & Bits(Assignment::DIVISION_MASK)) + 1 };
       if (speaker.assignment & Bits(Assignment::DIVISION)) {
         opeu_context_frame(game, 0x2c, 0x11a, opeu_string_length(game, person) + 0xe);
-        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.division_title), static_cast<std::uint16_t>(division) });
+        opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.division_title), division });
       } else {
         opeu_context_frame(game, 0x2c, 0x11a, opeu_string_length(game, person) + 0xd);
-        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.commander_title), static_cast<std::uint16_t>(division) });
+        opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.commander_title), division });
       }
     }
-    opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.speaker_name_format), person });
+    opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.speaker_name_format), person });
     opeu_context_portrait(game, 0x2d, 0x13c, person);
     opeu_ui_text(game, Near(data, data.speaker_body_text));
     opeu_army_position(game, 0x36, 0x144);
@@ -258,13 +259,13 @@ uint16_t opeu_speaker_panel(Game& game, uint16_t person, uint16_t show) {
   return 1;
 }
 
-// Puts the zero-terminated text at DS:text out character by character.
-void opeu_text_feed(Game& game, uint16_t text) {
-  for (char c; (c = Record<char>(Data(game), text)) != 0; ++text) opeu_text_put(game, c);
+// Puts the text out character by character.
+void opeu_text_feed(Game& game, Text text) {
+  std::ranges::for_each(text.View(Data(game)), [&game](char c) { opeu_text_put(game, static_cast<uint8_t>(c)); });
 }
 
 // The message spoken by the person, if the player sees the person.
-void opeu_control_message(Game& game, uint16_t text, uint16_t person) {
+void opeu_control_message(Game& game, Text text, uint16_t person) {
   if (opeu_speaker_panel(game, person, 1)) {
     opeu_ui_text(game, text);
     opeu_speaker_panel(game, person, 0);
@@ -272,38 +273,38 @@ void opeu_control_message(Game& game, uint16_t text, uint16_t person) {
 }
 
 // The prompt with its range ("(first-last)") and the value chosen.
-uint16_t opeu_menu_prompt(Game& game, uint16_t text, uint16_t first, uint16_t last, uint16_t flag, uint16_t menu) {
+uint16_t opeu_menu_prompt(Game& game, Text text, uint16_t first, uint16_t last, uint16_t flag, uint16_t menu) {
   auto const& data{ Data(game) };
   auto const  range{ game.Dialogs().scratch };
-  opeu_request_format(game, std::array<std::uint16_t, 4>{ range, Near(data, data.menu_prompt_format), first, last });
+  opeu_request_format(game, range, std::array<FormatArgument, 3>{ Near(data, data.menu_prompt_format), first, last });
   opeu_text_feed(game, text);
   opeu_text_feed(game, range);
   return opeu_choose_value(game, { first, last }, { .cancel = static_cast<int16_t>(flag), .items = menu });
 }
 
-uint16_t opeu_control_choose(Game& game, uint16_t text, uint16_t first, uint16_t last, uint16_t flag, uint16_t person, uint16_t menu) {
+uint16_t opeu_control_choose(Game& game, Text text, uint16_t first, uint16_t last, uint16_t flag, uint16_t person, uint16_t menu) {
   opeu_speaker_panel(game, person, 1);
   auto const value{ opeu_menu_prompt(game, text, first, last, flag, menu) };
   opeu_speaker_panel(game, person, 0);
   return value;
 }
 
-uint16_t opeu_delay_dialog(Game& game, uint16_t text, uint16_t last, uint16_t person, uint16_t menu) {
+uint16_t opeu_delay_dialog(Game& game, Text text, uint16_t last, uint16_t person, uint16_t menu) {
   return opeu_control_choose(game, text, 1, last, 1, person, menu);
 }
 
-uint16_t opeu_choose_dialog(Game& game, uint16_t text, uint16_t last, uint16_t person, uint16_t menu) {
+uint16_t opeu_choose_dialog(Game& game, Text text, uint16_t last, uint16_t person, uint16_t menu) {
   return opeu_control_choose(game, text, 1, last, 0, person, menu);
 }
 
-uint16_t opeu_confirm_prompt(Game& game, uint16_t text) {
+uint16_t opeu_confirm_prompt(Game& game, Text text) {
   auto const& data{ Data(game) };
   opeu_text_feed(game, text);
   opeu_text_feed(game, Near(data, data.confirm_space));
   return static_cast<uint16_t>(opeu_yes_no(game));
 }
 
-uint16_t opeu_confirm_message(Game& game, uint16_t text, uint16_t person) {
+uint16_t opeu_confirm_message(Game& game, Text text, uint16_t person) {
   opeu_speaker_panel(game, person, 1);
   auto const answer{ opeu_confirm_prompt(game, text) };
   opeu_speaker_panel(game, person, 0);
@@ -320,20 +321,19 @@ uint16_t opeu_delay_confirm(Game& game, uint16_t person, uint8_t hours) {
   auto const& data{ Data(game) };
   auto const  text{ game.Dialogs().scratch };
   if (hours == 1) return opeu_confirm_message(game, opeu_message_lookup(game, ONE_HOUR_TEXT), person);
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.delay_hours_format), static_cast<std::uint16_t>(hours) });
+  opeu_request_format(game, text, std::array<FormatArgument, 2>{ Near(data, data.delay_hours_format), hours });
   return opeu_confirm_message(game, text, person);
 }
 
 // A report on the unit to its own side, spoken by its division commander, with the map moved to the unit.
-void opeu_unit_report(Game& game, uint16_t unit, uint16_t message) {
+void opeu_unit_report(Game& game, uint16_t unit, Text message) {
   auto const& data{ Data(game) };
   auto const  text{ game.Dialogs().scratch };
   auto const  name{ static_cast<std::uint16_t>(game.Dialogs().scratch + 100) };
   auto const  side{ opeu_unit_side(unit) };
   if (data.side_status[side] == SIDE_PLAYED && opeu_unit_selection_eligible(game, unit)) {
     auto const& record{ Record<Unit>(data, unit) };
-    opeu_request_format(
-        game, std::array<std::uint16_t, 5>{ text, Near(data, data.unit_report_format), static_cast<std::uint16_t>(SideColorCode(side)), data.side_names[side], opeu_unit_name(game, unit, name) });
+    opeu_request_format(game, text, std::array<FormatArgument, 4>{ Near(data, data.unit_report_format), SideColorCode(side), data.side_names[side], opeu_unit_name(game, unit, name) });
     opeu_string_append(game, text, message);
     opeu_arrival_location(game, record.x, record.y, side);
     opeu_control_message(game, text, opeu_find_group_record(game, side, opeu_unit_group_index(unit)));
@@ -342,13 +342,13 @@ void opeu_unit_report(Game& game, uint16_t unit, uint16_t message) {
 }
 
 // A report on the objective to its own side, spoken by the side's intelligence chief, with the objective flashed.
-void opeu_objective_report(Game& game, uint16_t objective, uint16_t message) {
+void opeu_objective_report(Game& game, uint16_t objective, Text message) {
   auto const& data{ Data(game) };
   auto const  text{ game.Dialogs().scratch };
   auto const  side{ opeu_objective_side(game, objective) };
   if (data.side_status[side] == SIDE_PLAYED && opeu_objective_eligible(game, objective)) {
     auto const& record{ Record<Objective>(data, objective) };
-    opeu_request_format(game, std::array<std::uint16_t, 4>{ text, Near(data, data.objective_report_format), static_cast<std::uint16_t>(SideColorCode(side)), objective });
+    opeu_request_format(game, text, std::array<FormatArgument, 3>{ Near(data, data.objective_report_format), SideColorCode(side), objective });
     opeu_string_append(game, text, message);
     opeu_arrival_location(game, record.x, record.y, side);
     opeu_control_message(game, text, opeu_find_side_record(game, side, INTELLIGENCE_CHIEF_KIND));
@@ -358,7 +358,7 @@ void opeu_objective_report(Game& game, uint16_t objective, uint16_t message) {
 
 // A message about the unit: to the enemy's intelligence chief when the unit is special, else to its own division
 // commander when the player sees it.
-void opeu_unit_side_report(Game& game, uint16_t unit, uint16_t message) {
+void opeu_unit_side_report(Game& game, uint16_t unit, Text message) {
   auto const&   data{ Data(game) };
   std::uint16_t speaker;
   auto          side{ (opeu_opposite_side(opeu_unit_side(unit))) };
@@ -377,7 +377,7 @@ void opeu_unit_side_report(Game& game, uint16_t unit, uint16_t message) {
 }
 
 // A message about the objective to the enemy's intelligence chief, else to its own side's when the player sees it.
-void opeu_objective_side_report(Game& game, uint16_t objective, uint16_t message) {
+void opeu_objective_side_report(Game& game, uint16_t objective, Text message) {
   auto const& data{ Data(game) };
   auto        side{ (opeu_opposite_side(opeu_objective_side(game, objective))) };
   if (data.side_status[side] != SIDE_PLAYED) {
@@ -397,16 +397,15 @@ void opeu_element_type_panel(Game& game, uint16_t type) {
   opeu_army_title(game, record.name);
   opeu_face_draw(game, 0x2d, 0xb4, 0, index);
   opeu_army_position(game, 0x44, 0xb4);
-  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ Near(data, data.attack_format), static_cast<std::uint16_t>(record.anti_personnel), static_cast<std::uint16_t>(record.anti_tank) });
+  opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(data, data.attack_format), record.anti_personnel, record.anti_tank });
   opeu_army_position(game, 0x45, 0xc4);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.defense_format), static_cast<std::uint16_t>(record.defense) });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.defense_format), record.defense });
   opeu_army_position(game, 0x45, 0xd4);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.speed_format), static_cast<std::uint16_t>(record.speed) });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.speed_format), record.speed });
   opeu_army_position(game, 0x45, 0xe4);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.move_range_format),
-                                                        static_cast<std::uint16_t>(!record.category ? 0 : static_cast<std::uint16_t>(record.fuel_economy * record.fuel_capacity) / 10) });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.move_range_format), !record.category ? 0 : static_cast<std::uint16_t>(record.fuel_economy * record.fuel_capacity) / 10 });
   opeu_army_position(game, 0x45, 0xf4);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.gun_range_format), static_cast<std::uint16_t>(record.gun_range) });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.gun_range_format), record.gun_range });
 }
 
 // A battalion's panel: its type's name and face, quantity, morale, damage, training and experience.
@@ -417,8 +416,7 @@ void opeu_group_element_panel(Game& game, uint16_t element) {
   opeu_army_title(game, opeu_type_name(game, Near(data, data.element_types[record.type]), name));
   opeu_face_draw(game, 0x32, 0x9a, 0, record.type);
   opeu_army_position(game, 0x2e, 0xea);
-  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ Near(data, data.group_element_format), record.quantity, static_cast<std::uint16_t>(record.morale), record.damage,
-                                                        static_cast<std::uint16_t>(record.training), static_cast<std::uint16_t>(record.experience) });
+  opeu_cursor_print(game, std::array<FormatArgument, 6>{ Near(data, data.group_element_format), record.quantity, record.morale, record.damage, record.training, record.experience });
 }
 
 // An equipment item's panel: its type's name and face, quantity and extra word.
@@ -429,5 +427,5 @@ void opeu_element_panel(Game& game, uint16_t item) {
   opeu_army_title(game, opeu_type_name(game, Near(data, data.element_types[record.type]), name));
   opeu_face_draw(game, 0x32, 0x9a, 0, record.type);
   opeu_army_position(game, 0x30, 0xea);
-  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ Near(data, data.element_format), record.quantity, record.extra });
+  opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(data, data.element_format), record.quantity, record.extra });
 }

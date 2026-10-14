@@ -38,9 +38,9 @@ void Open(Game& game, uint16_t& handle, Name const& name) {
 // allocated, is not shown.
 void opeu_memory_fail(Game& game, uint16_t) {
   auto const& data{ Data(game) };
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.memory_message) });
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.memory_advice) });
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.memory_exit) });
+  opeu_cursor_print(game, std::array<FormatArgument, 1>{ Near(data, data.memory_message) });
+  opeu_cursor_print(game, std::array<FormatArgument, 1>{ Near(data, data.memory_advice) });
+  opeu_cursor_print(game, std::array<FormatArgument, 1>{ Near(data, data.memory_exit) });
   while (!game.Machine().Input().KeyWaiting());
   opeu_quit_to_dos(game);
 }

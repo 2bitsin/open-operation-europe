@@ -21,7 +21,7 @@ using namespace opeu::game;
 
 namespace {
 
-// The button tiles (data/fg35c0 opeu_menu_button_tiles): far segment and the offset of each 96-byte tile.
+// The button tiles (data/fg35c0 MENU_BUTTON_TILES): far segment and the offset of each 96-byte tile.
 constexpr std::uint16_t TILES_SEGMENT{ 0x35c0 };
 constexpr std::uint16_t TILE_BYTES{ 0x60 };
 enum Tile : std::uint16_t {
@@ -64,8 +64,7 @@ auto PrintLabel(Game& game, MenuItem const& item, std::uint16_t y) -> void {
   auto& data{ Data(game) };
   opeu_context_save(game);
   opeu_army_position(game, static_cast<std::int16_t>(item.x), static_cast<std::int16_t>(y));
-  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.menu_format)), static_cast<std::uint16_t>(static_cast<std::uint8_t>(item.attribute) + '0'),
-                                                        static_cast<std::uint16_t>(item.label) });
+  opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(data, data.menu_format), static_cast<std::uint8_t>(item.attribute) + '0', item.label });
   opeu_context_restore(game);
 }
 

@@ -91,12 +91,11 @@ void opeu_turn_action_9(Game& game) {
     if (order.kind != Bits(SpecialMission::NONE)) {
       opeu_army_title(game, offsetof(DataSegment, special_forces_title));
       opeu_army_position(game, INFO_X, ORDERS_Y);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_orders_line)), data.special_mission_names[order.kind] });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, special_orders_line), data.special_mission_names[order.kind] });
       opeu_army_position(game, INFO_X, TARGET_Y);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_target_line)),
-                                                            (opeu_special_unit_target(game) ? opeu_unit_name(game, order.target, name) : order.target) });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, special_target_line), (opeu_special_unit_target(game) ? opeu_unit_name(game, order.target, name) : order.target) });
       opeu_army_position(game, INFO_X, TIME_Y);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, special_time_line)), static_cast<std::uint16_t>(order.progress) });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, special_time_line), order.progress });
       if (!opeu_confirm_message(game, offsetof(DataSegment, special_cancel_question), data.context_record2)) break;
       order.kind = Bits(SpecialMission::NONE);
     }

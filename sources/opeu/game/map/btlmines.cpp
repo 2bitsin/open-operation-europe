@@ -47,8 +47,7 @@ void opeu_battle_mine_report(Game& game, uint16_t element) {
   auto const          buffer{ locals.At(0) };
   auto const          side{ static_cast<uint8_t>(opeu_battle_element_side(game, element)) };
   if (data.side_status[side] == SIDE_COMPUTER) return;
-  opeu_request_format(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(buffer), static_cast<std::uint16_t>(Near(data, data.mine_text)), static_cast<std::uint16_t>(SideColorCode(side)),
-                                                          static_cast<std::uint16_t>(data.side_names[side]), static_cast<std::uint16_t>(ElementTypeOf(data, element).name) });
+  opeu_request_format(game, buffer, std::array<FormatArgument, 4>{ Near(data, data.mine_text), SideColorCode(side), data.side_names[side], ElementTypeOf(data, element).name });
   Append(game, buffer, Near(data, data.retreat_mines_text));
   opeu_battle_commander_wait(game, buffer, static_cast<uint8_t>(side), static_cast<uint8_t>(COMMANDER_REPORT));
 }

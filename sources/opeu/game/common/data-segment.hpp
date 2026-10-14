@@ -1313,7 +1313,7 @@ struct DataSegment {
       std::uint8_t  saved_background;              // DS:3ee6
       std::uint8_t  text_lead;                     // DS:3ee7
       std::int16_t  text_state;                    // DS:3ee8
-      std::uint16_t format_output;                 // DS:3eea: where opeu_request_format writes next
+      std::uint16_t format_output;                 // DS:3eea: unused (the formatter's end of text, no longer kept)
     };
   };
   std::array<std::uint8_t, 1536> text_font; // DS:3eec

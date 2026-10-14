@@ -69,12 +69,10 @@ void opeu_group_set_target(Game& game, uint8_t group) {
     if (objective) {
       kind = opeu_objective_side(game, objective) != data.current_side ? TaskKind::CAPTURE : TaskKind::HOLD;
       auto const format{ opeu_string_length(game, objective) > ONE_LINE_NAME ? Near(data, data.target_two_line_format) : Near(data, data.target_one_line_format) };
-      opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(format), static_cast<std::uint16_t>(data.order_names[Bits(kind)]),
-                                                              static_cast<std::uint16_t>(objective) });
+      opeu_request_format(game, text, std::array<FormatArgument, 3>{ format, data.order_names[Bits(kind)], objective });
     } else {
       kind = TaskKind::MOVE;
-      opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.target_cell_format)),
-                                                              static_cast<std::uint16_t>(data.map_scale * x), static_cast<std::uint16_t>(y * data.map_scale) });
+      opeu_request_format(game, text, std::array<FormatArgument, 3>{ Near(data, data.target_cell_format), data.map_scale * x, y * data.map_scale });
     }
     if (opeu_confirm_message(game, text, person)) {
       task.x    = x;

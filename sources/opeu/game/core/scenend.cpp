@@ -55,7 +55,7 @@ constexpr std::uint16_t MAX_SCORE{ 1000 };
 // Prints the given message texts, one per line.
 template <std::size_t N>
 auto PrintMessages(Game& game, std::uint16_t const (&ids)[N]) -> void {
-  for (auto const id : ids) opeu_cursor_print(game, std::array<std::uint16_t, 1>{ opeu_message_lookup(game, static_cast<int16_t>(id)) });
+  for (auto const id : ids) opeu_cursor_print(game, std::array<FormatArgument, 1>{ opeu_message_lookup(game, static_cast<int16_t>(id)) });
 }
 
 // Lets an epilogue page stand, then clears the screen to the dark palette for the next one.
@@ -114,10 +114,9 @@ void opeu_scenario_end(Game& game) {
   auto const          reason{ data.outcome_reason };
   int16_t             picture;
 
-  auto const copy_text{ [&](FarPointer const& text) { opeu_string_copy_far(game, pattern, port_far(text.segment, 0), text.offset); } };
+  auto const copy_text{ [&](FarPointer const& text) { opeu_string_copy_far(game, pattern, FarBytes(game, text.segment, text.offset)); } };
   auto const format_caption{ [&](uint8_t record_side) {
-    opeu_request_format(
-        game, std::array<std::uint16_t, 5>{ caption, pattern, static_cast<std::uint16_t>(data.month), static_cast<std::uint16_t>(data.day), opeu_find_side_record(game, record_side, COMMANDER) });
+    opeu_request_format(game, caption, std::array<FormatArgument, 4>{ pattern, data.month, data.day, opeu_find_side_record(game, record_side, COMMANDER) });
   } };
   auto const opposite{ [&] { return opeu_opposite_side(side); } };
 
@@ -151,7 +150,7 @@ void opeu_scenario_end(Game& game) {
   opeu_picture_file(game, 80, 64, handle, picture);
   game.Machine().Files().Close(HandleOf(handle));
   opeu_army_position(game, 9, 336);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, end_text_format)), caption });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, end_text_format), caption });
   opeu_finish_side_initialization(game, 1);
   opeu_delay_units(game, 0x93);
   if (data.side_control[side] == SIDE_PLAYED) {
@@ -182,7 +181,7 @@ void opeu_scenario_end(Game& game) {
     picture_at(160, 35, 0xd03b);
     opeu_army_position(game, 12, 280);
     PrintMessages(game, EPILOGUE_PAGE_4);
-    opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, end_salute)), opeu_find_side_record(game, side, COMMANDER) });
+    opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, end_salute), opeu_find_side_record(game, side, COMMANDER) });
     NextPage(game);
     opeu_end_palette_show(game);
     picture_at(0, 0, 0x10c78);

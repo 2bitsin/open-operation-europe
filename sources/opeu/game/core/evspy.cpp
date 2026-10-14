@@ -76,13 +76,13 @@ void opeu_spy_portrait_text(Game& game, uint16_t text, uint16_t show) {
   auto const& data{ Data(game) };
   opeu_message_panel_begin(game);
   opeu_context_frame(game, 44, 282, 15);
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Lookup(game, 0x2b)) });
+  opeu_cursor_print(game, std::array<FormatArgument, 1>{ Lookup(game, 0x2b) });
   if (show) {
     game.Machine().Files().Seek(HandleOf(data.portrait_handle), static_cast<std::int32_t>(std::uint32_t{ PORTRAIT_LOW } | std::uint32_t{ PORTRAIT_HIGH } << 16), services::SeekOrigin::START);
     opeu_image_read_draw(game, 45, 316, 8, 80, 0, static_cast<int16_t>(data.portrait_handle));
   }
   opeu_army_position(game, static_cast<int16_t>(54), static_cast<int16_t>(324));
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(NAME_FORMAT), static_cast<std::uint16_t>(text) });
+  opeu_request_format(game, BUFFER, std::array<FormatArgument, 2>{ NAME_FORMAT, text });
   opeu_text_feed(game, BUFFER);
 }
 
@@ -91,7 +91,7 @@ void opeu_spy_present_a(Game& game) {
   opeu_set_turn_context(game, static_cast<std::uint8_t>(SPY_CONTEXT));
   auto const near{ Commander(game) };
   for (std::uint16_t id{ 0x2c }; id <= 0x33; ++id) {
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(Lookup(game, id)), static_cast<std::uint16_t>(near) });
+    opeu_request_format(game, BUFFER, std::array<FormatArgument, 2>{ Lookup(game, id), near });
     opeu_spy_portrait_text(game, BUFFER, 1);
   }
   opeu_finish_side_initialization(game, static_cast<std::uint8_t>(0));
@@ -105,7 +105,7 @@ void opeu_spy_show_a(Game& game) {
 
 // The accepted ending: experience up by 1, the health limit down by 1 and health capped at it.
 void opeu_spy_present_b(Game& game) {
-  opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(LAUGH) });
+  opeu_request_format(game, BUFFER, std::array<FormatArgument, 1>{ LAUGH });
   opeu_spy_portrait_text(game, BUFFER, 1);
   auto& commander{ Record<Person>(Data(game), Commander(game)) };
   commander.experience = AddByte(commander.experience, 1, RATING_LIMIT);
@@ -117,9 +117,9 @@ void opeu_spy_present_b(Game& game) {
 void opeu_spy_approach(Game& game) {
   auto const& data{ Data(game) };
   opeu_set_turn_context(game, static_cast<std::uint8_t>(SPY_CONTEXT));
-  opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(Lookup(game, 0x6b)) });
+  opeu_request_format(game, BUFFER, std::array<FormatArgument, 1>{ Lookup(game, 0x6b) });
   opeu_spy_portrait_text(game, BUFFER, 1);
-  opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(Lookup(game, 0x6c)) });
+  opeu_request_format(game, BUFFER, std::array<FormatArgument, 1>{ Lookup(game, 0x6c) });
   opeu_spy_portrait_text(game, BUFFER, 1);
   opeu_message_panel_begin(game);
   if (data.restart_flag == 1) {
@@ -129,7 +129,7 @@ void opeu_spy_approach(Game& game) {
     if (accepted)
       opeu_daily_show(game, ENDING_SHOW, 0, Presenter::SPY_ENDING);
     else {
-      opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(BUFFER), static_cast<std::uint16_t>(HUMPH) });
+      opeu_request_format(game, BUFFER, std::array<FormatArgument, 1>{ HUMPH });
       opeu_spy_portrait_text(game, BUFFER, 1);
     }
   }

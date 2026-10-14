@@ -123,14 +123,14 @@ void opeu_battle_commander_panel(Game& game, uint8_t side, uint16_t refresh) {
     auto const unit{ ours ? defender : BattleList(data, 0, 0) };
     auto const group{ static_cast<uint8_t>(opeu_unit_group_index(unit)) };
     person = opeu_find_group_record(game, static_cast<uint8_t>(side), static_cast<uint8_t>(group));
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(name), static_cast<std::uint16_t>(data.battle_division_format), static_cast<std::uint16_t>(group + 1) });
+    opeu_request_format(game, name, std::array<FormatArgument, 2>{ data.battle_division_format, group + 1 });
   }
   auto const x{ side ? 0x3c : 9 };
   opeu_context_save(game);
   opeu_context_portrait(game, side ? 0x48 : 0, 0x100, person);
   opeu_army_position(game, static_cast<short>(x), static_cast<short>(0x130));
   opeu_text_color(game, NAME_COLOR[side ? 1 : 0]);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.battle_commander_format)), static_cast<std::uint16_t>(name) });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.battle_commander_format), name });
   opeu_army_position(game, static_cast<short>(x), static_cast<short>(0x140));
   opeu_text_color(game, TEXT_WHITE);
   opeu_ui_text(game, person);
@@ -141,14 +141,12 @@ void opeu_battle_commander_panel(Game& game, uint8_t side, uint16_t refresh) {
 // Shows the side's commander panel with the wait text and its value.
 void opeu_battle_commander_wait(Game& game, uint16_t text, uint8_t side, uint8_t value) {
   opeu_battle_commander_panel(game, side, 1);
-  opeu_cursor_print(
-      game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(Data(game), Data(game).battle_wait_format)), static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(value + '0') });
+  opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(Data(game), Data(game).battle_wait_format), text, value + '0' });
 }
 
 void opeu_battle_commander_message(Game& game, uint16_t text, uint8_t side, uint8_t value) {
   opeu_battle_commander_panel(game, side, 0);
-  opeu_cursor_print(
-      game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(Data(game), Data(game).battle_prompt_format)), static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(value + '0') });
+  opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(Data(game), Data(game).battle_prompt_format), text, value + '0' });
 }
 
 void opeu_battle_element_destroy(Game& game, uint16_t element) {

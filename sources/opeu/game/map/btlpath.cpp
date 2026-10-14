@@ -162,8 +162,7 @@ void opeu_battle_report_sighted(Game& game, uint16_t element) {
   auto const          mode{ static_cast<uint8_t>(opeu_battle_mode(game, element)) };
   opeu_battle_draw_element_at(game, { position.x, position.y }, { element, mode });
   auto const name{ opeu_element_name(game, element, name_at) };
-  opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(message), static_cast<std::uint16_t>(Near(data, data.battle_fmt_sighted)),
-                                                          static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(name) });
+  opeu_request_format(game, message, std::array<FormatArgument, 3>{ Near(data, data.battle_fmt_sighted), SideColorCode(side), name });
   opeu_string_append(game, message, Near(data, data.battle_text_sighted));
   opeu_battle_commander_wait(game, message, opeu_opposite_side(side), 2);
 }

@@ -56,7 +56,7 @@ void Position(Game& game, ScreenPoint at) {
 // Prints the format with its words at the text cursor.
 template <typename... _Words>
 void Print(Game& game, std::uint16_t format, _Words... words) {
-  opeu_cursor_print(game, std::array<std::uint16_t, 1 + sizeof...(_Words)>{ format, static_cast<std::uint16_t>(words)... });
+  opeu_cursor_print(game, std::array<FormatArgument, 1 + sizeof...(_Words)>{ format, words... });
 }
 
 } // namespace

@@ -30,8 +30,7 @@ void opeu_map_cursor(Game& game, uint16_t x, uint16_t y) {
   auto const  cell_y{ static_cast<uint8_t>(y) };
   auto const  terrain{ opeu_map_code(game, cell_x, cell_y) };
   opeu_turn_active_begin(game);
-  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.cursor_position_format)), static_cast<std::uint16_t>(data.map_scale * cell_x),
-                                                        static_cast<std::uint16_t>(data.map_scale * cell_y) });
+  opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(data, data.cursor_position_format), data.map_scale * cell_x, data.map_scale * cell_y });
   opeu_ui_text(game, terrain == Bits(Terrain::CITY) ? opeu_find_objective_at(game, cell_x, cell_y) : data.terrain_names[terrain]);
   auto const side{ opeu_cell_side(game, cell_x, cell_y) };
   if (side != NO_SIDE) {
@@ -39,8 +38,7 @@ void opeu_map_cursor(Game& game, uint16_t x, uint16_t y) {
     if ((side == data.current_side && opeu_unit_selection_eligible(game, unit)) || (side != data.current_side && opeu_unit_special(game, unit))) {
       ServiceLocals const locals{ NAME_BUFFER_BYTES };
       auto const          name{ opeu_unit_name(game, unit, locals.At(0)) };
-      opeu_cursor_print(
-          game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.cursor_unit_format)), static_cast<std::uint16_t>(data.side_names[side]), static_cast<std::uint16_t>(name) });
+      opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(data, data.cursor_unit_format), data.side_names[side], name });
     }
   }
   opeu_ui_text(game, Near(data, data.cursor_end));

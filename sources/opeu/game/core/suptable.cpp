@@ -79,7 +79,7 @@ void opeu_supply_draw_types(Game& game, DrawRequest const& request) {
   auto const&         window{ ActiveWindow(data) };
   if (flags & 3) {
     opeu_army_position(game, window.x + 2, window.y + 1);
-    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_type_header)) });
+    opeu_cursor_print(game, std::array<FormatArgument, 1>{ offsetof(DataSegment, supply_type_header) });
   }
   for (std::uint8_t line = first; line <= last; ++line) {
     auto const type{ TypeAt(data.supply_types[line]) };
@@ -87,9 +87,8 @@ void opeu_supply_draw_types(Game& game, DrawRequest const& request) {
     auto const amount{ data.supply_amounts[line] };
     auto const other{ data.supply_others[line] };
     auto const nation{ opeu_nation_code(game, type, scratch) };
-    opeu_cursor_print(game,
-                      std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_type_row)),
-                                                    static_cast<std::uint16_t>(data.current_side == 0 ? SIDE0_COLOUR : OTHER_COLOUR), (Record<ElementType>(data, type).name), nation, amount, other });
+    opeu_cursor_print(game, std::array<FormatArgument, 6>{ offsetof(DataSegment, supply_type_row), data.current_side == 0 ? SIDE0_COLOUR : OTHER_COLOUR, (Record<ElementType>(data, type).name), nation,
+                                                           amount, other });
   }
 }
 
@@ -109,8 +108,7 @@ uint8_t opeu_supply_return_slot(Game& game) {
   auto const y{ data.list_row * LINE_HEIGHT + 0x2e };
   game.Machine().Display().Highlight({ 0x31, static_cast<uint16_t>(y), 0x16, 0x10 }, HIGHLIGHT_COLOUR);
   opeu_army_position(game, 0x2e, y);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_returned_slot)),
-                                                        static_cast<std::uint16_t>(data.list_row < data.supply_count ? HELD_COLOUR : OTHER_COLOUR) });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, supply_returned_slot), data.list_row < data.supply_count ? HELD_COLOUR : OTHER_COLOUR });
   game.Machine().Display().Highlight({ 0x2e, static_cast<uint16_t>(y), 0x16, 0x10 }, HIGHLIGHT_COLOUR);
   return 1;
 }
@@ -124,7 +122,7 @@ void opeu_supply_draw_slots(Game& game, DrawRequest const& request) {
   auto const&         window{ ActiveWindow(data) };
   if (flags & 3) {
     opeu_army_position(game, window.x + 2, window.y + 1);
-    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_slot_header)) });
+    opeu_cursor_print(game, std::array<FormatArgument, 1>{ offsetof(DataSegment, supply_slot_header) });
   }
   for (std::uint16_t line = first; line <= last; ++line) {
     opeu_army_position(game, window.x + 2, (line - data.list_top) * LINE_HEIGHT + window.y + 18);
@@ -135,9 +133,9 @@ void opeu_supply_draw_slots(Game& game, DrawRequest const& request) {
       auto const amount{ slot.quantity };
       auto const nation{ opeu_nation_code(game, TypeAt(slot.type), scratch + NAME_BUFFER) };
       auto const name{ opeu_item_type_name(game, Near(data, slot), scratch) };
-      opeu_cursor_print(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_slot_row)), static_cast<std::uint16_t>(colour), name, nation, amount });
+      opeu_cursor_print(game, std::array<FormatArgument, 5>{ offsetof(DataSegment, supply_slot_row), colour, name, nation, amount });
     } else {
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_empty_slot)), static_cast<std::uint16_t>(colour) });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, supply_empty_slot), colour });
     }
   }
 }

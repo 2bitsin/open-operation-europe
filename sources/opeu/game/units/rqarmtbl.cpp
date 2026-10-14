@@ -44,7 +44,7 @@ void opeu_rq_draw_units(Game& game, DrawRequest const& request) {
     auto const unit{ data.ai_unit_list[entry] };
     if (flags & DRAW_NAMES) {
       StartRowName(game, window, entry, 3, data.current_side);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.rq_unit_name), opeu_unit_name(game, unit, name) });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.rq_unit_name), opeu_unit_name(game, unit, name) });
     }
     opeu_string_copy(game, text, Near(data, data.rq_unit_row));
     DrawRowText(game, window, layout, entry, text);

@@ -136,7 +136,7 @@ void opeu_view_victory(Game& game) {
   auto&      data{ Data(game) };
   auto const conditions{ data.current_side ? Near(data, data.scenario_notes) : Near(data, data.scenario_brief) };
   opeu_army_title(game, VICTORY_TITLE);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ VICTORY_FORMAT, conditions });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ VICTORY_FORMAT, conditions });
   opeu_control_message(game, VICTORY_ORDERS, data.context_record3);
 }
 

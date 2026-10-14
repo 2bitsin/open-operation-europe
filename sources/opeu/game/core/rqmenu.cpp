@@ -17,8 +17,12 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
 #include <array>
+#include <iterator>
+#include <ranges>
 #include <utility>
+#include <vector>
 
 using namespace opeu::game;
 
@@ -43,7 +47,7 @@ constexpr auto REQUEST_HANDLERS = DispatchRows<RequestHandler, auto (*)(Game&)->
 // "Request   Dest     Type      Wait" at the top of the request table.
 void opeu_request_header(Game& game) {
   opeu_army_position(game, TABLE_X, HEADER_Y);
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_header_text)) });
+  opeu_cursor_print(game, std::array<FormatArgument, 1>{ offsetof(DataSegment, rq_header_text) });
 }
 
 // The request menu. Each kind the side may request now (its booked request is of that kind: the request under
@@ -64,23 +68,23 @@ void opeu_turn_action_7(Game& game) {
       opeu_request_header(game);
       opeu_army_position(game, TABLE_X, FIRST_ROW_Y);
       if (preparing[0])
-        opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_supply_row_text)), config.target, static_cast<std::uint16_t>(config.delay) });
+        opeu_cursor_print(game, std::array<FormatArgument, 3>{ offsetof(DataSegment, rq_supply_row_text), config.target, config.delay });
       else
-        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_supply_filed_text)), filed(RequestKind::SUPPLIES).target });
+        opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, rq_supply_filed_text), filed(RequestKind::SUPPLIES).target });
       rows++;
     }
     if (shown(RequestKind::BATTALION)) {
       opeu_request_header(game);
       opeu_army_position(game, TABLE_X, rows * ROW_HEIGHT + FIRST_ROW_Y);
       if (preparing[1]) {
-        opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_battalion_row_text)), config.target, data.element_types[config.argument].name,
-                                                              static_cast<std::uint16_t>(config.delay) });
+        opeu_cursor_print(game, std::array<FormatArgument, 4>{ offsetof(DataSegment, rq_battalion_row_text), config.target, data.element_types[config.argument].name, config.delay });
       } else {
         // The row prints the type's name; the whole type record is passed by value, as seven words.
-        auto const&                                 request{ filed(RequestKind::BATTALION) };
-        auto const                                  type_at{ Near(data, data.element_types[request.argument]) };
-        std::array<uint16_t, 2 + TYPE_RECORD_WORDS> words{ static_cast<uint16_t>(offsetof(DataSegment, rq_battalion_filed_text)), request.target };
-        for (uint16_t i = 0; i < TYPE_RECORD_WORDS; ++i) words[2 + i] = Word(game, static_cast<uint16_t>(type_at + 2 * i));
+        auto const&                 request{ filed(RequestKind::BATTALION) };
+        auto const                  type_at{ Near(data, data.element_types[request.argument]) };
+        std::vector<FormatArgument> words{ static_cast<uint16_t>(offsetof(DataSegment, rq_battalion_filed_text)), request.target };
+        std::ranges::transform(std::views::iota(uint16_t{ 0 }, TYPE_RECORD_WORDS), std::back_inserter(words),
+                               [&](uint16_t i) { return FormatArgument{ Word(game, static_cast<uint16_t>(type_at + 2 * i)) }; });
         opeu_cursor_print(game, words);
       }
       rows++;
@@ -89,11 +93,9 @@ void opeu_turn_action_7(Game& game) {
       opeu_request_header(game);
       opeu_army_position(game, TABLE_X, rows * ROW_HEIGHT + FIRST_ROW_Y);
       if (preparing[2])
-        opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_regiment_row_text)), data.rq_regiment_kind_names[config.argument],
-                                                              static_cast<std::uint16_t>(config.delay) });
+        opeu_cursor_print(game, std::array<FormatArgument, 3>{ offsetof(DataSegment, rq_regiment_row_text), data.rq_regiment_kind_names[config.argument], config.delay });
       else
-        opeu_cursor_print(
-            game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, rq_regiment_filed_text)), data.rq_regiment_kind_names[filed(RequestKind::REGIMENT).argument] });
+        opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, rq_regiment_filed_text), data.rq_regiment_kind_names[filed(RequestKind::REGIMENT).argument] });
     }
     uint16_t choice;
     for (;;) {

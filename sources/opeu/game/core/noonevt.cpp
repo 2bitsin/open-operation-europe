@@ -156,7 +156,7 @@ void OpenSpeakerPanel(Game& game, uint16_t person) {
   auto const role{ data.role_names[(Record<Person>(data, person).role & Bits(PersonRole::ROLE_MASK)) - 1] };
   opeu_context_frame(game, 0x2c, 0x11a, static_cast<uint8_t>(opeu_string_length(game, person) + opeu_string_length(game, role) + 5));
   opeu_ui_text(game, role);
-  opeu_cursor_print(game, std::array<uint16_t, 2>{ At(offsetof(DataSegment, noon_name_format)), person });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ At(offsetof(DataSegment, noon_name_format)), person });
   opeu_context_portrait(game, 0x2d, 0x13c, person);
   opeu_ui_text(game, At(offsetof(DataSegment, noon_speech_style)));
   opeu_army_position(game, 0x36, 0x144);
@@ -169,7 +169,7 @@ void CloseSpeakerPanel(Game& game) {
 }
 
 // The person speaks the text in the portrait panel.
-void Speak(Game& game, uint16_t speech, uint16_t person) {
+void Speak(Game& game, Text speech, uint16_t person) {
   OpenSpeakerPanel(game, person);
   opeu_text_feed(game, speech);
   CloseSpeakerPanel(game);
@@ -185,18 +185,18 @@ auto Heard(DataSegment const& data, uint8_t code) -> bool {
 }
 
 // The person template the event's leader code names speaks noon_speeches[line] when the audience hears it.
-void LeaderSpeaks(Game& game, const uint8_t* far_text, NoonEvent const& noon) {
+void LeaderSpeaks(Game& game, std::span<std::uint8_t const> far_text, NoonEvent const& noon) {
   auto const& data{ Data(game) };
   if (!Heard(data, noon.leader)) return;
-  ServiceLocals const locals{ SPEECH_BYTES };
-  auto const          speech{ opeu_string_copy_far(game, locals.At(0), const_cast<uint8_t*>(far_text), data.noon_speeches[noon.line].offset) };
+  TextBuffer<SPEECH_BYTES> speech;
+  opeu_string_copy_far(game, speech, far_text.subspan(data.noon_speeches[noon.line].offset));
   Speak(game, speech, At(PERSON_TEMPLATES_AT + sizeof(Person) * (noon.leader >> 2)));
 }
 
 } // namespace
 
 // The day's noon events (at 12:00).
-void opeu_turn_noon_events(Game& game, const uint8_t* far_text) {
+void opeu_turn_noon_events(Game& game, std::span<std::uint8_t const> far_text) {
   ServiceLocals const locals{ NEWS_BYTES };
   auto&               data{ Data(game) };
   auto const          news{ locals.At(0) };
@@ -206,7 +206,7 @@ void opeu_turn_noon_events(Game& game, const uint8_t* far_text) {
   for (auto const& noon : data.noon_events | std::views::take_while(listed) | std::views::filter(today)) {
     if (noon.action != NoonAction::NONE) Dispatch(NOON_ACTIONS, noon.action, game);
     opeu_turn_active_begin(game);
-    opeu_string_copy_far(game, news, const_cast<uint8_t*>(far_text), noon.news.offset);
+    opeu_string_copy_far(game, news, far_text.subspan(noon.news.offset));
     opeu_string_append(game, news, At(offsetof(DataSegment, noon_news_end)));
     if (far_text[noon.news.offset]) opeu_sound_cue10(game);
     opeu_control_message(game, news, opeu_find_side_record(game, data.current_side, std::to_underlying(StaffRole::INTELLIGENCE_CHIEF)));

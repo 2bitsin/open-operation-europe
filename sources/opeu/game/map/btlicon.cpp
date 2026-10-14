@@ -107,7 +107,7 @@ void opeu_battle_draw_icon(Game& game, uint16_t element, uint8_t side, uint8_t m
   auto const          segment{ data.icon_segment };
   data.stream_ptr[1] = segment;
   data.stream_ptr[0] = offset;
-  opeu_read_far_bytes(game, port_far(segment, 0), offset, buffer, ICON_BYTES);
+  std::ranges::copy(FarBytes(game, segment, offset).first(ICON_BYTES), game.State().Bytes(buffer, ICON_BYTES).begin());
   if (side != 1)
     for (auto const row : std::views::iota(uint16_t{ 0 }, static_cast<uint16_t>(ICON_BYTES / ICON_ROW))) {
       auto const bytes{ game.State().Bytes(static_cast<uint16_t>(buffer + row * ICON_ROW), 2 * HALF_ROW) };

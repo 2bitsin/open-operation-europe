@@ -22,6 +22,6 @@ uint16_t opeu_message_lookup(Game& game, int16_t id) {
   auto const& data{ Data(game) };
   opeu_daily_context(game, data.current_side);
   auto const& text{ data.message_table[static_cast<uint16_t>(id)] };
-  opeu_string_copy_far(game, offsetof(DataSegment, message_buffer), port_far(text.segment, 0), text.offset);
+  opeu_string_copy_far(game, static_cast<uint16_t>(offsetof(DataSegment, message_buffer)), FarBytes(game, text.segment, text.offset));
   return offsetof(DataSegment, message_buffer);
 }

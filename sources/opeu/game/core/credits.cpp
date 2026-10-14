@@ -37,13 +37,13 @@ void opeu_division_credits(Game& game) {
     opeu_backdrop_fill_color(game, 1);
     data.restart_flag = 1;
     opeu_army_position(game, CREDITS_X, 100);
-    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ CREDITS_TITLE });
+    opeu_cursor_print(game, std::array<FormatArgument, 1>{ CREDITS_TITLE });
     opeu_army_position(game, CREDITS_X, 150);
-    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ CREDITS_MAIN });
+    opeu_cursor_print(game, std::array<FormatArgument, 1>{ CREDITS_MAIN });
     opeu_army_position(game, CREDITS_X, 170);
-    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ CREDITS_SUPPORT });
+    opeu_cursor_print(game, std::array<FormatArgument, 1>{ CREDITS_SUPPORT });
     opeu_army_position(game, CREDITS_X, 190);
-    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ CREDITS_TRANSLATION });
+    opeu_cursor_print(game, std::array<FormatArgument, 1>{ CREDITS_TRANSLATION });
     while (!game.Machine().Input().KeyWaiting()) {
     }
   }

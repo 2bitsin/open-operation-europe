@@ -41,12 +41,12 @@ void opeu_supply_draw_row(Game& game, uint8_t row, uint8_t column) {
   auto const digits_y{ static_cast<std::uint16_t>(top + 0x37) };
   auto const fill{ [&](std::uint16_t fill_x) { game.Machine().Display().Box({ fill_x, digits_y, 3, 6 }, 0); } };
   opeu_army_position(game, x + 2, text_y);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_row_left)), left });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, supply_row_left), left });
   opeu_army_position(game, x + 25, text_y);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_row_right)), right });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, supply_row_right), right });
   fill(x + 2);
   DrawDigits(game, ScreenPoint{ static_cast<std::uint16_t>((x + 4) << 3), digits_y }, left_percent);
   fill(x + 25);
   DrawDigits(game, ScreenPoint{ static_cast<std::uint16_t>((x + 27) << 3), digits_y }, right_percent);
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_row_end)) });
+  opeu_cursor_print(game, std::array<FormatArgument, 1>{ offsetof(DataSegment, supply_row_end) });
 }

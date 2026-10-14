@@ -49,8 +49,7 @@ void opeu_deploy_unit(Game& game, uint16_t unit) {
   if (unit != Near(data, data.garrison_unit)) {
     auto const name{ opeu_unit_name(game, unit, NAME_AT) };
     auto const side{ static_cast<uint8_t>(opeu_battle_unit_side(game, unit)) };
-    opeu_cursor_print(
-        game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.deploy_unit_title)), static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(name) });
+    opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(data, data.deploy_unit_title), SideColorCode(side), name });
   } else {
     opeu_ui_text(game, Near(data, data.deploy_garrison_title));
   }
@@ -84,8 +83,7 @@ void opeu_deploy_unit(Game& game, uint16_t unit) {
       }
       if (off_field) {
         panel();
-        opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(QUESTION_AT), static_cast<std::uint16_t>(Near(data, data.deploy_ask_auto)),
-                                                                static_cast<std::uint16_t>(off_field == all ? Near(data, data.deploy_all) : Near(data, data.deploy_others)) });
+        opeu_request_format(game, QUESTION_AT, std::array<FormatArgument, 2>{ Near(data, data.deploy_ask_auto), off_field == all ? Near(data, data.deploy_all) : Near(data, data.deploy_others) });
         if (!static_cast<std::uint16_t>(opeu_prompt_yes_no(game, QUESTION_AT))) {
           close_question();
           break; // back to the list's first row

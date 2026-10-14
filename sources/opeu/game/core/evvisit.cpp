@@ -78,20 +78,20 @@ void Converse(Game& game, uint8_t side) {
   auto const lookup{ [&](std::uint16_t id) -> std::uint16_t { return opeu_message_lookup(game, id); } };
   switch (game.State().RandomBounded(3)) {
   case 0:
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, VISIT_FORMAT, commander });
+    opeu_request_format(game, TEXT, std::array<FormatArgument, 2>{ VISIT_FORMAT, commander });
     say(TEXT);
     std::ranges::for_each(std::views::iota(std::uint16_t{ 12 }, std::uint16_t{ 17 }), [&](std::uint16_t id) { say(lookup(id)); });
     break;
   case 1:
     say(lookup(17));
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, lookup(18), commander });
+    opeu_request_format(game, TEXT, std::array<FormatArgument, 2>{ lookup(18), commander });
     say(TEXT);
     say(lookup(19));
     say(lookup(20));
     say(lookup(22));
     break;
   case 2:
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, lookup(23), commander });
+    opeu_request_format(game, TEXT, std::array<FormatArgument, 2>{ lookup(23), commander });
     say(TEXT);
     std::ranges::for_each(std::views::iota(std::uint16_t{ 24 }, std::uint16_t{ 27 }), [&](std::uint16_t id) { say(lookup(id)); });
     break;

@@ -31,11 +31,10 @@ constexpr uint16_t REFUSAL_COUNT{ 7 };
 
 // Formats message `id` with the name of the pending request's kind into the request buffer.
 void FormatPending(Game& game, uint16_t id) {
-  auto&                         data{ Data(game) };
-  auto const                    name{ data.request_kind_names[Record<RequestSlot>(data, data.pending_request).kind] };
-  auto const                    text{ opeu_message_lookup(game, id) };
-  std::array<uint16_t, 3> const words{ static_cast<uint16_t>(offsetof(DataSegment, request_buffer)), text, name };
-  opeu_request_format(game, words);
+  auto&      data{ Data(game) };
+  auto const name{ data.request_kind_names[Record<RequestSlot>(data, data.pending_request).kind] };
+  auto const text{ opeu_message_lookup(game, id) };
+  opeu_request_format(game, offsetof(DataSegment, request_buffer), std::array<FormatArgument, 2>{ text, name });
 }
 
 // Shows the request buffer from the side's chief of staff; it closes by itself when no side is played by a person.

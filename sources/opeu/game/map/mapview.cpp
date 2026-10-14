@@ -24,6 +24,8 @@
 #include "units/selelem.hpp"
 #include "vgalib.hpp"
 
+#include <algorithm>
+
 using namespace opeu::game;
 
 namespace {
@@ -43,7 +45,7 @@ constexpr uint8_t  OBJECTIVE_CODE{ 1 };
 
 // Copies a sprite from the sprite segment into the DS buffer `destination`.
 void ReadSprite(Game& game, uint16_t offset, uint16_t destination) {
-  opeu_read_far_bytes(game, port_far(SPRITE_SEGMENT, 0), offset, destination, SPRITE_BYTES);
+  std::ranges::copy(FarBytes(game, SPRITE_SEGMENT, offset).first(SPRITE_BYTES), game.State().Bytes(destination, SPRITE_BYTES).begin());
 }
 
 // Composes the 3 x 24 sprite at sprite_segment:sprite_offset through the streamed mask at a pixel position.

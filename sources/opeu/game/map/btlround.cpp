@@ -105,8 +105,7 @@ void opeu_battle_report_outcome(Game& game) {
   opeu_battle_daily_condition(game);
   opeu_battle_clear_positions(game);
   opeu_context_frame(game, VICTORY_X, BANNER_Y, data.battle_side ? SIDE_1_COLOR : SIDE_0_COLOR);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.battle_victory_format)),
-                                                        static_cast<std::uint16_t>(WordOf(game, Near(data, data.side_names), data.battle_side)) });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.battle_victory_format), WordOf(game, Near(data, data.side_names), data.battle_side) });
   opeu_battle_closing_music(game, static_cast<uint8_t>(result - 1));
   opeu_delay_units(game, static_cast<std::uint8_t>(VICTORY_PAUSE));
 }

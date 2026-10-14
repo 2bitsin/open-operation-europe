@@ -33,7 +33,7 @@ namespace {
 
 using PlaneMask = std::array<std::uint8_t, 216>;
 
-constexpr std::uint8_t  PLANE_MASK{ 8 }; // the plane's entry in opeu_view_type_masks
+constexpr std::uint8_t  PLANE_MASK{ 8 }; // the plane's entry in VIEW_TYPE_MASKS
 constexpr std::uint16_t BACKGROUND_OFFSET{ 0x014a };
 constexpr std::uint16_t SHADOW_OFFSET{ 0x1010 };
 constexpr std::uint16_t PLANE_OFFSET{ 0x04d0 };
@@ -53,7 +53,7 @@ void opeu_air_sprite_draw(Game& game, uint16_t load, uint16_t x, uint16_t y, uin
   ServiceLocals const locals{ sizeof(PlaneMask) }; // the mask the compose service reads
   auto&               data{ Data(game) };
   auto const          mask{ locals.At(0) };
-  std::ranges::copy(opeu_view_type_masks[PLANE_MASK], Record<PlaneMask>(data, mask).begin());
+  std::ranges::copy(VIEW_TYPE_MASKS[PLANE_MASK], Record<PlaneMask>(data, mask).begin());
   opeu_air_sprite_mirror(game, mask, keep);
   SetStream(data, static_cast<std::uint16_t>(load + BACKGROUND_SEGMENT), BACKGROUND_OFFSET);
   game.Machine().Display().SaveColumns({ x, y, 4, 32 }, FarBytes(game, data.stream_ptr[1], data.stream_ptr[0]));
@@ -80,7 +80,7 @@ uint8_t opeu_air_report(Game& game, uint16_t what, uint8_t wait) {
   if (data.weather != 0 && data.weather != 1) {
     if (wait != 0 && wait != 6) return 1;
     std::uint16_t const format{ wait ? POSTPONED_TEXT : CANCELED_TEXT };
-    opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, format, static_cast<std::uint16_t>(SideColorCode(data.air_side)), what });
+    opeu_request_format(game, buffer, std::array<FormatArgument, 3>{ format, SideColorCode(data.air_side), what });
     opeu_control_message(game, buffer, person);
     return wait ? 1 : 2;
   }

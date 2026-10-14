@@ -49,7 +49,7 @@ void opeu_tbl_draw_staff(Game& game, DrawRequest const& request) {
   auto const  columns{ TableColumnLayout(game, column, last_column) };
   if (flags & DRAW_HEADER) {
     auto const header{ opeu_message_lookup(game, HEADER_MESSAGE) };
-    opeu_request_format(game, std::array<std::uint16_t, 2>{ buffer, header });
+    opeu_request_format(game, buffer, std::array<FormatArgument, 1>{ header });
     opeu_army_position(game, ColumnX(data, window, columns, -0x1f), window.y + 1);
     opeu_select_side_color(game, data.current_side);
     opeu_text_put_range(game, buffer, columns.start, columns.count);
@@ -60,7 +60,7 @@ void opeu_tbl_draw_staff(Game& game, DrawRequest const& request) {
     if (flags & DRAW_LABELS) {
       opeu_army_position(game, window.x + 3, RowY(data, window, e));
       opeu_select_side_color(game, opeu_person_lacks_side0_flag(game, near));
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_person_name), near });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.tbl_person_name), near });
     }
     auto post{ Near(data, data.tbl_person_blank) };
     auto status{ post };
@@ -74,13 +74,12 @@ void opeu_tbl_draw_staff(Game& game, DrawRequest const& request) {
       status = Near(data, data.tbl_person_hurt);
     auto const format{ opeu_message_lookup(game, ROW_MESSAGE) };
     auto const nation{ opeu_first_mask_name(game, person.status) };
-    opeu_request_format(game, std::array<std::uint16_t, 13>{ buffer, format, nation, static_cast<std::uint16_t>(person.leadership), static_cast<std::uint16_t>(person.charm),
-                                                             static_cast<std::uint16_t>(person.bravery), static_cast<std::uint16_t>(person.health), static_cast<std::uint16_t>(person.infantry),
-                                                             static_cast<std::uint16_t>(person.artillery), static_cast<std::uint16_t>(person.armor), static_cast<std::uint16_t>(person.experience),
-                                                             post, status });
+    opeu_request_format(game, buffer,
+                        std::array<FormatArgument, 12>{ format, nation, person.leadership, person.charm, person.bravery, person.health, person.infantry, person.artillery, person.armor,
+                                                        person.experience, post, status });
     opeu_army_position(game, ColumnX(data, window, columns, -0x1f), RowY(data, window, e));
     opeu_text_color(game, TABLE_TEXT_COLOR);
-    opeu_cursor_print(game, std::array<std::uint16_t, 3>{ buffer, static_cast<std::uint16_t>(columns.start), static_cast<std::uint16_t>(columns.count) });
+    opeu_cursor_print(game, std::array<FormatArgument, 3>{ buffer, columns.start, columns.count });
   }
   opeu_text_color(game, TABLE_TEXT_COLOR);
 }

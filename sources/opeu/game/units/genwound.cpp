@@ -86,7 +86,7 @@ void opeu_general_casualty(Game& game, uint16_t person) {
   if (outcome == Outcome::WOUNDED) {
     if (data.side_status[side] == SIDE_PLAYED) {
       auto const saved{ general };
-      opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, CASUALTY_FORMAT, person, WOUNDED_TEXT });
+      opeu_request_format(game, buffer, std::array<FormatArgument, 3>{ CASUALTY_FORMAT, person, WOUNDED_TEXT });
       opeu_initialize_deputy(game, person);
       opeu_control_message(game, buffer, person);
       opeu_wait_confirm(game);
@@ -94,7 +94,7 @@ void opeu_general_casualty(Game& game, uint16_t person) {
     }
     wound();
   } else if (outcome == Outcome::KILLED) {
-    opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, CASUALTY_FORMAT, person, KILLED_TEXT });
+    opeu_request_format(game, buffer, std::array<FormatArgument, 3>{ CASUALTY_FORMAT, person, KILLED_TEXT });
     opeu_initialize_deputy(game, person);
     if (data.side_status[side] == SIDE_PLAYED) {
       opeu_set_turn_context(game, 0x10);

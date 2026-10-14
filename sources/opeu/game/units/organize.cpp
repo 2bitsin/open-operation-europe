@@ -134,7 +134,7 @@ auto Allocate(Game& game, ServiceLocals const& locals, Allocation const& a) -> v
       std::uint16_t const capacity{ data.request_capacities[type.category] };
       std::uint16_t const limit{ static_cast<std::uint16_t>(!a.other_slots && a.slots - 1 < slot ? capacity * 3 : capacity) };
       std::uint16_t const most{ limit < data.supply_amounts[row] ? limit : data.supply_amounts[row] };
-      opeu_request_format(game, std::array<std::uint16_t, 2>{ text, Near(data, data.organize_number) });
+      opeu_request_format(game, text, std::array<FormatArgument, 1>{ Near(data, data.organize_number) });
       auto const amount{ opeu_ops_chief_number(game, text, 1, most, 1, 0) };
       if (amount == MENU_CANCELLED) continue;
       opeu_alloc_take(game, { .entry = item, .slot = row, .amount = amount }, a.types);
@@ -182,7 +182,7 @@ void opeu_turn_action_6(Game& game) {
       auto const objective{ opeu_find_objective_at(game, next->x, next->y) };
       if (!objective) continue;
       if (static_cast<std::uint8_t>(opeu_objective_side(game, objective)) != data.current_side) continue;
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.organize_confirm_format), objective });
+      opeu_request_format(game, text, std::array<FormatArgument, 2>{ Near(data, data.organize_confirm_format), objective });
       if (!opeu_confirm_message(game, text, person())) continue;
       allocation.types       = static_cast<std::uint8_t>(opeu_tally_unit_stock(game, unit, objective));
       allocation.other_slots = 0;

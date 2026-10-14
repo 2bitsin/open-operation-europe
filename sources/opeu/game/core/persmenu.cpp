@@ -137,16 +137,17 @@ void opeu_commander_assign(Game& game) {
       auto const text{ texts.At(static_cast<uint16_t>(post * POST_TEXT_BYTES)) };
       if (post < GROUPS_PER_SIDE) {
         auto const fielded{ GroupOf(data, data.current_side, post).flags & Bits(GroupFlag::READY) };
-        opeu_request_format(game, std::array<std::uint16_t, 4>{ text, formats[post], (fielded ? data.post_labels[post] : Near(data, data.inactive_division_label)),
-                                                                (holders[post] ? holders[post] : no_holder[post]) });
+        opeu_request_format(
+            game, text,
+            std::array<FormatArgument, 3>{ formats[post], (fielded ? data.post_labels[post] : Near(data, data.inactive_division_label)), (holders[post] ? holders[post] : no_holder[post]) });
       } else {
-        opeu_request_format(game, std::array<std::uint16_t, 4>{ text, formats[post], data.post_labels[post], holders[post] });
+        opeu_request_format(game, text, std::array<FormatArgument, 3>{ formats[post], data.post_labels[post], holders[post] });
       }
       data.assign_menu[post].label = text;
     }
     opeu_title_panel_begin(game);
     auto const prompt{ texts.At(POSTS * POST_TEXT_BYTES) };
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ prompt, Near(data, data.assign_where_prompt), general });
+    opeu_request_format(game, prompt, std::array<FormatArgument, 2>{ Near(data, data.assign_where_prompt), general });
     for (;;) {
       uint16_t choice{ opeu_delay_dialog(game, prompt, POSTS, data.context_record2, Near(data, data.assign_menu)) };
       if (choice == MENU_CANCELLED) break;
@@ -189,7 +190,7 @@ void opeu_commander_rest(Game& game) {
     opeu_control_message(game, Near(data, data.rest_who_prompt), data.context_record2);
     if (!ShowList(game, data.people_dialog)) return;
     auto const general{ data.general_list[data.list_row] };
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ prompt, Near(data, data.rest_days_prompt), general });
+    opeu_request_format(game, prompt, std::array<FormatArgument, 2>{ Near(data, data.rest_days_prompt), general });
     auto const days{ opeu_delay_dialog(game, prompt, REST_LAST, data.context_record2, 0) };
     if (days != MENU_CANCELLED) {
       opeu_rest_thanks(game, general);

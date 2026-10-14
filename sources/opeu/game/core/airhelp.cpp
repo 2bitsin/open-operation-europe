@@ -43,15 +43,15 @@ uint16_t opeu_air_ask_count(Game& game, uint16_t text, uint16_t low, uint16_t hi
   auto const          line{ locals.At(0) };
   opeu_speaker_panel(game, person, 1);
   if (data.input_mode)
-    opeu_request_format(game, std::array<std::uint16_t, 2>{ line, Near(data, data.air_question_mark) });
+    opeu_request_format(game, line, std::array<FormatArgument, 1>{ Near(data, data.air_question_mark) });
   else
-    opeu_request_format(game, std::array<std::uint16_t, 4>{ line, Near(data, data.air_range_format), low, high });
+    opeu_request_format(game, line, std::array<FormatArgument, 3>{ Near(data, data.air_range_format), low, high });
   opeu_text_feed(game, text);
   opeu_text_feed(game, line);
   opeu_speaker_panel(game, person, 0);
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.air_input_begin) });
+  opeu_cursor_print(game, std::array<FormatArgument, 1>{ Near(data, data.air_input_begin) });
   auto const chosen{ opeu_choose_value(game, { low, high }, { .cancel = static_cast<int16_t>(static_cast<std::uint16_t>(cancel)), .items = items }) };
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ Near(data, data.air_input_end) });
+  opeu_cursor_print(game, std::array<FormatArgument, 1>{ Near(data, data.air_input_end) });
   return chosen;
 }
 
@@ -83,7 +83,7 @@ uint16_t opeu_air_target_valid(Game& game, uint8_t x, uint8_t y, uint16_t what) 
   }
   ServiceLocals const locals{ BUFFER_BYTES };
   auto const          buffer{ locals.At(0) };
-  opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, opeu_message_lookup(game, CANNOT_TARGET), what, name });
+  opeu_request_format(game, buffer, std::array<FormatArgument, 3>{ opeu_message_lookup(game, CANNOT_TARGET), what, name });
   opeu_control_message(game, buffer, data.context_record3);
   return 0;
 }

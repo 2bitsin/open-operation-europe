@@ -50,7 +50,7 @@ void opeu_deploy_draw_rows(Game& game, DrawRequest const& request) {
   // The strength column: the row indent, the first column and the window's left edge.
   auto const strength_x{ [&] { return static_cast<uint16_t>(Byte(game, window.widths) + layout.lead + window.x - 0x20); } };
   if (flags & DRAW_HEADER) {
-    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(TEXT_AT), static_cast<std::uint16_t>(Near(data, data.deploy_header)) });
+    opeu_request_format(game, TEXT_AT, std::array<FormatArgument, 1>{ Near(data, data.deploy_header) });
     opeu_army_position(game, static_cast<short>(strength_x()), static_cast<short>(window.y + 1));
     opeu_text_color(game, PLAIN_COLOR);
     opeu_text_put_range(game, TEXT_AT, layout.start, layout.count);
@@ -64,7 +64,7 @@ void opeu_deploy_draw_rows(Game& game, DrawRequest const& request) {
       auto const side{ static_cast<uint8_t>(opeu_battle_element_side(game, element_at)) };
       opeu_text_color(game, SideTextColor(side));
       if (element.flags & Bits(ElementFlag::SELECTED)) opeu_ui_text(game, Near(data, data.deploy_mark));
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.deploy_name)), static_cast<std::uint16_t>(data.element_types[element.type].name) });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.deploy_name), data.element_types[element.type].name });
     }
     // In battle the element's position word points at its placement: the cell, 0xff (or the high bit) off the field.
     auto const x{ strength_x() };
@@ -72,14 +72,12 @@ void opeu_deploy_draw_rows(Game& game, DrawRequest const& request) {
       opeu_army_position(game, static_cast<short>(x), static_cast<short>(y));
       opeu_text_color(game, OWN_COLOR);
       auto const cell{ element.position };
-      opeu_cursor_print(game, std::array<std::uint16_t, 7>{ static_cast<std::uint16_t>(Near(data, data.deploy_placed)), static_cast<std::uint16_t>(Byte(game, cell)),
-                                                            static_cast<std::uint16_t>(Byte(game, static_cast<uint16_t>(cell + 1))), static_cast<std::uint16_t>(element.quantity),
-                                                            static_cast<std::uint16_t>(element.morale), static_cast<std::uint16_t>(element.training), static_cast<std::uint16_t>(element.experience) });
+      opeu_cursor_print(game, std::array<FormatArgument, 7>{ Near(data, data.deploy_placed), Byte(game, cell), Byte(game, static_cast<uint16_t>(cell + 1)), element.quantity, element.morale,
+                                                             element.training, element.experience });
     } else {
       opeu_army_position(game, static_cast<short>(x), static_cast<short>(y));
       opeu_text_color(game, PLAIN_COLOR);
-      opeu_cursor_print(game, std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(Near(data, data.deploy_waiting)), static_cast<std::uint16_t>(element.quantity),
-                                                            static_cast<std::uint16_t>(element.morale), static_cast<std::uint16_t>(element.training), static_cast<std::uint16_t>(element.experience) });
+      opeu_cursor_print(game, std::array<FormatArgument, 5>{ Near(data, data.deploy_waiting), element.quantity, element.morale, element.training, element.experience });
     }
   }
   opeu_text_color(game, PLAIN_COLOR);

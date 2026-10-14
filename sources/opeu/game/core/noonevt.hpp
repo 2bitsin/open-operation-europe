@@ -4,4 +4,6 @@
 #include "common/events.hpp"
 #include "types.hpp"
 
-void opeu_turn_noon_events(Game& game, const uint8_t* far_text);
+#include <span>
+
+void opeu_turn_noon_events(Game& game, std::span<std::uint8_t const> far_text);

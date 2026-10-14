@@ -20,13 +20,15 @@
 #include "units/stats.hpp"
 #include "units/value.hpp"
 
+#include <span>
+
 using namespace opeu::game;
 
 namespace {
 
 constexpr std::uint16_t SHORT_SUPPLY{ 10 }; // percent of capacity
 
-auto Regiments(Game& game, std::uint8_t const* far_text) -> Advisor {
+auto Regiments(Game& game, std::span<std::uint8_t const> far_text) -> Advisor {
   return { game, far_text, AdviceTopic::REGIMENTS };
 }
 
@@ -60,7 +62,7 @@ auto SayAboutUnit(Advisor const& advisor, AdviceText text, Unit const& unit) -> 
 // A regiment about to finish its order (progress 1), with chance 1/(7 - g): an occupy or attack order, the regiment
 // will be ready for battle shortly; a mine or bridge order of an engineer (category 6), or a supply or repair order
 // of a supply regiment (category 7), its operations finish shortly.
-uint16_t opeu_advice_regiment_order_finishing(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_regiment_order_finishing(Game& game, std::span<std::uint8_t const> far_text) {
   auto const    advisor{ Regiments(game, far_text) };
   std::uint16_t given{ 0 };
   ForRegiments(game, false, [&](std::uint8_t g, std::uint8_t k, Unit& unit) {
@@ -89,7 +91,7 @@ uint16_t opeu_advice_regiment_order_finishing(Game& game, const uint8_t* far_tex
 
 // A regiment of an active division holding at most 10 percent of its capacity of a supply, with chance 1/(7 - g)
 // for each supply in turn: the regiment is short of it.
-uint16_t opeu_advice_regiment_supply_shortage(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_regiment_supply_shortage(Game& game, std::span<std::uint8_t const> far_text) {
   auto&         data{ Data(game) };
   auto const    advisor{ Regiments(game, far_text) };
   std::uint16_t given{ 0 };
@@ -109,7 +111,7 @@ uint16_t opeu_advice_regiment_supply_shortage(Game& game, const uint8_t* far_tex
 
 // Division commanders whose health is below a tenth of max_health, one time in four: the first pass those in poor health
 // (seriously wounded), the second the others (fatigued).
-uint16_t opeu_advice_division_commander_condition(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_division_commander_condition(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Regiments(game, far_text) };
   for (std::uint8_t pass{ 0 }; pass < 2; ++pass)
@@ -126,7 +128,7 @@ uint16_t opeu_advice_division_commander_condition(Game& game, const uint8_t* far
 
 // Regiments of active divisions, with chance 1/(7 - g): the first pass looks for one that can act with more than half
 // its arms damaged, the second for a ready one that cannot act (its communications are out).
-uint16_t opeu_advice_regiment_damage_or_comms(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_regiment_damage_or_comms(Game& game, std::span<std::uint8_t const> far_text) {
   auto&         data{ Data(game) };
   auto const    advisor{ Regiments(game, far_text) };
   std::uint16_t given{ 0 };
@@ -156,7 +158,7 @@ uint16_t opeu_advice_regiment_damage_or_comms(Game& game, const uint8_t* far_tex
 
 // Regiments of active divisions that can act, in four passes, each with chance 1/(7 - g): exhausted (average11 above
 // 80), rested (average11 zero), high morale (average9 above 80), morale dropping (average9 below 10).
-uint16_t opeu_advice_regiment_fatigue_morale(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_regiment_fatigue_morale(Game& game, std::span<std::uint8_t const> far_text) {
   auto&         data{ Data(game) };
   auto const    advisor{ Regiments(game, far_text) };
   std::uint16_t given{ 0 };
@@ -192,13 +194,13 @@ uint16_t opeu_advice_regiment_fatigue_morale(Game& game, const uint8_t* far_text
 }
 
 // The fallback: nothing to report.
-uint16_t opeu_advice_regiment_nothing(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_regiment_nothing(Game& game, std::span<std::uint8_t const> far_text) {
   return Regiments(game, far_text).Say(AdviceText::NOTHING_TO_REPORT);
 }
 
 // Regiment Status: runs the checks until one reports.
-uint16_t opeu_advice_regiment_status(Game& game, const uint8_t* far_text) {
-  using Check = uint16_t (*)(Game&, const uint8_t*);
+uint16_t opeu_advice_regiment_status(Game& game, std::span<std::uint8_t const> far_text) {
+  using Check = uint16_t (*)(Game&, std::span<std::uint8_t const>);
   static constexpr Check CHECKS[]{
     opeu_advice_regiment_order_finishing, opeu_advice_regiment_supply_shortage, opeu_advice_division_commander_condition,
     opeu_advice_regiment_damage_or_comms, opeu_advice_regiment_fatigue_morale,  opeu_advice_regiment_nothing,

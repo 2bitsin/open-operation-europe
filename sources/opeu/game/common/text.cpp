@@ -49,7 +49,7 @@ auto PutLong(std::string& text, std::int32_t value, std::int16_t base) -> std::i
 
 class Formatter {
 public:
-  Formatter(DataSegment const& data, std::string_view format, std::span<std::uint16_t const> words) noexcept : _data{ data }, _format{ format }, _words{ words } { }
+  Formatter(DataSegment const& data, std::string_view format, std::span<FormatArgument const> words) noexcept : _data{ data }, _format{ format }, _words{ words } { }
 
   auto Run() -> std::string {
     for (char c; (c = Next()) != '\0';) {
@@ -79,12 +79,13 @@ private:
     for (std::uint16_t digit; (digit = static_cast<std::uint16_t>(static_cast<std::uint8_t>(Peek()) - '0')) < 10; ++_at) value = static_cast<std::uint16_t>(digit + value * 10);
     return static_cast<std::int16_t>(value);
   }
-  auto NextWord() noexcept -> std::uint16_t {
+  auto NextWord() -> std::uint16_t {
     auto const index{ _argument++ };
-    return index < _words.size() ? _words[index] : std::uint16_t{ 0 };
+    return index < _words.size() ? _words[index].Word() : std::uint16_t{ 0 };
   }
   auto NextText() noexcept -> std::string_view {
-    return CString(_data, NextWord());
+    auto const index{ _argument++ };
+    return index < _words.size() ? _words[index].AsText().View(_data) : CString(_data, 0);
   }
   auto NextLong() noexcept -> std::int32_t {
     auto const low{ NextWord() };
@@ -183,18 +184,18 @@ private:
     if (width > 0) _output.append(static_cast<std::size_t>(width), pad);
   }
 
-  DataSegment const&             _data;
-  std::string_view               _format;
-  std::span<std::uint16_t const> _words;
-  std::size_t                    _at{ 0 };
-  std::size_t                    _argument{ 0 };
-  std::string                    _output;
-  bool                           _done{ false };
+  DataSegment const&              _data;
+  std::string_view                _format;
+  std::span<FormatArgument const> _words;
+  std::size_t                     _at{ 0 };
+  std::size_t                     _argument{ 0 };
+  std::string                     _output;
+  bool                            _done{ false };
 };
 
 } // namespace
 
-auto FormatText(DataSegment const& data, std::string_view format, std::span<std::uint16_t const> words) -> std::string {
+auto FormatText(DataSegment const& data, std::string_view format, std::span<FormatArgument const> words) -> std::string {
   return Formatter{ data, format, words }.Run();
 }
 

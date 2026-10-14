@@ -91,12 +91,12 @@ title:
     opeu_scenario_clear_text(game);
     opeu_army_position(game, 6, 7);
     switch (data.scenario + 1) {
-    case 1:  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_france) }); break;
-    case 2:  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_africa) }); break;
-    case 3:  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_kursk) }); break;
-    case 4:  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_dday) }); break;
-    case 5:  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_bulge) }); break;
-    default: opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_berlin) }); break;
+    case 1:  opeu_cursor_print(game, std::array<FormatArgument, 1>{ at(data.scensel_france) }); break;
+    case 2:  opeu_cursor_print(game, std::array<FormatArgument, 1>{ at(data.scensel_africa) }); break;
+    case 3:  opeu_cursor_print(game, std::array<FormatArgument, 1>{ at(data.scensel_kursk) }); break;
+    case 4:  opeu_cursor_print(game, std::array<FormatArgument, 1>{ at(data.scensel_dday) }); break;
+    case 5:  opeu_cursor_print(game, std::array<FormatArgument, 1>{ at(data.scensel_bulge) }); break;
+    default: opeu_cursor_print(game, std::array<FormatArgument, 1>{ at(data.scensel_berlin) }); break;
     }
     opeu_army_position(game, 4, 0xf4);
     selection = opeu_prompt_value_cancel(game, at(data.scensel_players_prompt), 3, at(data.scensel_players_menu));
@@ -127,14 +127,14 @@ title:
         side_status[0] = 0;
         side_status[1] = 1;
       }
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ buf, at(data.scensel_view_format), data.ui_side_names[selection - 1] });
+      opeu_request_format(game, buf, std::array<FormatArgument, 2>{ at(data.scensel_view_format), data.ui_side_names[selection - 1] });
       opeu_army_position(game, 4, 0x28);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_view_line), buf });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ at(data.scensel_view_line), buf });
       data.message_delay = 7;
       break;
     case 2:
       opeu_army_position(game, 4, 0x19);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_one_player), buf });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ at(data.scensel_one_player), buf });
     command_side:
       opeu_scenario_clear_text(game);
       opeu_army_position(game, 4, 0xdc);
@@ -149,13 +149,13 @@ title:
         side_status[0] = side_control[0] = 0;
         side_status[1] = side_control[1] = 1;
       }
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ buf, at(data.scensel_command_format), data.ui_side_names[selection - 1] });
+      opeu_request_format(game, buf, std::array<FormatArgument, 2>{ at(data.scensel_command_format), data.ui_side_names[selection - 1] });
       opeu_army_position(game, 4, 0x28);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_command_line), buf });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ at(data.scensel_command_line), buf });
       break;
     case 3:
       opeu_army_position(game, 4, 0x19);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_two_players), buf });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ at(data.scensel_two_players), buf });
       side_status[1] = side_status[0] = side_control[1] = side_control[0] = 1;
       break;
     default: goto title;
@@ -176,9 +176,9 @@ title:
       else
         data.map_mode[0] = 0;
     }
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ buf, at(data.scensel_map_format), (!data.map_mode[0] ? at(data.scensel_aerial) : at(data.scensel_field)) });
+    opeu_request_format(game, buf, std::array<FormatArgument, 2>{ at(data.scensel_map_format), (!data.map_mode[0] ? at(data.scensel_aerial) : at(data.scensel_field)) });
     opeu_army_position(game, 4, 0x37);
-    opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_map_line), buf });
+    opeu_cursor_print(game, std::array<FormatArgument, 2>{ at(data.scensel_map_line), buf });
   battles:
     opeu_scenario_clear_text(game);
     if (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_COMPUTER) {
@@ -204,7 +204,7 @@ title:
       break;
     }
     opeu_army_position(game, 4, 0x46);
-    opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_battles_line), buf });
+    opeu_cursor_print(game, std::array<FormatArgument, 2>{ at(data.scensel_battles_line), buf });
   difficulty:
     if ((side_control[0] == SIDE_PLAYED && side_control[1] == SIDE_COMPUTER) || (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_PLAYED)) {
       opeu_scenario_clear_text(game);
@@ -221,13 +221,13 @@ title:
       case 4: opeu_string_append(game, buf, at(data.scensel_very_hard)); break;
       }
       opeu_army_position(game, 4, 0x55);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ at(data.scensel_difficulty_line), buf });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ at(data.scensel_difficulty_line), buf });
     }
     game.Machine().Display().Box({ 4, 0x86, 0x22, 0xe0 }, 7);
     opeu_army_position(game, 4, 0x154);
     if (!opeu_prompt_yes_no(game, at(data.scensel_settings_ok))) {
       opeu_army_position(game, 4, 0x154);
-      opeu_cursor_print(game, std::array<std::uint16_t, 1>{ at(data.scensel_reselect) });
+      opeu_cursor_print(game, std::array<FormatArgument, 1>{ at(data.scensel_reselect) });
       game.Machine().Display().Box({ 4, 0x86, 0x22, 0xe0 }, 7);
       if ((side_control[0] == SIDE_PLAYED && side_control[1] == SIDE_COMPUTER) || (side_control[0] == SIDE_COMPUTER && side_control[1] == SIDE_PLAYED)) goto difficulty;
       goto battles;

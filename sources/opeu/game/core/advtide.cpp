@@ -21,6 +21,8 @@
 #include "units/stats.hpp"
 #include "units/value.hpp"
 
+#include <span>
+
 using namespace opeu::game;
 
 namespace {
@@ -28,7 +30,7 @@ namespace {
 constexpr std::uint16_t CHEAP_UNIT{ 300 };
 constexpr std::uint8_t  SAMPLE_STEP{ 4 }; // the territory sample takes every fourth cell each way
 
-auto Tide(Game& game, std::uint8_t const* far_text) -> Advisor {
+auto Tide(Game& game, std::span<std::uint8_t const> far_text) -> Advisor {
   return { game, far_text, AdviceTopic::TIDE_OF_WAR };
 }
 } // namespace
@@ -36,7 +38,7 @@ auto Tide(Game& game, std::uint8_t const* far_text) -> Advisor {
 // One time in three, the first objective of ours without a garrison outside our influence: a city is well isolated
 // from the enemy, a lesser objective must be abandoned. Failing that, with no cell to request, one time in three our
 // forces are isolated.
-uint16_t opeu_advice_tide_isolation(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tide_isolation(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Tide(game, far_text) };
   auto const side{ data.current_side };
@@ -53,7 +55,7 @@ uint16_t opeu_advice_tide_isolation(Game& game, const uint8_t* far_text) {
 
 // Counts the cheap regiments of the active divisions that can act. 12 to 19, one time in four: the buffer is shown as
 // it stands (nothing is copied into it); 20 or more, one time in four: we wait for our recovery.
-uint16_t opeu_staff_1ad2(Game& game, const uint8_t* far_text) {
+uint16_t opeu_staff_1ad2(Game& game, std::span<std::uint8_t const> far_text) {
   auto&        data{ Data(game) };
   auto const   advisor{ Tide(game, far_text) };
   auto const   side{ data.current_side };
@@ -76,7 +78,7 @@ uint16_t opeu_staff_1ad2(Game& game, const uint8_t* far_text) {
 // Compares both sides' unit counts. Ours above twice the enemy's: go on the offensive. Defending with the enemy's
 // above twice ours: wait it out. Attacking with fewer than 30 and a reserve division waiting: wait for the
 // reinforcements (the division number is not formatted in). Each one time in four.
-uint16_t opeu_advice_tide_strength_balance(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tide_strength_balance(Game& game, std::span<std::uint8_t const> far_text) {
   auto&        data{ Data(game) };
   auto const   advisor{ Tide(game, far_text) };
   auto const   side{ data.current_side };
@@ -98,7 +100,7 @@ uint16_t opeu_advice_tide_strength_balance(Game& game, const uint8_t* far_text) 
 // Counts the cells of a 10 x 10 sample of the map under our influence: none, the situation couldn't be worse; over
 // 75, we overwhelm the enemy; 1 to 24, the enemy is very powerful; 41 to 59, the enemy is as strong as we are. Each
 // one time in four.
-uint16_t opeu_advice_tide_territory_control(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tide_territory_control(Game& game, std::span<std::uint8_t const> far_text) {
   auto const&   data{ Data(game) };
   auto const    advisor{ Tide(game, far_text) };
   std::uint16_t held{ 0 };
@@ -113,7 +115,7 @@ uint16_t opeu_advice_tide_territory_control(Game& game, const uint8_t* far_text)
 }
 
 // The side's air strength: 30 or less, the enemy rules the skies; 70 or more, we do. Each one time in four.
-uint16_t opeu_advice_tide_air_superiority(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tide_air_superiority(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Tide(game, far_text) };
   auto const air{ Record<Side>(data, data.current_side_ptr).strength };
@@ -123,13 +125,13 @@ uint16_t opeu_advice_tide_air_superiority(Game& game, const uint8_t* far_text) {
 }
 
 // The fallback: there have been no advances.
-uint16_t opeu_advice_tide_no_advances(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tide_no_advances(Game& game, std::span<std::uint8_t const> far_text) {
   return Tide(game, far_text).Say(AdviceText::NO_ADVANCES);
 }
 
 // Tide of War: runs the checks until one gives advice.
-void opeu_advice_tide_of_war(Game& game, const uint8_t* far_text) {
-  using Check = uint16_t (*)(Game&, const uint8_t*);
+void opeu_advice_tide_of_war(Game& game, std::span<std::uint8_t const> far_text) {
+  using Check = uint16_t (*)(Game&, std::span<std::uint8_t const>);
   static constexpr Check CHECKS[]{
     opeu_advice_tide_isolation, opeu_staff_1ad2, opeu_advice_tide_strength_balance, opeu_advice_tide_territory_control, opeu_advice_tide_air_superiority, opeu_advice_tide_no_advances,
   };

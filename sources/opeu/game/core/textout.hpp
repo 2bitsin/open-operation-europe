@@ -3,6 +3,7 @@
 
 #include "common/events.hpp"
 #include "common/host.hpp"
+#include "common/text.hpp"
 #include "types.hpp"
 
 #include <cstdint>
@@ -10,7 +11,7 @@
 
 uint8_t opeu_key_read(Game& game);
 void    opeu_input_flush(Game& game);
-void    opeu_ui_text(Game& game, uint16_t s);
+void    opeu_ui_text(Game& game, Text text);
 int16_t opeu_text_scroll_mode(Game& game, int16_t mode);
 void    opeu_text_window(Game& game, int16_t left, int16_t right, int16_t top, int16_t bottom);
 int16_t opeu_text_scroll_check(Game& game);
@@ -29,7 +30,7 @@ void    opeu_text_glyph(Game& game, int16_t x, int16_t y, int16_t attribute, uin
 void    opeu_text_newline(Game& game);
 void    opeu_text_control(Game& game, uint8_t c);
 uint8_t opeu_text_put(Game& game, uint8_t c);
-void    opeu_request_format(Game& game, std::span<std::uint16_t const> words);
-void    opeu_cursor_print(Game& game, std::span<std::uint16_t const> words);
-void    opeu_text_put_range(Game& game, uint16_t s, uint8_t start, uint8_t count);
+void    opeu_request_format(Game& game, TextTarget destination, std::span<FormatArgument const> words);
+void    opeu_cursor_print(Game& game, std::span<FormatArgument const> words);
+void    opeu_text_put_range(Game& game, Text text, uint8_t start, uint8_t count);
 void    opeu_text_erase_char(Game& game);

@@ -48,10 +48,9 @@ void opeu_objective_loss_line(Game& game, uint16_t objective, uint8_t kind, uint
   SetWord(game, stock, value);
   auto const after{ Word(game, stock) };
   auto const colour{ SideColorCode(static_cast<uint8_t>(opeu_objective_side(game, objective))) };
-  opeu_request_format(game, std::array<std::uint16_t, 8>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.damage_supply_format)), static_cast<std::uint16_t>(colour),
-                                                          static_cast<std::uint16_t>(objective), static_cast<std::uint16_t>(data.supply_names[kind]),
-                                                          static_cast<std::uint16_t>(static_cast<uint16_t>(before - after)), static_cast<std::uint16_t>(data.supply_names[kind]),
-                                                          static_cast<std::uint16_t>(after) });
+  opeu_request_format(
+      game, text,
+      std::array<FormatArgument, 7>{ Near(data, data.damage_supply_format), colour, objective, data.supply_names[kind], static_cast<uint16_t>(before - after), data.supply_names[kind], after });
   opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(text));
 }
 
@@ -66,9 +65,8 @@ void opeu_objective_damage(Game& game, uint16_t objective, Bombing const& bombin
   auto const          enemy{ static_cast<uint8_t>(opeu_opposite_side(static_cast<uint8_t>(side))) };
   opeu_location_blast(game, static_cast<uint8_t>(record.x), static_cast<uint8_t>(record.y), static_cast<uint8_t>(enemy));
   if (base) {
-    opeu_request_format(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.damage_title)) });
-    opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.damage_heading)),
-                                                            static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(objective) });
+    opeu_request_format(game, report, std::array<FormatArgument, 1>{ Near(data, data.damage_title) });
+    opeu_request_format(game, report, std::array<FormatArgument, 3>{ Near(data, data.damage_heading), SideColorCode(side), objective });
     opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(report));
     for (auto& item : record.items) {
       if (item.quantity == 0) continue;
@@ -78,18 +76,14 @@ void opeu_objective_damage(Game& game, uint16_t objective, Bombing const& bombin
       if (heavy && infantry) lost = static_cast<uint16_t>(lost * (game.State().RandomBounded(10) + 6));
       lost          = opeu_min16(item.quantity, lost);
       item.quantity = static_cast<uint16_t>(item.quantity - lost);
-      opeu_request_format(game,
-                          std::array<std::uint16_t, 5>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.damage_element_format)),
-                                                        static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(data.side_names[side]), static_cast<std::uint16_t>(type.name) });
+      opeu_request_format(game, report, std::array<FormatArgument, 4>{ Near(data, data.damage_element_format), SideColorCode(side), data.side_names[side], type.name });
       opeu_element_panel(game, static_cast<std::uint16_t>(Near(data, item)));
       if (lost == 0) {
         opeu_string_append(game, static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.damage_none)));
         opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(report));
         continue;
       }
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(loss_text),
-                                                              static_cast<std::uint16_t>(lost == 1 ? Near(data, data.damage_loss_one) : Near(data, data.damage_loss_many)),
-                                                              static_cast<std::uint16_t>(lost) });
+      opeu_request_format(game, loss_text, std::array<FormatArgument, 2>{ lost == 1 ? Near(data, data.damage_loss_one) : Near(data, data.damage_loss_many), lost });
       opeu_string_append(game, static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(loss_text));
       opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(report));
       if (!infantry) {
@@ -107,9 +101,7 @@ void opeu_objective_damage(Game& game, uint16_t objective, Bombing const& bombin
   if (endurance) {
     auto const before{ record.strength };
     record.strength = SubByte(record.strength, game.State().RandomBounded(endurance) + endurance);
-    opeu_request_format(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(report), static_cast<std::uint16_t>(Near(data, data.damage_endurance_format)),
-                                                            static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(objective), static_cast<std::uint16_t>(record.strength),
-                                                            static_cast<std::uint16_t>(before - record.strength) });
+    opeu_request_format(game, report, std::array<FormatArgument, 5>{ Near(data, data.damage_endurance_format), SideColorCode(side), objective, record.strength, before - record.strength });
     opeu_objective_side_report(game, objective, static_cast<std::uint16_t>(report));
   }
   opeu_blast_erase(game, static_cast<uint8_t>(record.x), static_cast<uint8_t>(record.y));

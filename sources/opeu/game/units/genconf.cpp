@@ -50,7 +50,7 @@ void opeu_general_screen(Game& game) {
   opeu_backdrop_fill_color(game, data.current_side == 0 ? 2 : 1);
   opeu_army_position(game, 0x23, 8);
   opeu_text_color(game, SideTextColor(data.current_side));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.side_title_format), data.side_titles[data.current_side] });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.side_title_format), data.side_titles[data.current_side] });
   opeu_text_color(game, 7);
   opeu_ui_outline(game, 0x100, 0x28, 0x13f, 0x76, 7);
   opeu_army_position(game, 0x29, 0x38);

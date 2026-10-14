@@ -44,13 +44,13 @@ void opeu_objective_comms_event(Game& game) {
     objective.strength = AddByte(objective.strength, game.State().RandomBounded(static_cast<std::uint16_t>(5 - level)) + 1, objective.strength_limit);
     if (!(objective.flags & Bits(ObjectiveFlag::COMMUNICATIONS)) && game.State().RandomBounded(static_cast<std::uint16_t>(level * 10 + 24)) == 6) {
       objective.flags |= Bits(ObjectiveFlag::COMMUNICATIONS);
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ news, RESTORED_FORMAT, camp });
+      opeu_request_format(game, news, std::array<FormatArgument, 2>{ RESTORED_FORMAT, camp });
       opeu_control_message(game, news, speaker);
       opeu_location_flash(game, objective.x, objective.y, side);
     }
     if ((objective.flags & Bits(ObjectiveFlag::MARKED)) && game.State().RandomBounded(static_cast<std::uint16_t>((level + 6) * 20)) == 8) {
       objective.flags &= static_cast<std::uint8_t>(~Bits(ObjectiveFlag::MARKED));
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ news, CAPTURED_FORMAT, camp });
+      opeu_request_format(game, news, std::array<FormatArgument, 2>{ CAPTURED_FORMAT, camp });
       opeu_control_message(game, news, speaker);
       opeu_location_flash(game, objective.x, objective.y, side);
     }

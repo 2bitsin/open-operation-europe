@@ -84,15 +84,15 @@ uint16_t opeu_supply_get(Game const& game, uint8_t side, uint8_t row, uint8_t co
 }
 
 // Restores the panel's background and centres the two names, at most ten characters each, in its title.
-void opeu_supply_draw(Game& game, uint16_t first, uint16_t second) {
+void opeu_supply_draw(Game& game, Text first, Text second) {
   auto const& data{ Data(game) };
   game.Machine().Display().DrawColumns({ data.supply_panel_x, data.supply_panel_y, PANEL_WIDTH, PANEL_HEIGHT }, { 0, FarBytes(game, data.numdlg_image_segment, PANEL_IMAGE_AT) });
-  auto const indent{ [&](std::uint16_t name) {
+  auto const indent{ [&](Text name) {
     auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(game, name)), NAME_LIMIT) };
     return static_cast<std::int16_t>(NAME_LIMIT - length) / 2;
   } };
   opeu_army_position(game, indent(first) + data.supply_panel_x + 2, data.supply_panel_y + 14);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_name_format)), first });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, supply_name_format), first });
   opeu_army_position(game, indent(second) + data.supply_panel_x + 20, data.supply_panel_y + 14);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(offsetof(DataSegment, supply_name_text)), second });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, supply_name_text), second });
 }

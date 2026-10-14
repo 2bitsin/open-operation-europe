@@ -42,14 +42,13 @@ void opeu_battle_cursor_info(Game& game) {
   opeu_battle_info_clear(game);
   opeu_text_paper_set(game, static_cast<uint8_t>(PAPER));
   opeu_army_position(game, static_cast<short>(LINE_X), static_cast<short>(CELL_LINE_Y));
-  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.battle_fmt_cursor)), static_cast<std::uint16_t>(data.battle_cursor_x),
-                                                        static_cast<std::uint16_t>(data.battle_cursor_y), static_cast<std::uint16_t>(data.battle_terrain_names[terrain]) });
+  opeu_cursor_print(game, std::array<FormatArgument, 4>{ Near(data, data.battle_fmt_cursor), data.battle_cursor_x, data.battle_cursor_y, data.battle_terrain_names[terrain] });
   if (terrain == OBJECTIVE_TERRAIN)
     for (auto const i : std::views::iota(unsigned{ 0 }, BATTLE_EXTRA_COUNT)) {
       auto const& extra{ BattleExtraAt(data, i) };
       if (extra.x == BATTLE_UNPLACED) break;
       if (extra.x == data.battle_cursor_x && extra.y == data.battle_cursor_y) {
-        opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.battle_fmt_extra)), static_cast<std::uint16_t>(extra.count) });
+        opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.battle_fmt_extra), extra.count });
         break;
       }
     }
@@ -61,7 +60,7 @@ void opeu_battle_cursor_info(Game& game) {
     opeu_ui_text(game, data.element_types[record.type].name);
     opeu_text_color(game, LABEL_COLOR);
     opeu_army_position(game, static_cast<short>(LINE_X), static_cast<short>(QUANTITY_LINE_Y));
-    opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.battle_fmt_cell_ok)), static_cast<std::uint16_t>(record.quantity) });
+    opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.battle_fmt_cell_ok), record.quantity });
   }
   opeu_text_paper_set(game, static_cast<uint8_t>(PAPER_OFF));
 }

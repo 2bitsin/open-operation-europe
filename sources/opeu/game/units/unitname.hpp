@@ -2,6 +2,7 @@
 #pragma once
 
 #include "common/events.hpp"
+#include "common/text.hpp"
 #include "types.hpp"
 
-uint16_t opeu_unit_name(Game& game, uint16_t unit, uint16_t buffer);
+TextTarget opeu_unit_name(Game& game, uint16_t unit, TextTarget buffer);

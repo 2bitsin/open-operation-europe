@@ -100,13 +100,13 @@ void FillSlot(DataSegment& data, SaveSlot& slot) {
 void opeu_settings_print(Game& game) {
   auto const& data{ Data(game) };
   auto const  battles{ static_cast<BattleView>(data.battle_view) };
-  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ Near(data, data.settings_summary), static_cast<std::uint16_t>(data.message_delay),
-                                                        (data.sound_enabled == 1 && data.sound_driver ? Near(data, data.settings_music_on) : Near(data, data.settings_music_off)),
-                                                        (battles == BattleView::ALL    ? Near(data, data.settings_battles_view)
-                                                         : battles == BattleView::NONE ? Near(data, data.settings_battles_no)
-                                                                                       : Near(data, data.settings_battles_select)),
-                                                        (data.event_pictures == 1 ? Near(data, data.settings_pictures_on) : Near(data, data.settings_pictures_off)),
-                                                        (!data.map_mode[0] ? Near(data, data.settings_aerial) : Near(data, data.settings_field)) });
+  opeu_cursor_print(game, std::array<FormatArgument, 6>{ Near(data, data.settings_summary), data.message_delay,
+                                                         (data.sound_enabled == 1 && data.sound_driver ? Near(data, data.settings_music_on) : Near(data, data.settings_music_off)),
+                                                         (battles == BattleView::ALL    ? Near(data, data.settings_battles_view)
+                                                          : battles == BattleView::NONE ? Near(data, data.settings_battles_no)
+                                                                                        : Near(data, data.settings_battles_select)),
+                                                         (data.event_pictures == 1 ? Near(data, data.settings_pictures_on) : Near(data, data.settings_pictures_off)),
+                                                         (!data.map_mode[0] ? Near(data, data.settings_aerial) : Near(data, data.settings_field)) });
 }
 
 // Which battles to watch: all, none or a choice before each.
@@ -121,7 +121,7 @@ void opeu_settings_battles(Game& game) {
   case 3:  data.battle_view = std::to_underlying(BattleView::SELECT); break;
   default: return;
   }
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ message, Near(data, data.battles_reply), data.battles_descriptions[choice - 1] });
+  opeu_request_format(game, message, std::array<FormatArgument, 2>{ Near(data, data.battles_reply), data.battles_descriptions[choice - 1] });
   opeu_control_message(game, message, data.context_record2);
 }
 
@@ -131,7 +131,7 @@ void opeu_settings_delay(Game& game) {
   auto&               data{ Data(game) };
   uint16_t const      message{ locals.At(0) };
   data.message_delay = (static_cast<uint8_t>(opeu_choose_dialog(game, Near(data, data.delay_question), 10, data.context_record2, 0)));
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ message, Near(data, data.delay_reply), static_cast<std::uint16_t>(data.message_delay) });
+  opeu_request_format(game, message, std::array<FormatArgument, 2>{ Near(data, data.delay_reply), data.message_delay });
   opeu_control_message(game, message, data.context_record2);
 }
 
@@ -142,7 +142,7 @@ void opeu_settings_map(Game& game) {
   uint16_t const      message{ locals.At(0) };
   data.map_mode[0]++;
   data.map_mode[0] &= 1;
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ message, Near(data, data.map_reply), (!data.map_mode[0] ? Near(data, data.map_aerial) : Near(data, data.map_field)) });
+  opeu_request_format(game, message, std::array<FormatArgument, 2>{ Near(data, data.map_reply), (!data.map_mode[0] ? Near(data, data.map_aerial) : Near(data, data.map_field)) });
   opeu_control_message(game, message, data.context_record2);
   auto const& unit{ Record<Unit>(data, data.current_unit_ptr) };
   opeu_arrival_location(game, unit.x, unit.y, data.current_side);
@@ -160,7 +160,7 @@ void opeu_settings_sound(Game& game) {
     data.sound_enabled = 1;
     opeu_turn_pre_context(game);
   }
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ message, Near(data, data.sound_reply), (data.sound_enabled == 1 ? Near(data, data.sound_on) : Near(data, data.sound_off)) });
+  opeu_request_format(game, message, std::array<FormatArgument, 2>{ Near(data, data.sound_reply), (data.sound_enabled == 1 ? Near(data, data.sound_on) : Near(data, data.sound_off)) });
   opeu_control_message(game, message, data.context_record2);
 }
 
@@ -170,7 +170,8 @@ void opeu_settings_pictures(Game& game) {
   auto&               data{ Data(game) };
   uint16_t const      message{ locals.At(0) };
   data.event_pictures = data.event_pictures == 1 ? 0 : 1;
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ message, Near(data, data.pictures_reply), (data.event_pictures == 1 ? Near(data, data.pictures_will) : Near(data, data.pictures_will_not)) });
+  opeu_request_format(game, message,
+                      std::array<FormatArgument, 2>{ Near(data, data.pictures_reply), (data.event_pictures == 1 ? Near(data, data.pictures_will) : Near(data, data.pictures_will_not)) });
   opeu_control_message(game, message, data.context_record2);
 }
 
@@ -248,7 +249,7 @@ void opeu_save_game(Game& game) {
   if (!game.Machine().Files().Exists(CString(data, Near(data, data.save_check_name)))) {
     opeu_save_create(game);
     if (!game.Machine().Files().Exists(CString(data, Near(data, data.save_recheck_name)))) {
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.save_failed_format), (opeu_title_box(game, 30, 188, Near(data, data.save_failed))) });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.save_failed_format), (opeu_title_box(game, 30, 188, Near(data, data.save_failed))) });
       opeu_delay_units(game, 20);
       opeu_text_paper_set(game, 0);
     }

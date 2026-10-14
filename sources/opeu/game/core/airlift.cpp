@@ -55,11 +55,11 @@ uint8_t opeu_air_lift_lead(Game& game, uint8_t hours, uint16_t planes) {
   if (lead == 1) lead = 2;
   if (hours < lead) {
     if (90 - static_cast<std::uint8_t>(game.State().Generator().Bounded(30)) > data.air_charm) {
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.lift_lead_format), static_cast<std::uint16_t>(lead) });
+      opeu_request_format(game, text, std::array<FormatArgument, 2>{ Near(data, data.lift_lead_format), lead });
       opeu_control_message(game, text, data.air_person);
       return lead;
     }
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ text, opeu_message_lookup(game, LEAD_ACCEPTED), static_cast<std::uint16_t>(lead + 1) });
+    opeu_request_format(game, text, std::array<FormatArgument, 2>{ opeu_message_lookup(game, LEAD_ACCEPTED), lead + 1 });
     opeu_control_message(game, text, data.air_person);
     return hours;
   }
@@ -77,9 +77,9 @@ uint16_t opeu_air_lift_order(Game& game, uint8_t x, uint8_t y, uint8_t hours, ui
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(game) };
   auto const          text{ locals.At(0) };
-  opeu_request_format(game, std::array<std::uint16_t, 6>{ text, Near(data, data.lift_start_format), static_cast<std::uint16_t>(hours),
-                                                          (hours == 1 ? Near(data, data.air_lift_hour) : Near(data, data.air_lift_hours)), planes,
-                                                          (planes == 1 ? Near(data, data.air_lift_plane) : Near(data, data.air_lift_planes)) });
+  opeu_request_format(game, text,
+                      std::array<FormatArgument, 5>{ Near(data, data.lift_start_format), hours, (hours == 1 ? Near(data, data.air_lift_hour) : Near(data, data.air_lift_hours)), planes,
+                                                     (planes == 1 ? Near(data, data.air_lift_plane) : Near(data, data.air_lift_planes)) });
   opeu_control_message(game, text, data.air_person);
   if (!opeu_air_confirm(game)) return 0;
   auto& lift{ Record<Side>(data, data.current_side_ptr).lift };

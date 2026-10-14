@@ -133,11 +133,11 @@ void opeu_bomb_event(Game& game, uint16_t load) {
       if (data.side_status[0] == SIDE_PLAYED) {
         voice = 0;
         opeu_string_copy(game, intro, opeu_message_lookup(game, RAID_NOTICE_0));
-        opeu_request_format(game, std::array<std::uint16_t, 3>{ report, opeu_message_lookup(game, RAID_RESULT_0), name });
+        opeu_request_format(game, report, std::array<FormatArgument, 2>{ opeu_message_lookup(game, RAID_RESULT_0), name });
       } else if (data.side_status[1] == SIDE_PLAYED && opeu_unit_selection_eligible(game, troop)) {
         voice = 1;
         opeu_string_copy(game, intro, opeu_message_lookup(game, RAID_NOTICE_1));
-        opeu_request_format(game, std::array<std::uint16_t, 3>{ report, opeu_message_lookup(game, RAID_RESULT_1), name });
+        opeu_request_format(game, report, std::array<FormatArgument, 2>{ opeu_message_lookup(game, RAID_RESULT_1), name });
       }
       auto const saved_mode{ data.map_mode[0] };
       if (voice != NO_VOICE) {

@@ -38,7 +38,7 @@ void opeu_request_no_more(Game& game, uint16_t what) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(game) };
   auto const          buffer{ locals.At(0) };
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, static_cast<std::uint16_t>(offsetof(DataSegment, rq_no_more_text)), what });
+  opeu_request_format(game, buffer, std::array<FormatArgument, 2>{ offsetof(DataSegment, rq_no_more_text), what });
   opeu_control_message(game, buffer, data.context_record3);
 }
 
@@ -58,7 +58,7 @@ uint16_t opeu_request_cancel_prompt(Game& game, uint16_t what) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto&               data{ Data(game) };
   auto const          buffer{ locals.At(0) };
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, static_cast<std::uint16_t>(offsetof(DataSegment, rq_cancel_text)), what });
+  opeu_request_format(game, buffer, std::array<FormatArgument, 2>{ offsetof(DataSegment, rq_cancel_text), what });
   return opeu_confirm_message(game, buffer, data.context_record2);
 }
 

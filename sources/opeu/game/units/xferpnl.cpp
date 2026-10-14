@@ -107,19 +107,19 @@ uint8_t opeu_transfer_input(Game& game, uint16_t row) {
 
 // For a player's side: titles the panel, restores its background and centres the two names, at most ten characters
 // each.
-void opeu_transfer_draw(Game& game, uint16_t first, uint16_t second) {
+void opeu_transfer_draw(Game& game, Text first, Text second) {
   auto const& data{ Data(game) };
   if (!SidePlayed(data, data.current_side)) return;
   opeu_army_title(game, offsetof(DataSegment, transfer_title));
   game.Machine().Display().DrawColumns({ data.transfer_panel_x, data.transfer_panel_y, PANEL_WIDTH, PANEL_HEIGHT }, { 0, FarBytes(game, data.numdlg_image_segment, PANEL_IMAGE_AT) });
-  auto const indent{ [&](std::uint16_t name) {
+  auto const indent{ [&](Text name) {
     auto const length{ std::min(static_cast<std::int16_t>(opeu_string_length(game, name)), NAME_LIMIT) };
     return static_cast<std::int16_t>(NAME_LIMIT - length) / 2;
   } };
   opeu_army_position(game, static_cast<int16_t>(indent(first) + data.transfer_panel_x + 2), static_cast<int16_t>(data.transfer_panel_y + 14));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ offsetof(DataSegment, transfer_name_format), first });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, transfer_name_format), first });
   opeu_army_position(game, static_cast<int16_t>(indent(second) + data.transfer_panel_x + 20), static_cast<int16_t>(data.transfer_panel_y + 14));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ offsetof(DataSegment, transfer_name_text), second });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, transfer_name_text), second });
 }
 
 // For a player's side, redraws a resource row: both amounts and both fill percentages.
@@ -136,14 +136,14 @@ void opeu_transfer_draw_row(Game& game, uint8_t row) {
   auto const  text_y{ row * PANEL_ROW_HEIGHT + data.transfer_panel_y + 0x24 };
   auto const  box_y{ static_cast<std::uint16_t>(row * PANEL_ROW_HEIGHT + data.transfer_panel_y + 0x37) };
   opeu_army_position(game, static_cast<int16_t>(x + 2), static_cast<int16_t>(text_y));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ offsetof(DataSegment, transfer_amount_format), left_amount });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, transfer_amount_format), left_amount });
   opeu_army_position(game, static_cast<int16_t>(x + 0x19), static_cast<int16_t>(text_y));
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ offsetof(DataSegment, transfer_amount_text), right_amount });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ offsetof(DataSegment, transfer_amount_text), right_amount });
   game.Machine().Display().Box({ static_cast<uint16_t>(x + 2), box_y, BOX_WIDTH, BOX_HEIGHT }, 0);
   DrawDigits(game, ScreenPoint{ static_cast<std::uint16_t>((x + 4) << 3), box_y }, left_percent);
   game.Machine().Display().Box({ static_cast<uint16_t>(x + 0x19), box_y, BOX_WIDTH, BOX_HEIGHT }, 0);
   DrawDigits(game, ScreenPoint{ static_cast<std::uint16_t>((x + 0x1b) << 3), box_y }, right_percent);
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ offsetof(DataSegment, transfer_colour) });
+  opeu_cursor_print(game, std::array<FormatArgument, 1>{ offsetof(DataSegment, transfer_colour) });
 }
 
 // The computer's key for a resource row. Supplies move to the left side ('7', '4', '1') while its target exceeds its

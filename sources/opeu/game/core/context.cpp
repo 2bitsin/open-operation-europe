@@ -11,6 +11,7 @@
 #include "common/scenario.hpp"
 #include "core/armysum.hpp"
 #include "core/dialogs.hpp"
+#include "core/strings.hpp"
 #include "core/textout.hpp"
 #include "core/uiprim.hpp"
 #include "io/sound.hpp"
@@ -21,8 +22,6 @@
 #include <array>
 #include <cstddef>
 #include <utility>
-
-extern uint16_t opeu_string_length(Game& game, uint16_t name);
 
 using namespace opeu::game;
 
@@ -48,16 +47,14 @@ void opeu_daily_context(Game& game, uint8_t side) {
   opeu_context_begin(game);
   opeu_context_save(game);
   opeu_context_frame(game, 44, 24, width + 13);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ NAME_FORMAT, general });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ NAME_FORMAT, general });
   opeu_context_restore(game);
-  opeu_cursor_print(game, std::array<std::uint16_t, 10>{ STATS_FORMAT, static_cast<std::uint16_t>(person.leadership), static_cast<std::uint16_t>(person.infantry),
-                                                         static_cast<std::uint16_t>(person.charm), static_cast<std::uint16_t>(person.artillery), static_cast<std::uint16_t>(person.bravery),
-                                                         static_cast<std::uint16_t>(person.armor), ((person.flags & Bits(PersonRole::POOR_HEALTH)) ? HEALTH_RED : HEALTH_NORMAL),
-                                                         static_cast<std::uint16_t>(person.health), static_cast<std::uint16_t>(person.experience) });
+  opeu_cursor_print(game, std::array<FormatArgument, 10>{ STATS_FORMAT, person.leadership, person.infantry, person.charm, person.artillery, person.bravery, person.armor,
+                                                          ((person.flags & Bits(PersonRole::POOR_HEALTH)) ? HEALTH_RED : HEALTH_NORMAL), person.health, person.experience });
   opeu_context_portrait(game, 70, 40, general);
   for (std::uint16_t y{ 316 }; y < 382; y += 16) {
     opeu_army_position(game, 45, y);
-    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ BLANK_FORMAT });
+    opeu_cursor_print(game, std::array<FormatArgument, 1>{ BLANK_FORMAT });
   }
   data.context_side = side;
   opeu_army_summary(game);

@@ -51,7 +51,7 @@ auto Say(Game& game, Place const& place, auto const& text) -> void {
 
 auto NoSavedGames(Game& game) -> void {
   auto const& data{ Data(game) };
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.load_print_format)), Framed(game, MESSAGE, data.no_saved_games_text) });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.load_print_format), Framed(game, MESSAGE, data.no_saved_games_text) });
   opeu_delay_units(game, 23);
   Paper(game, NORMAL);
 }

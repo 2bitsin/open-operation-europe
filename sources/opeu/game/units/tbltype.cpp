@@ -40,12 +40,13 @@ void opeu_tbl_draw_types(Game& game, DrawRequest const& request) {
     auto const& type{ Record<ElementType>(data, near) };
     if (flags & DRAW_NAMES) {
       StartRowName(game, window, entry, NAME_INDENT, opeu_record_side(game, near));
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_type_name), type.name });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.tbl_type_name), type.name });
     }
     auto const    general{ Record<Person>(data, data.context_record1).status };
     std::uint16_t nations{ !(type.sides & general) ? type.sides : general };
-    opeu_request_format(game, std::array<std::uint16_t, 9>{ text, Near(data, data.tbl_type_row), opeu_first_mask_name(game, static_cast<std::uint8_t>(nations)), type.anti_personnel, type.anti_tank,
-                                                            type.defense, type.speed, static_cast<unsigned>(type.fuel_economy * type.fuel_capacity) / 10, type.gun_range });
+    opeu_request_format(game, text,
+                        std::array<FormatArgument, 8>{ Near(data, data.tbl_type_row), opeu_first_mask_name(game, static_cast<std::uint8_t>(nations)), type.anti_personnel, type.anti_tank, type.defense,
+                                                       type.speed, static_cast<unsigned>(type.fuel_economy * type.fuel_capacity) / 10, type.gun_range });
     DrawRowText(game, window, layout, entry, text);
   }
   opeu_text_color(game, TABLE_TEXT_COLOR);

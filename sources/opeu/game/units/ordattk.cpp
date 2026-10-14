@@ -146,13 +146,13 @@ uint16_t opeu_order_attack_start(Game& game, uint16_t name, uint8_t x, uint8_t y
   if (data.side_control[data.current_side] == SIDE_PLAYED && !(Record<Group>(data, data.current_group_ptr).flags & Bits(GroupFlag::AI_MARK))
       && opeu_unit_selection_eligible(game, data.current_unit_ptr)) {
     opeu_unit_report(game, data.current_unit_ptr, Near(data, data.order_prepared));
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.order_ask_attack), name });
+    opeu_request_format(game, text, std::array<FormatArgument, 2>{ Near(data, data.order_ask_attack), name });
     auto const confirmed{ opeu_confirm_message(game, text, data.context_group_record) };
     if (confirmed) opeu_daily_show(game, BATTLE_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::ATTACK);
     return confirmed;
   }
   if (!opeu_order_attack_allowed(game, x, y)) return 0;
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.order_begin_attack), name });
+  opeu_request_format(game, text, std::array<FormatArgument, 2>{ Near(data, data.order_begin_attack), name });
   opeu_unit_report(game, data.current_unit_ptr, text);
   return 1;
 }
@@ -186,7 +186,7 @@ uint16_t opeu_order_occupy_run(Game& game) {
       return 1;
     }
     auto const text{ local(OCCUPY_TEXT) };
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.order_occupied), objective });
+    opeu_request_format(game, text, std::array<FormatArgument, 2>{ Near(data, data.order_occupied), objective });
     opeu_unit_report(game, data.current_unit_ptr, text);
     opeu_daily_show(game, OCCUPIED_PICTURE, static_cast<uint8_t>(data.current_side), Presenter::OCCUPIED);
     Restore(game);
@@ -215,7 +215,7 @@ uint16_t opeu_order_attack_run(Game& game) {
   auto const name{ opeu_unit_name(game, unit, local(ATTACK_NAME)) };
   auto const side_name{ data.side_names[opeu_abs16_bits(static_cast<std::uint16_t>(data.current_side - 1))] };
   auto const text{ local(ATTACK_TEXT) };
-  opeu_request_format(game, std::array<std::uint16_t, 5>{ text, Near(data, data.order_unit_label), data.current_side ? SIDE1_COLOUR : SIDE0_COLOUR, side_name, name });
+  opeu_request_format(game, text, std::array<FormatArgument, 4>{ Near(data, data.order_unit_label), data.current_side ? SIDE1_COLOUR : SIDE0_COLOUR, side_name, name });
   if (opeu_order_attack_start(game, text, cell.x, cell.y)) Engage(data, cell.x, cell.y);
   return 1;
 }

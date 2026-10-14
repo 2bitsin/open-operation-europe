@@ -41,9 +41,9 @@ void opeu_army_heading(Game& game, uint16_t person) {
   opeu_ui_text(game, data.side_names[data.current_side]);
   opeu_select_side_color(game, data.current_side);
   opeu_army_position(game, 1, 18);
-  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ ARMY_PERSON, SideTextColor(data.current_side), person });
+  opeu_cursor_print(game, std::array<FormatArgument, 3>{ ARMY_PERSON, SideTextColor(data.current_side), person });
   opeu_army_position(game, 1, 34);
-  opeu_cursor_print(game, std::array<std::uint16_t, 1>{ ARMY_HQ });
+  opeu_cursor_print(game, std::array<FormatArgument, 1>{ ARMY_HQ });
   game.Machine().Display().Line(
       {
           { 40, 51  },
@@ -62,9 +62,8 @@ void opeu_division_heading(Game& game, uint16_t person) {
       0);
   opeu_ui_outline(game, 5, 142, 73, 257, COLOR_WHITE);
   opeu_army_position(game, 1, 225);
-  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ DIVISION_LABEL, SideTextColor(data.current_side),
-                                                        static_cast<std::uint16_t>((Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1) });
+  opeu_cursor_print(game, std::array<FormatArgument, 3>{ DIVISION_LABEL, SideTextColor(data.current_side), (Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1 });
   opeu_army_position(game, 1, 241);
-  opeu_cursor_print(game, std::array<std::uint16_t, 3>{ DIVISION_PERSON, SideTextColor(data.current_side), person });
+  opeu_cursor_print(game, std::array<FormatArgument, 3>{ DIVISION_PERSON, SideTextColor(data.current_side), person });
   opeu_context_portrait(game, 1, 144, person);
 }

@@ -62,7 +62,7 @@ void opeu_view_regiment_list(Game& game) {
     SetListPredicate(data.choice_dialog, ListSelect::VIEW_NONE_2);
     opeu_title_panel_begin(game);
     auto const unit_name{ opeu_unit_name(game, unit, name) };
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ title, REGIMENT_FORMAT, unit_name });
+    opeu_request_format(game, title, std::array<FormatArgument, 2>{ REGIMENT_FORMAT, unit_name });
     opeu_control_message(game, title, data.context_record3);
     opeu_copy_bytes(game, LIST_WINDOW, saved_window, LIST_WINDOW_STATE);
     opeu_list_dialog(game, data.choice_dialog, LIST_OPTIONS);

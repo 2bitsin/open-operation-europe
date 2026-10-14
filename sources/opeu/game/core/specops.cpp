@@ -187,7 +187,7 @@ void Plan(Game& game, Mission const& mission) {
       if (!picked) return;
       cell = *picked;
       if (mission.city_question != NO_TEXT && (objective = opeu_find_objective_at(game, x, y)) != 0 && opeu_objective_side(game, objective) != data.current_side) {
-        opeu_request_format(game, std::array<std::uint16_t, 3>{ text, mission.city_question, objective });
+        opeu_request_format(game, text, std::array<FormatArgument, 2>{ mission.city_question, objective });
         if (opeu_confirm_message(game, text, data.special_person)) {
           on_city = true;
           break;
@@ -197,7 +197,7 @@ void Plan(Game& game, Mission const& mission) {
       if ((unit = opeu_find_unit_at(game, x, y)) == 0) continue;
       if (opeu_unit_side(unit) == data.current_side) continue;
       if (!opeu_unit_special(game, unit)) continue;
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ text, mission.unit_question, opeu_unit_name(game, unit, name) });
+      opeu_request_format(game, text, std::array<FormatArgument, 2>{ mission.unit_question, opeu_unit_name(game, unit, name) });
       if (!opeu_confirm_message(game, text, data.special_person)) continue;
       break;
     }
@@ -208,13 +208,13 @@ void Plan(Game& game, Mission const& mission) {
     auto hours{ static_cast<std::uint8_t>(mission.base - opeu_min16(data.special_leadership / mission.divisor - data.delivery_level + 5, mission.base - 1)) };
     hours += opeu_cell_influence_side(game, { x, y }) == data.current_side ? 0 : 1;
     if (mission.duration == NO_TEXT)
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ text, opeu_message_lookup(game, RAID_DURATION_MESSAGE), static_cast<std::uint16_t>(hours) });
+      opeu_request_format(game, text, std::array<FormatArgument, 2>{ opeu_message_lookup(game, RAID_DURATION_MESSAGE), hours });
     else if (mission.hour == NO_TEXT)
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ text, mission.duration, static_cast<std::uint16_t>(hours) });
+      opeu_request_format(game, text, std::array<FormatArgument, 2>{ mission.duration, hours });
     else
-      opeu_request_format(game, std::array<std::uint16_t, 4>{ text, mission.duration, static_cast<std::uint16_t>(hours), (hours == 1 ? mission.hour : mission.hours) });
+      opeu_request_format(game, text, std::array<FormatArgument, 3>{ mission.duration, hours, (hours == 1 ? mission.hour : mission.hours) });
     opeu_control_message(game, text, data.special_person);
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ text, mission.lieutenant, data.special_person });
+    opeu_request_format(game, text, std::array<FormatArgument, 2>{ mission.lieutenant, data.special_person });
     if (!opeu_confirm_message(game, text, data.context_record2)) continue;
     auto& order{ Record<Order>(data, data.special_order) };
     order.target   = on_city ? objective : unit;

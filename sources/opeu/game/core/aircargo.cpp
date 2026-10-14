@@ -72,10 +72,10 @@ struct Delivery {
 
 // What the report on a delivery names: the text buffer it is written into, its format and the receiver's colour and name.
 struct ReportHeading {
-  std::uint16_t text;
-  std::uint16_t format;
-  std::uint16_t color;
-  std::uint16_t name;
+  TextTarget     text;
+  std::uint16_t  format;
+  std::uint16_t  color;
+  FormatArgument name;
 };
 
 // Drops the load into `stock` up to `limit` each; what does not fit stays in the load. Returns the stock before and after.
@@ -97,7 +97,7 @@ auto Unload(AirLift& lift, std::span<std::uint16_t, 3> stock, std::span<std::uin
 auto Report(Game& game, ReportHeading const& heading, Delivery const& delivery) -> void {
   auto const& [before, now]{ delivery };
   auto const gain{ [&](std::size_t supply) { return static_cast<std::uint16_t>(now[supply] - before[supply]); } };
-  opeu_request_format(game, std::array<std::uint16_t, 10>{ heading.text, heading.format, heading.color, heading.name, now[1], gain(1), now[0], gain(0), now[2], gain(2) });
+  opeu_request_format(game, heading.text, std::array<FormatArgument, 9>{ heading.format, heading.color, heading.name, now[1], gain(1), now[0], gain(0), now[2], gain(2) });
 }
 } // namespace
 

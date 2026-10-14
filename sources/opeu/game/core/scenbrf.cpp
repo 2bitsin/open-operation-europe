@@ -44,15 +44,14 @@ public:
     SayAt(Near(Data(_game), text));
   }
   auto SayClosing() -> void {
-    SayAt(_closing.At(0));
+    SayAt(_closing);
   }
 
   // Formats the text with the player's name into the closing buffer.
   template <std::size_t N>
   auto Format(std::array<char, N> const& text) -> void {
-    auto const&                        data{ Data(_game) };
-    std::array<std::uint16_t, 3> const words{ _closing.At(0), Near(data, text), data.initial_person };
-    opeu_request_format(_game, words);
+    auto const& data{ Data(_game) };
+    opeu_request_format(_game, _closing, std::array<FormatArgument, 2>{ Near(data, text), data.initial_person });
   }
 
   auto HookOn() -> void {
@@ -66,13 +65,13 @@ public:
   }
 
 private:
-  auto SayAt(std::uint16_t text) -> void {
+  auto SayAt(Text text) -> void {
     opeu_control_message(_game, text, _speaker);
   }
 
-  Game&               _game;
-  ServiceLocals const _closing{ CLOSING_BYTES };
-  std::uint16_t       _speaker{};
+  Game&                     _game;
+  TextBuffer<CLOSING_BYTES> _closing;
+  std::uint16_t             _speaker{};
 };
 
 } // namespace

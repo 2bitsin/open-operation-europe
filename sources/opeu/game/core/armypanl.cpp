@@ -99,9 +99,9 @@ void opeu_panel_elements(Game& game, uint16_t unit, int y) {
       game.Machine().Display().DrawBits({ static_cast<uint16_t>(x + 22), static_cast<uint16_t>(row_y), 4, 16 },
                                         { static_cast<uint16_t>(data.current_side ? 0x305 : 0x306), FarBytes(game, data.gfx_source[1], data.gfx_source[0]) });
       opeu_army_position(game, x + 27, row_y);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ NAME_FORMAT, opeu_element_name(game, near, buffer) });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ NAME_FORMAT, opeu_element_name(game, near, buffer) });
       opeu_army_position(game, x + 47, row_y);
-      opeu_cursor_print(game, std::array<std::uint16_t, 3>{ COUNT_FORMAT, SideTextColor(data.current_side), element.quantity });
+      opeu_cursor_print(game, std::array<FormatArgument, 3>{ COUNT_FORMAT, SideTextColor(data.current_side), element.quantity });
       ++shown;
     }
     if (!element.next) break;
@@ -149,17 +149,15 @@ void opeu_division_regiments(Game& game, uint16_t units, uint16_t person) {
     opeu_panel_battle_frame(game, y);
     y += battle ? 10 : 2;
     opeu_army_position(game, 12, battle ? y - 7 : y - 1);
-    opeu_cursor_print(game,
-                      std::array<std::uint16_t, 4>{ REGIMENT_FORMAT, SideTextColor(data.current_side),
-                                                    static_cast<std::uint16_t>((Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1), static_cast<std::uint16_t>(i + 1) });
+    opeu_cursor_print(game, std::array<FormatArgument, 4>{ REGIMENT_FORMAT, SideTextColor(data.current_side), (Record<Person>(data, person).assignment & Bits(Assignment::DIVISION_MASK)) + 1, i + 1 });
     if (battle) {
       opeu_army_position(game, 12, y + 9);
-      opeu_cursor_print(game, std::array<std::uint16_t, 1>{ BATTLE_TEXT });
+      opeu_cursor_print(game, std::array<FormatArgument, 1>{ BATTLE_TEXT });
       y -= 16;
       if (opeu_unit_selection_eligible(game, units)) opeu_panel_slots(game, y, 3);
     } else {
       opeu_army_position(game, 12, y + 15);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ STRING_FORMAT, data.panel_regiment_names[i - 4] });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ STRING_FORMAT, data.panel_regiment_names[i - 4] });
       if (opeu_unit_selection_eligible(game, units)) opeu_panel_slots(game, y, 2);
     }
     if (opeu_unit_selection_eligible(game, units)) opeu_panel_elements(game, units, y);

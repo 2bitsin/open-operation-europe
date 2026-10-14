@@ -59,7 +59,7 @@ template <typename... _Arguments>
 auto Prompt(Game& game, std::uint16_t text, _Arguments... arguments) -> void {
   opeu_staff_restore_bottom(game);
   opeu_army_position(game, static_cast<int16_t>(PROMPT_X), static_cast<int16_t>(PROMPT_Y));
-  opeu_cursor_print(game, std::array<std::uint16_t, 1 + sizeof...(_Arguments)>{ text, arguments... });
+  opeu_cursor_print(game, std::array<FormatArgument, 1 + sizeof...(_Arguments)>{ text, arguments... });
   opeu_text_paper_set(game, 0);
 }
 } // namespace
@@ -76,7 +76,7 @@ uint8_t opeu_general_assign_choice(Game& game, uint8_t choice) {
     opeu_context_portrait(game, 0x20, 0x28, person);
     opeu_text_paper_set(game, static_cast<uint8_t>(HIGHLIGHT));
     opeu_army_position(game, 0x29, 0x58);
-    opeu_cursor_print(game, std::array<std::uint16_t, 3>{ OPS_FORMAT, SideTextColor(data.current_side), person });
+    opeu_cursor_print(game, std::array<FormatArgument, 3>{ OPS_FORMAT, SideTextColor(data.current_side), person });
     Prompt(game, OPS_PROMPT);
     return 1;
   case 1:
@@ -84,7 +84,7 @@ uint8_t opeu_general_assign_choice(Game& game, uint8_t choice) {
     opeu_context_portrait(game, 0xc, 0x28, person);
     opeu_text_paper_set(game, static_cast<uint8_t>(HIGHLIGHT));
     opeu_army_position(game, 0x15, 0x58);
-    opeu_cursor_print(game, std::array<std::uint16_t, 3>{ INTEL_FORMAT, SideTextColor(data.current_side), person });
+    opeu_cursor_print(game, std::array<FormatArgument, 3>{ INTEL_FORMAT, SideTextColor(data.current_side), person });
     Prompt(game, INTEL_PROMPT);
     return 1;
   case 2: {
@@ -92,7 +92,7 @@ uint8_t opeu_general_assign_choice(Game& game, uint8_t choice) {
     opeu_context_portrait(game, 0x34, 0x28, person);
     opeu_text_paper_set(game, static_cast<uint8_t>(HIGHLIGHT));
     opeu_army_position(game, 0x3d, 0x58);
-    opeu_cursor_print(game, std::array<std::uint16_t, 3>{ DIVISION_FORMAT, SideTextColor(data.current_side), person });
+    opeu_cursor_print(game, std::array<FormatArgument, 3>{ DIVISION_FORMAT, SideTextColor(data.current_side), person });
     auto const post{ static_cast<std::uint8_t>(opeu_find_vacant_post(game)) };
     opeu_show_division_strength(game, static_cast<std::uint8_t>(post - 3));
     Prompt(game, DIVISION_PROMPT, post - 2);
@@ -106,7 +106,7 @@ uint8_t opeu_general_assign_choice(Game& game, uint8_t choice) {
     opeu_context_portrait(game, static_cast<std::uint16_t>(choice * 20 - 0x3a), 0x88, person);
     opeu_text_paper_set(game, static_cast<uint8_t>(HIGHLIGHT));
     opeu_army_position(game, static_cast<int16_t>(static_cast<std::uint16_t>(choice * 20 - 0x31)), 0x98);
-    opeu_cursor_print(game, std::array<std::uint16_t, 3>{ choice == 6 ? DIVISION_SHORT : DIVISION_LONG, SideTextColor(data.current_side), person });
+    opeu_cursor_print(game, std::array<FormatArgument, 3>{ choice == 6 ? DIVISION_SHORT : DIVISION_LONG, SideTextColor(data.current_side), person });
     auto const post{ static_cast<std::uint8_t>(opeu_find_vacant_post(game)) };
     if (post >= 7) {
       opeu_text_paper_set(game, 0);
@@ -147,7 +147,7 @@ void opeu_general_list_draw_rows(Game& game, DrawRequest const& request) {
   if (flags & 3) {
     opeu_army_position(game, static_cast<int16_t>(row_width() + first_column + window.x - 0x1f), static_cast<int16_t>(window.y + 1));
     opeu_select_side_color(game, static_cast<uint8_t>(data.current_side));
-    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ HEADER });
+    opeu_cursor_print(game, std::array<FormatArgument, 1>{ HEADER });
   }
   for (auto const index : DrawnRows(first, last)) {
     auto const  person{ data.general_list[index] };
@@ -157,14 +157,14 @@ void opeu_general_list_draw_rows(Game& game, DrawRequest const& request) {
     if (flags & 5) {
       opeu_army_position(game, static_cast<int16_t>(window.x + 3), static_cast<int16_t>(y));
       opeu_select_side_color(game, static_cast<uint8_t>(data.current_side));
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ NAME_FORMAT, person });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ NAME_FORMAT, person });
     }
     opeu_army_position(game, static_cast<int16_t>(row_width() + first_column + window.x - 0x1e), static_cast<int16_t>(y));
     if (HasPost(general))
       opeu_select_side_color(game, static_cast<uint8_t>(data.current_side));
     else
       opeu_text_color(game, GREY);
-    opeu_cursor_print(game, std::array<std::uint16_t, 8>{ STATS_FORMAT, general.leadership, general.charm, general.bravery, general.health, general.infantry, general.artillery, general.armor });
+    opeu_cursor_print(game, std::array<FormatArgument, 8>{ STATS_FORMAT, general.leadership, general.charm, general.bravery, general.health, general.infantry, general.artillery, general.armor });
   }
   opeu_text_color(game, GREY);
 }

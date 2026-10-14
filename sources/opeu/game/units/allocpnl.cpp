@@ -40,12 +40,12 @@ void opeu_alloc_type_panel(Game& game, uint8_t slot, uint16_t type) {
   auto const& kind{ Record<ElementType>(data, type) };
   opeu_alloc_clear_panel(game);
   opeu_context_frame(game, 1, 0x10a, static_cast<std::uint8_t>(opeu_string_length(game, kind.name)) + 2);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.alloc_name_format), kind.name });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.alloc_name_format), kind.name });
   opeu_face_draw(game, 3, 0x12c, 0, static_cast<uint8_t>(data.supply_types[slot]));
   opeu_army_position(game, 0x1c, 0x128);
   std::uint16_t const load{ static_cast<std::uint16_t>(kind.category == 0 ? 0 : static_cast<unsigned>(kind.fuel_economy * kind.fuel_capacity) / 10) };
-  opeu_cursor_print(game, std::array<std::uint16_t, 13>{ Near(data, data.alloc_stats_format), STAT_WIDTH, kind.anti_personnel, STAT_WIDTH, kind.anti_tank, STAT_WIDTH, kind.defense, STAT_WIDTH,
-                                                         kind.speed, STAT_WIDTH, load, STAT_WIDTH, kind.gun_range });
+  opeu_cursor_print(game, std::array<FormatArgument, 13>{ Near(data, data.alloc_stats_format), STAT_WIDTH, kind.anti_personnel, STAT_WIDTH, kind.anti_tank, STAT_WIDTH, kind.defense, STAT_WIDTH,
+                                                          kind.speed, STAT_WIDTH, load, STAT_WIDTH, kind.gun_range });
 }
 
 // Whether the first unit's `first` allocated amounts, and the second unit's `second` after them (when it has any),

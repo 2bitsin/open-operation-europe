@@ -24,6 +24,8 @@
 #include "units/stats.hpp"
 #include "units/value.hpp"
 
+#include <span>
+
 using namespace opeu::game;
 
 namespace {
@@ -31,7 +33,7 @@ namespace {
 constexpr std::uint16_t PLENTY{ 10000 };     // a stock an objective has plenty of
 constexpr std::uint8_t  ALERT_OFFICER{ 90 }; // the staff officer's rating that finds the enemy commander
 
-auto Enemy(Game& game, std::uint8_t const* far_text) -> Advisor {
+auto Enemy(Game& game, std::span<std::uint8_t const> far_text) -> Advisor {
   return { game, far_text, AdviceTopic::ENEMY };
 }
 
@@ -59,7 +61,7 @@ auto ForEnemySpecialUnits(Game& game, Visit&& visit) -> bool {
 
 // Side 0 in scenarios 1 and 2: one time in four the enemy is laying a mine field; side 0 in scenario 3 in weather 0
 // or 1: one time in four the enemy fleets prepare a bombardment.
-uint16_t opeu_advice_enemy_mines_or_bombardment(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_enemy_mines_or_bombardment(Game& game, std::span<std::uint8_t const> far_text) {
   auto const& data{ Data(game) };
   auto const  advisor{ Enemy(game, far_text) };
   auto const  scenario{ CurrentScenario(data) };
@@ -70,7 +72,7 @@ uint16_t opeu_advice_enemy_mines_or_bombardment(Game& game, const uint8_t* far_t
 
 // An active enemy division with no ready unit of a fighting category: with chance 1/(7 - g) its commander is unfit
 // for battle.
-uint16_t opeu_advice_enemy_division_unfit(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_enemy_division_unfit(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Enemy(game, far_text) };
   auto const foe{ opeu_opposite_side(data.current_side) };
@@ -86,7 +88,7 @@ uint16_t opeu_advice_enemy_division_unfit(Game& game, const uint8_t* far_text) {
 }
 
 // The enemy's air strike, airborne drop or airlift under way: each one time in four.
-uint16_t opeu_advice_enemy_air_operations(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_enemy_air_operations(Game& game, std::span<std::uint8_t const> far_text) {
   auto&       data{ Data(game) };
   auto const  advisor{ Enemy(game, far_text) };
   auto const& enemy{ data.sides[opeu_opposite_side(data.current_side)] };
@@ -99,7 +101,7 @@ uint16_t opeu_advice_enemy_air_operations(Game& game, const uint8_t* far_text) {
 // When no enemy special unit with an occupy or attack order stands next to a cell of ours: one time in four the enemy
 // has no plans to attack. Otherwise the first pass looks for such a unit whose order has started (its attack comes
 // shortly), the second for a resting one; each with chance 1/(7 - g).
-uint16_t opeu_advice_enemy_attack_plans(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_enemy_attack_plans(Game& game, std::span<std::uint8_t const> far_text) {
   auto&        data{ Data(game) };
   auto const   advisor{ Enemy(game, far_text) };
   std::uint8_t threats{ 0 };
@@ -128,7 +130,7 @@ uint16_t opeu_advice_enemy_attack_plans(Game& game, const uint8_t* far_text) {
 
 // The enemy's first linked objective: one time in four, held by us the enemy plots to take it, held by the enemy it
 // strengthens its defenses there.
-uint16_t opeu_advice_enemy_objective_intent(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_enemy_objective_intent(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Enemy(game, far_text) };
   auto const foe{ opeu_opposite_side(data.current_side) };
@@ -142,7 +144,7 @@ uint16_t opeu_advice_enemy_objective_intent(Game& game, const uint8_t* far_text)
 
 // The enemy side has a standing order: one time in four its recon teams are active. Otherwise a ready unit of ours
 // that the enemy has reconnoitred: one time in four the enemy knows our plans.
-uint16_t opeu_advice_enemy_recon_activity(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_enemy_recon_activity(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Enemy(game, far_text) };
   if (data.sides[opeu_opposite_side(data.current_side)].order.kind != Bits(UnitOrder::NONE) && advisor.Random(4) == 1) return advisor.Say(AdviceText::ENEMY_RECON_ACTIVE);
@@ -155,7 +157,7 @@ uint16_t opeu_advice_enemy_recon_activity(Game& game, const uint8_t* far_text) {
 }
 
 // An objective in use not ours with plenty of all three stocks: one time in four we hear of its materials.
-uint16_t opeu_advice_enemy_plentiful_materials(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_enemy_plentiful_materials(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Enemy(game, far_text) };
   for (auto const& objective : data.objectives) {
@@ -169,7 +171,7 @@ uint16_t opeu_advice_enemy_plentiful_materials(Game& game, const uint8_t* far_te
 
 // Enemy special units: the first pass looks for a slow one (average11 >= 70, average9 <= 20), the second for an
 // active one (average11 <= 5, average9 >= 90); each with chance 1/(7 - g).
-uint16_t opeu_advice_enemy_unit_activity(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_enemy_unit_activity(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Enemy(game, far_text) };
   for (std::uint8_t pass{ 0 }; pass < 2; ++pass) {
@@ -190,7 +192,7 @@ uint16_t opeu_advice_enemy_unit_activity(Game& game, const uint8_t* far_text) {
 
 // A staff officer with a leadership of 90 or more, one time in 24: names the enemy army's commander and the first
 // enemy division that is selected.
-uint16_t opeu_advice_enemy_commander_location(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_enemy_commander_location(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Enemy(game, far_text) };
   if (Record<Person>(data, data.context_record2).leadership >= ALERT_OFFICER && advisor.Random(24) == 1) {
@@ -207,13 +209,13 @@ uint16_t opeu_advice_enemy_commander_location(Game& game, const uint8_t* far_tex
 }
 
 // The fallback: we need recon teams.
-uint16_t opeu_advice_enemy_need_recon(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_enemy_need_recon(Game& game, std::span<std::uint8_t const> far_text) {
   return Enemy(game, far_text).Say(AdviceText::NEED_RECON);
 }
 
 // Enemy Conditions: runs the checks until one gives advice.
-void opeu_advice_enemy_conditions(Game& game, const uint8_t* far_text) {
-  using Check = uint16_t (*)(Game&, const uint8_t*);
+void opeu_advice_enemy_conditions(Game& game, std::span<std::uint8_t const> far_text) {
+  using Check = uint16_t (*)(Game&, std::span<std::uint8_t const>);
   static constexpr Check CHECKS[]{
     opeu_advice_enemy_mines_or_bombardment, opeu_advice_enemy_division_unfit,      opeu_advice_enemy_air_operations, opeu_advice_enemy_attack_plans,       opeu_advice_enemy_objective_intent,
     opeu_advice_enemy_recon_activity,       opeu_advice_enemy_plentiful_materials, opeu_advice_enemy_unit_activity,  opeu_advice_enemy_commander_location, opeu_advice_enemy_need_recon,

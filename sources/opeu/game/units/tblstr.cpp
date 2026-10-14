@@ -37,9 +37,9 @@ void opeu_tbl_draw_strength(Game& game, DrawRequest const& request) {
     auto const& type{ data.element_types[item.type] };
     if (flags & DRAW_NAMES) {
       StartRowName(game, window, entry, NAME_INDENT, opeu_record_side(game, Near(data, type)));
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_str_name), type.name });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.tbl_str_name), type.name });
     }
-    opeu_request_format(game, std::array<std::uint16_t, 4>{ text, Near(data, data.tbl_str_row), item.quantity, item.extra });
+    opeu_request_format(game, text, std::array<FormatArgument, 3>{ Near(data, data.tbl_str_row), item.quantity, item.extra });
     DrawRowText(game, window, layout, entry, text);
   }
   opeu_text_color(game, TABLE_TEXT_COLOR);

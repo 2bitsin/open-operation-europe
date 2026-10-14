@@ -37,7 +37,7 @@ constexpr std::uint16_t INTELLIGENCE{ 2 }; // the staff menu's second item
 // The advice topics' routines, by the enumerator advice_actions holds for the topic; each reads the advice texts.
 template <auto ADVISE>
 auto Advise(Game& game) -> void {
-  ADVISE(game, AdviceTexts());
+  ADVISE(game, AdviceTexts(game));
 }
 constexpr auto ADVICE_ACTIONS = DispatchRows<AdviceAction, auto (*)(Game&)->void>({
     { AdviceAction::TACTICAL,         Advise<opeu_advice_tactical>         },

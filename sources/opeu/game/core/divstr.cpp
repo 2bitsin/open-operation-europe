@@ -50,6 +50,6 @@ void opeu_show_division_strength(Game& game, uint8_t div) {
   auto const x{ static_cast<std::uint16_t>(div * 20 + 11) };
   opeu_text_set_left(game, x);
   opeu_army_position(game, x, LINE_Y);
-  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ STRENGTH_FORMAT, static_cast<std::uint16_t>(div + 1), (in_reserve ? RESERVE_MARK : NO_MARK), troops, armour, artillery });
+  opeu_cursor_print(game, std::array<FormatArgument, 6>{ STRENGTH_FORMAT, div + 1, (in_reserve ? RESERVE_MARK : NO_MARK), troops, armour, artillery });
   opeu_text_set_left(game, 0);
 }

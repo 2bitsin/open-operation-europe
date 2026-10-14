@@ -308,7 +308,7 @@ auto opeu_choose_value(Game& game, ValueRange range, ChoiceOptions options) -> s
 // Prints the prompt `text`, then chooses.
 auto opeu_prompt_value(Game& game, std::uint16_t text, ValueChoice const& choice) -> std::uint16_t {
   auto const& data{ Data(game) };
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.prompt_format)), text });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.prompt_format), text });
   return opeu_choose_value(game, choice.range, choice.options);
 }
 
@@ -361,6 +361,6 @@ auto opeu_yes_no(Game& game) -> int {
 
 auto opeu_prompt_yes_no(Game& game, std::uint16_t text) -> int {
   auto const& data{ Data(game) };
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(Near(data, data.question_format)), text });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.question_format), text });
   return opeu_yes_no(game);
 }

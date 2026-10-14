@@ -46,10 +46,9 @@ void opeu_request_action1(Game& game, uint8_t side, uint16_t request) {
   if (data.side_status[side] != SIDE_PLAYED) return;
   auto const buffer{ static_cast<uint16_t>(offsetof(DataSegment, request_buffer)) };
   opeu_arrival_location(game, objective.x, objective.y, side);
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, opeu_message_lookup(game, HEADER_MESSAGE), Near(data, objective) });
+  opeu_request_format(game, buffer, std::array<FormatArgument, 2>{ opeu_message_lookup(game, HEADER_MESSAGE), Near(data, objective) });
   opeu_control_message(game, buffer, data.request_person);
   opeu_request_wait(game);
-  opeu_request_format(game, std::array<std::uint16_t, 5>{ buffer, static_cast<std::uint16_t>(offsetof(DataSegment, equipment_delivery_format)), data.element_types[item.type].name, item.quantity,
-                                                          static_cast<std::uint16_t>(item.quantity - before) });
+  opeu_request_format(game, buffer, std::array<FormatArgument, 4>{ offsetof(DataSegment, equipment_delivery_format), data.element_types[item.type].name, item.quantity, item.quantity - before });
   opeu_control_message(game, buffer, data.request_person);
 }

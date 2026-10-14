@@ -66,7 +66,7 @@ void opeu_request_arms(Game& game) {
     city = opeu_find_objective_at(game, x, y);
     if (city && opeu_objective_side(game, city) == data.current_side) break;
   }
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, Near(data, data.rq_arms_confirm), city });
+  opeu_request_format(game, buffer, std::array<FormatArgument, 2>{ Near(data, data.rq_arms_confirm), city });
   if (!opeu_confirm_message(game, buffer, data.context_record2)) return;
   FileRequest(game, { city, static_cast<uint8_t>(data.rq_type_list[data.list_row]), static_cast<uint8_t>(battalion) });
   data.side_delays[data.current_side] = 1;

@@ -1,31 +1,26 @@
-// Strings in the data segment, addressed by near pointer (offsets wrap at 16 bits).
+// The game's zero-terminated strings: copied, appended and measured.
 #include "core/strings.hpp"
 #include "types.hpp"
 
 #include "common/game.hpp"
-#include "port.hpp"
-#include "services.hpp"
+#include "common/text.hpp"
 
-// Copies source with its terminator to destination one byte at a time (an overlap behaves accordingly); returns
-// destination.
-uint16_t opeu_string_copy(Game& game, uint16_t destination, uint16_t source) {
-  uint16_t const result{ destination };
-  while ((Byte(game, destination++) = Byte(game, source++)) != 0) {
-  }
-  return result;
+#include <string>
+
+// Copies source with its terminator to destination; returns destination.
+TextTarget opeu_string_copy(Game& game, TextTarget destination, Text source) {
+  auto& data{ Data(game) };
+  StoreText(data, destination, std::string{ source.View(data) });
+  return destination;
 }
 
 // Appends source to the string at destination; returns destination.
-uint16_t opeu_string_append(Game& game, uint16_t destination, uint16_t source) {
-  uint16_t const result{ destination };
-  while (Byte(game, destination)) ++destination;
-  while ((Byte(game, destination++) = Byte(game, source++)) != 0) {
-  }
-  return result;
+TextTarget opeu_string_append(Game& game, TextTarget destination, Text source) {
+  auto& data{ Data(game) };
+  StoreText(data, destination, std::string{ destination.Written().View(data) } + std::string{ source.View(data) });
+  return destination;
 }
 
-uint16_t opeu_string_length(Game& game, uint16_t string) {
-  uint16_t const start{ string };
-  while (Byte(game, string)) ++string;
-  return string - start;
+uint16_t opeu_string_length(Game& game, Text string) {
+  return static_cast<uint16_t>(string.View(Data(game)).size());
 }

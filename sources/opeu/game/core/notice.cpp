@@ -202,7 +202,7 @@ void opeu_notice_decide(Game& game) {
         }
         if (data.side_control[side] == PLAYER_CONTROL && (can_command[side] = opeu_notice_can_command(game, list, side)) != 0
             && !(Record<Group>(data, opeu_unit_group(unit)).flags & Bits(GroupFlag::AI_MARK))) {
-          opeu_request_format(game, std::array<std::uint16_t, 3>{ text, static_cast<std::uint16_t>(offsetof(DataSegment, notice_command_text)), data.side_names[side] });
+          opeu_request_format(game, text, std::array<FormatArgument, 2>{ offsetof(DataSegment, notice_command_text), data.side_names[side] });
           data.battle_command[side] = opeu_confirm_message(game, text, opeu_find_side_record(game, side, 2));
           break;
         }
@@ -213,7 +213,7 @@ void opeu_notice_decide(Game& game) {
           break;
         }
         if (data.side_control[side] == PLAYER_CONTROL && (can_command[side] = opeu_notice_can_command(game, list, side)) != 0) {
-          opeu_request_format(game, std::array<std::uint16_t, 3>{ text, static_cast<std::uint16_t>(offsetof(DataSegment, notice_control_text)), data.side_names[side] });
+          opeu_request_format(game, text, std::array<FormatArgument, 2>{ offsetof(DataSegment, notice_control_text), data.side_names[side] });
           data.battle_command[side] = opeu_confirm_message(game, text, opeu_find_side_record(game, side, 2));
           break;
         }
@@ -249,8 +249,7 @@ void opeu_notice_attack(Game& game) {
   uint16_t const      objective{ opeu_find_objective_at(game, data.battle_x, data.battle_y) };
   if (opeu_unit_special(game, attacker)) {
     uint16_t const side_name{ data.side_names[side] };
-    opeu_request_format(game, std::array<std::uint16_t, 5>{ text, static_cast<std::uint16_t>(offsetof(DataSegment, notice_attack_format)), SIDE_COLOUR[side == 0 ? 0 : 1], side_name,
-                                                            opeu_unit_name(game, attacker, name) });
+    opeu_request_format(game, text, std::array<FormatArgument, 4>{ offsetof(DataSegment, notice_attack_format), SIDE_COLOUR[side == 0 ? 0 : 1], side_name, opeu_unit_name(game, attacker, name) });
   } else
     opeu_string_copy(game, text, offsetof(DataSegment, notice_under_attack_text));
   if (unit) {

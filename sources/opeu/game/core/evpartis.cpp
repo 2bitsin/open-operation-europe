@@ -53,7 +53,7 @@ void opeu_hurricane_present(Game& game) {
   bool const  season{ HurricaneSeason(data) };
   opeu_sound_cue15(game);
   opeu_daily_context(game, data.current_side);
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, opeu_message_lookup(game, HURRICANE_MESSAGE), (season ? data.hurricane_words[0] : data.hurricane_words[1]) });
+  opeu_request_format(game, TEXT, std::array<FormatArgument, 2>{ opeu_message_lookup(game, HURRICANE_MESSAGE), (season ? data.hurricane_words[0] : data.hurricane_words[1]) });
   opeu_control_message(game, TEXT, data.context_record2);
 }
 
@@ -69,7 +69,7 @@ void opeu_partisan_event(Game& game) {
   for (std::uint8_t y{ 0 }; y < MAP_HEIGHT; ++y)
     for (std::uint8_t x{ 0 }; x < MAP_WIDTH; ++x) {
       if (opeu_map_code(game, x, y) != PARTISAN_TERRAIN || opeu_cell_side(game, x, y) != NO_SIDE || game.State().RandomBounded(season ? 70 : 100) != 8) continue;
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, opeu_message_lookup(game, CELL_RISING_MESSAGE), partisans });
+      opeu_request_format(game, TEXT, std::array<FormatArgument, 2>{ opeu_message_lookup(game, CELL_RISING_MESSAGE), partisans });
       for (std::uint8_t side{ 0 }; side < 2; ++side) {
         opeu_control_message(game, TEXT, opeu_find_side_record(game, side, COMMANDER));
         opeu_location_flash(game, x, y, side);
@@ -83,7 +83,7 @@ void opeu_partisan_event(Game& game) {
     if (opeu_objective_eligible(game, near)) {
       auto const side{ opeu_objective_side(game, near) };
       if (data.side_status[side] == SIDE_PLAYED) {
-        opeu_request_format(game, std::array<std::uint16_t, 4>{ TEXT, opeu_message_lookup(game, OBJECTIVE_RISING_MESSAGE), partisans, near });
+        opeu_request_format(game, TEXT, std::array<FormatArgument, 3>{ opeu_message_lookup(game, OBJECTIVE_RISING_MESSAGE), partisans, near });
         opeu_control_message(game, TEXT, opeu_find_side_record(game, side, COMMANDER));
         opeu_location_flash(game, objective.x, objective.y, side);
       }

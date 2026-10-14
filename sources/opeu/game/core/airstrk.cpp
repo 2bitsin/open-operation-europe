@@ -78,7 +78,7 @@ uint16_t opeu_air_damage_roll(Game& game, uint8_t x, uint8_t y, uint8_t n) {
 void opeu_air_destroyed_message(Game& game, uint16_t what) {
   ServiceLocals const locals{ TEXT_BYTES };
   auto const          text{ locals.At(0) };
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ text, DESTROYED_FORMAT, what });
+  opeu_request_format(game, text, std::array<FormatArgument, 2>{ DESTROYED_FORMAT, what });
   auto const officer{ opeu_find_side_record(game, Data(game).air_side, AIR_OFFICER_KIND) };
   opeu_control_message(game, text, officer);
 }

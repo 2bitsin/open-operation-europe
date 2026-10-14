@@ -52,7 +52,7 @@ auto DivisionHeld(Game& game, std::uint16_t unit) -> bool {
   return Record<Group>(Data(game), opeu_unit_group(unit)).flags & Bits(GroupFlag::AI_MARK);
 }
 
-auto UnitName(Game& game, std::uint16_t unit, std::uint16_t buffer) -> std::uint16_t {
+auto UnitName(Game& game, std::uint16_t unit, TextTarget buffer) -> TextTarget {
   return opeu_unit_name(game, unit, buffer);
 }
 

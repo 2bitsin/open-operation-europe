@@ -48,7 +48,7 @@ void opeu_request_supplies(Game& game) {
     city = opeu_find_objective_at(game, cell.x, cell.y);
     if (city && opeu_objective_side(game, city) == data.current_side) break;
   }
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, static_cast<std::uint16_t>(offsetof(DataSegment, rq_supplies_confirm)), city });
+  opeu_request_format(game, buffer, std::array<FormatArgument, 2>{ offsetof(DataSegment, rq_supplies_confirm), city });
   if (!opeu_confirm_message(game, buffer, data.context_record2)) return;
   FileRequest(game, { city, static_cast<uint8_t>(0xff), kind });
   data.side_delays[data.current_side] = 1;

@@ -103,7 +103,7 @@ void opeu_unit_casualties(Game& game, uint16_t unit, CasualtyRoll const& roll) {
     std::uint16_t losses{ game.State().RandomBounded(100) >= percent ? game.State().RandomBounded(c >> 1) : static_cast<std::uint16_t>(game.State().RandomBounded(c) + kind) };
     if (d && infantry) losses = static_cast<std::uint16_t>(static_cast<std::uint32_t>(losses) * static_cast<std::uint32_t>(game.State().RandomBounded(10) + 6));
     losses = opeu_min16(element.quantity, losses);
-    opeu_request_format(game, std::array<std::uint16_t, 6>{ text, Near(data, data.casualty_heading), SideColorCode(side), data.side_names[side], name, element_name });
+    opeu_request_format(game, text, std::array<FormatArgument, 5>{ Near(data, data.casualty_heading), SideColorCode(side), data.side_names[side], name, element_name });
     bool wiped{ false };
     if (losses) {
       element.quantity -= losses;
@@ -117,7 +117,7 @@ void opeu_unit_casualties(Game& game, uint16_t unit, CasualtyRoll const& roll) {
             if (group_selected)
               opeu_string_copy(game, text, Near(data, data.casualty_cut_selected));
             else if (!side_selected)
-              opeu_request_format(game, std::array<std::uint16_t, 3>{ text, Near(data, data.casualty_cut), name });
+              opeu_request_format(game, text, std::array<FormatArgument, 2>{ Near(data, data.casualty_cut), name });
             opeu_unit_side_report(game, unit, text);
             report = false;
           }
@@ -134,7 +134,7 @@ void opeu_unit_casualties(Game& game, uint16_t unit, CasualtyRoll const& roll) {
           damage         = AddWord(damage, game.State().RandomBounded(losses / 3), data.request_capacities[category]);
           element.damage = damage;
         }
-        opeu_request_format(game, std::array<std::uint16_t, 3>{ loss_text, losses == 1 ? Near(data, data.casualty_loss_format) : Near(data, data.casualty_losses_format), losses });
+        opeu_request_format(game, loss_text, std::array<FormatArgument, 2>{ losses == 1 ? Near(data, data.casualty_loss_format) : Near(data, data.casualty_losses_format), losses });
         opeu_string_append(game, text, loss_text);
       } else {
         switch (static_cast<std::uint8_t>(opeu_remove_element(game, unit, near))) {

@@ -46,8 +46,7 @@ void opeu_battle_wiped_notice(Game& game, uint16_t element) {
   ServiceLocals const locals{ MESSAGE_BYTES };
   auto const          message{ locals.At(0) };
   auto const          side{ opeu_battle_element_side(game, element) };
-  opeu_request_format(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(message), static_cast<std::uint16_t>(Near(data, data.battle_fmt_wiped)),
-                                                          static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(ElementTypeOf(data, element).name) });
+  opeu_request_format(game, message, std::array<FormatArgument, 3>{ Near(data, data.battle_fmt_wiped), SideColorCode(side), ElementTypeOf(data, element).name });
   opeu_battle_commander_wait(game, message, static_cast<uint8_t>(side), static_cast<uint8_t>(2));
 }
 
@@ -74,11 +73,10 @@ void opeu_battle_ranged_panel(Game& game, uint16_t shooter, uint16_t target) {
     auto const copied{ opeu_string_copy(game, target_name, objective) };
     opeu_ui_text(game, opeu_string_append(game, copied, Near(data, data.battle_text_s)));
     opeu_army_position(game, static_cast<short>(NAME_COLUMN), static_cast<short>(BUNKER_ROW));
-    opeu_cursor_print(game, std::array<std::uint16_t, 1>{ static_cast<std::uint16_t>(Near(data, data.battle_text_bunker)) });
+    opeu_cursor_print(game, std::array<FormatArgument, 1>{ Near(data, data.battle_text_bunker) });
   }
   opeu_battle_commander_panel(game, static_cast<uint8_t>(side), 1);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ static_cast<std::uint16_t>(side == 0 ? Near(data, data.battle_fmt_firing0) : Near(data, data.battle_fmt_firing1)),
-                                                        static_cast<std::uint16_t>(shooter_name) });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ side == 0 ? Near(data, data.battle_fmt_firing0) : Near(data, data.battle_fmt_firing1), shooter_name });
   opeu_text_color(game, WHITE);
   opeu_text_paper_set(game, static_cast<uint8_t>(0));
 }

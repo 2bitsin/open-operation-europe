@@ -50,8 +50,7 @@ void opeu_battle_player_orders(Game& game) {
     opeu_battle_commander_panel(game, static_cast<uint8_t>(data.battle_active_side), prompt);
     prompt = 1;
     auto const side{ data.battle_active_side };
-    opeu_cursor_print(game, std::array<std::uint16_t, 3>{ static_cast<std::uint16_t>(Near(data, data.battle_fmt_side_orders)), static_cast<std::uint16_t>(SideColorCode(side)),
-                                                          static_cast<std::uint16_t>(data.side_names[side]) });
+    opeu_cursor_print(game, std::array<FormatArgument, 3>{ Near(data, data.battle_fmt_side_orders), SideColorCode(side), data.side_names[side] });
     if (!opeu_battle_select_cell(game)) {
       opeu_battle_commander_panel(game, static_cast<uint8_t>(data.battle_active_side), 0);
       auto const finished{ static_cast<std::uint16_t>(opeu_prompt_yes_no(game, Near(data, data.battle_msg_orders_finished))) };

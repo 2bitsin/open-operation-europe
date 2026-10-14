@@ -65,10 +65,9 @@ void opeu_stock_show(Game& game, uint16_t objective) {
   auto const  capacity{ ObjectiveCapacities(data, objective) };
   opeu_info_panel_begin(game);
   opeu_ui_text(game, offsetof(DataSegment, stock_header));
-  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_fuel_line)), capacity.fuel, city.resources[FUEL], city.reserves[FUEL] });
-  opeu_cursor_print(game,
-                    std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_ammo_line)), capacity.ammunition, city.resources[AMMUNITION], city.reserves[AMMUNITION] });
-  opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(offsetof(DataSegment, stock_food_line)), capacity.food, city.resources[FOOD], city.reserves[FOOD] });
+  opeu_cursor_print(game, std::array<FormatArgument, 4>{ offsetof(DataSegment, stock_fuel_line), capacity.fuel, city.resources[FUEL], city.reserves[FUEL] });
+  opeu_cursor_print(game, std::array<FormatArgument, 4>{ offsetof(DataSegment, stock_ammo_line), capacity.ammunition, city.resources[AMMUNITION], city.reserves[AMMUNITION] });
+  opeu_cursor_print(game, std::array<FormatArgument, 4>{ offsetof(DataSegment, stock_food_line), capacity.food, city.resources[FOOD], city.reserves[FOOD] });
 }
 
 // The panel under the city's name.
@@ -82,8 +81,7 @@ uint16_t opeu_stock_ask(Game& game, uint16_t what) {
   ServiceLocals const locals{ 0x64 }; // the question the format service writes
   auto const&         data{ Data(game) };
   auto const          question{ locals.At(0) };
-  opeu_request_format(
-      game, std::array<std::uint16_t, 3>{ question, static_cast<std::uint16_t>(data.input_mode ? offsetof(DataSegment, stock_question_short) : offsetof(DataSegment, stock_question)), what });
+  opeu_request_format(game, question, std::array<FormatArgument, 2>{ data.input_mode ? offsetof(DataSegment, stock_question_short) : offsetof(DataSegment, stock_question), what });
   return opeu_control_choose(game, question, 0, STOCK_LIMIT, 1, data.context_record2, 0);
 }
 

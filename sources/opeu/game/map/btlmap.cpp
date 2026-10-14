@@ -126,17 +126,14 @@ void opeu_battle_draw_title(Game& game) {
   opeu_army_position(game, static_cast<short>(TITLE_X), static_cast<short>(0));
   opeu_context_frame(game, 0, 0, TITLE_FRAME_WIDTH);
   opeu_ui_text(game, static_cast<std::uint16_t>(Near(data, data.battle_title_style)));
-  opeu_cursor_print(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(Near(data, data.battle_title_format)), static_cast<std::uint16_t>(data.month), static_cast<std::uint16_t>(data.day),
-                                                        static_cast<std::uint16_t>(data.year + YEAR_BASE), static_cast<std::uint16_t>(data.hour), static_cast<std::uint16_t>(weather) });
+  opeu_cursor_print(game, std::array<FormatArgument, 6>{ Near(data, data.battle_title_format), data.month, data.day, data.year + YEAR_BASE, data.hour, weather });
   opeu_context_frame(game, 0, PLACE_FRAME_Y, TITLE_FRAME_WIDTH);
   auto const x{ static_cast<uint16_t>(data.map_scale * data.battle_x) };
   auto const y{ static_cast<uint16_t>(data.map_scale * data.battle_y) };
   if (auto const objective{ opeu_find_objective_at(game, static_cast<uint8_t>(static_cast<std::uint16_t>(data.battle_x)), static_cast<uint8_t>(static_cast<std::uint16_t>(data.battle_y))) })
-    opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.battle_place_format)), static_cast<std::uint16_t>(objective), static_cast<std::uint16_t>(x),
-                                                          static_cast<std::uint16_t>(y) });
+    opeu_cursor_print(game, std::array<FormatArgument, 4>{ Near(data, data.battle_place_format), objective, x, y });
   else
-    opeu_cursor_print(game, std::array<std::uint16_t, 4>{ static_cast<std::uint16_t>(Near(data, data.battle_terrain_format)), static_cast<std::uint16_t>(data.terrain_names[StrategicTerrain(data)]),
-                                                          static_cast<std::uint16_t>(x), static_cast<std::uint16_t>(y) });
+    opeu_cursor_print(game, std::array<FormatArgument, 4>{ Near(data, data.battle_terrain_format), data.terrain_names[StrategicTerrain(data)], x, y });
   opeu_ui_text(game, static_cast<std::uint16_t>(Near(data, data.battle_title_end)));
 }
 

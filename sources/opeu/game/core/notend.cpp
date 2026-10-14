@@ -130,7 +130,7 @@ void opeu_end_occupy(Game& game) {
   opeu_arrival_prepare(game, unit);
   attacker.moved = 0;
   if (objective) {
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ text, static_cast<std::uint16_t>(offsetof(DataSegment, end_occupied_format)), objective });
+    opeu_request_format(game, text, std::array<FormatArgument, 2>{ offsetof(DataSegment, end_occupied_format), objective });
     opeu_unit_report(game, data.current_unit_ptr, text);
     opeu_daily_show(game, OCCUPIED_SHOW, side, Presenter::END_OCCUPY);
   }
@@ -234,15 +234,13 @@ void opeu_end_losses(Game& game) {
     }
     uint16_t const remaining{ Record<Element>(data, element).quantity };
     uint16_t const lost{ static_cast<uint16_t>(loss.item.quantity - remaining) };
-    opeu_request_format(
-        game, std::array<std::uint16_t, 6>{ report, static_cast<std::uint16_t>(offsetof(DataSegment, end_loss_format)), SIDE_COLOUR[side == 0 ? 0 : 1], data.side_names[side], unit_name, item_name });
+    opeu_request_format(game, report, std::array<FormatArgument, 5>{ offsetof(DataSegment, end_loss_format), SIDE_COLOUR[side == 0 ? 0 : 1], data.side_names[side], unit_name, item_name });
     if (!unit || !Record<Element>(data, element).quantity)
       opeu_string_append(game, report, offsetof(DataSegment, end_wiped_out_text));
     else if (!lost)
       opeu_string_append(game, report, offsetof(DataSegment, end_undamaged_text));
     else {
-      opeu_request_format(
-          game, std::array<std::uint16_t, 3>{ loss_text, static_cast<std::uint16_t>(lost == 1 ? offsetof(DataSegment, end_one_loss_format) : offsetof(DataSegment, end_losses_format)), lost });
+      opeu_request_format(game, loss_text, std::array<FormatArgument, 2>{ lost == 1 ? offsetof(DataSegment, end_one_loss_format) : offsetof(DataSegment, end_losses_format), lost });
       opeu_string_append(game, report, loss_text);
     }
     opeu_control_message(game, report, opeu_find_side_record(game, opeu_side_for_status(game, side), 3));

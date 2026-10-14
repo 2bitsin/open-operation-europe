@@ -52,7 +52,7 @@ auto SpecialForcesCommander(Game& game, uint8_t side) -> uint16_t {
 // Formats a report into message: format, the side's colour and name, then text.
 void FormatReport(Game& game, uint16_t message, uint16_t format, uint8_t side, uint16_t text) {
   auto const format_text{ MissionText(game, format) };
-  opeu_request_format(game, std::array<std::uint16_t, 5>{ message, format_text, static_cast<std::uint16_t>(SideColorCode(side)), Data(game).side_names[side], text });
+  opeu_request_format(game, message, std::array<FormatArgument, 4>{ format_text, SideColorCode(side), Data(game).side_names[side], text });
 }
 
 void ShowReport(Game& game, uint16_t picture, uint8_t side, Presenter presenter) {

@@ -71,9 +71,9 @@ void opeu_battle_supply_notice(Game& game, uint16_t element, uint8_t supply) {
   if (!data.side_status[side]) return;
   auto const unit{ opeu_battle_element_unit(game, element) };
   auto const name{ unit == Near(data, data.battle_garrison) ? Near(data, data.text_defenders) : opeu_unit_name(game, unit, name_buffer) };
-  opeu_request_format(game, std::array<std::uint16_t, 6>{ static_cast<std::uint16_t>(text), static_cast<std::uint16_t>(Near(data, data.supply_notice_format)),
-                                                          static_cast<std::uint16_t>(SideColorCode(side)), static_cast<std::uint16_t>(name), static_cast<std::uint16_t>(data.supply_names[supply]),
-                                                          static_cast<std::uint16_t>(supply == SUPPLY_FUEL ? Near(data, data.text_cannot_move) : Near(data, data.text_cannot_fight)) });
+  opeu_request_format(game, text,
+                      std::array<FormatArgument, 5>{ Near(data, data.supply_notice_format), SideColorCode(side), name, data.supply_names[supply],
+                                                     supply == SUPPLY_FUEL ? Near(data, data.text_cannot_move) : Near(data, data.text_cannot_fight) });
   opeu_battle_commander_wait(game, text, static_cast<uint8_t>(side), static_cast<uint8_t>(COMMANDER_REPORT));
 }
 

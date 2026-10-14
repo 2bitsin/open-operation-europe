@@ -73,7 +73,7 @@ void opeu_view_city_list(Game& game, uint8_t count) {
     if (data.stock_dialog.rows > 1) {
       SetListPredicate(data.stock_dialog, ListSelect::VIEW_NONE_3);
       opeu_title_panel_begin(game);
-      opeu_request_format(game, std::array<std::uint16_t, 3>{ title, CITY_FORMAT, city });
+      opeu_request_format(game, title, std::array<FormatArgument, 2>{ CITY_FORMAT, city });
       opeu_control_message(game, title, data.context_record3);
       opeu_copy_bytes(game, LIST_WINDOW, saved_window, LIST_WINDOW_STATE);
       opeu_list_dialog(game, data.stock_dialog, LIST_OPTIONS);

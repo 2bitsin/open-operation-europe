@@ -128,7 +128,7 @@ uint16_t opeu_air_bomb_order(Game& game, uint8_t x, uint8_t y, uint16_t type) {
   auto const& flight{ data.bombing_flights[type] };
   auto const  planes{ opeu_min16(CurrentSide(data).bombers, flight.base + game.State().RandomBounded(flight.range)) };
   auto const  format{ opeu_message_lookup(game, ANNOUNCE) };
-  opeu_request_format(game, std::array<std::uint16_t, 7>{ text, format, hours, (hours == 1 ? HOUR_TEXT : HOURS_TEXT), planes, (planes == 1 ? PLANE_TEXT : PLANES_TEXT), data.bombing_names[type] });
+  opeu_request_format(game, text, std::array<FormatArgument, 6>{ format, hours, (hours == 1 ? HOUR_TEXT : HOURS_TEXT), planes, (planes == 1 ? PLANE_TEXT : PLANES_TEXT), data.bombing_names[type] });
   opeu_control_message(game, text, data.air_person);
   if (!opeu_air_confirm(game)) return 0;
   auto& strike{ CurrentSide(data).strike };

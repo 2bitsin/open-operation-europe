@@ -34,9 +34,9 @@ void opeu_request_error_present(Game& game) {
   auto const  name{ data.request_kind_names[request.kind] };
   auto const  format{ opeu_message_lookup(game, FIRST_REASON_MESSAGE + data.request_error) };
   if (data.request_error == 0)
-    opeu_request_format(game, std::array<std::uint16_t, 4>{ buffer, format, request.target, name });
+    opeu_request_format(game, buffer, std::array<FormatArgument, 3>{ format, request.target, name });
   else
-    opeu_request_format(game, std::array<std::uint16_t, 3>{ buffer, format, name });
+    opeu_request_format(game, buffer, std::array<FormatArgument, 2>{ format, name });
   opeu_control_message(game, buffer, data.request_template);
   if (data.side_control[1] == SIDE_COMPUTER && data.side_control[0] == SIDE_COMPUTER) opeu_pending_finish(game, 3);
 }

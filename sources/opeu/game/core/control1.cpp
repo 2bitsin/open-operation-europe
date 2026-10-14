@@ -81,7 +81,7 @@ void opeu_turn_control_one(Game& game) {
       opeu_turn_pre_context(game);
       if (!inspecting) {
         ServiceLocals const prompt{ PROMPT_BYTES };
-        opeu_request_format(game, std::array<std::uint16_t, 3>{ prompt.At(0), PROMPT_FORMAT, data.context_record1 });
+        opeu_request_format(game, prompt.At(0), std::array<FormatArgument, 2>{ PROMPT_FORMAT, data.context_record1 });
         auto const choice{ opeu_control_choose(game, prompt.At(0), 0, 10, 1, data.context_record2, COMMAND_MENU) };
         if (choice != MENU_CANCELLED) {
           Dispatch(CONTROL_ACTIONS, data.control_actions.at(choice), game);

@@ -32,6 +32,8 @@
 #include "units/stats.hpp"
 #include "units/value.hpp"
 
+#include <span>
+
 using namespace opeu::game;
 
 namespace {
@@ -44,7 +46,7 @@ constexpr std::uint16_t NO_ADVICE{ 0xffff };
 // The flags of a unit that is not idle: ready, set aside for a drop, or arriving.
 constexpr std::uint8_t BUSY{ Bits(UnitFlag::READY) | Bits(UnitFlag::AIRBORNE) | Bits(UnitFlag::ARRIVING) };
 
-auto Tactics(Game& game, std::uint8_t const* far_text) -> Advisor {
+auto Tactics(Game& game, std::span<std::uint8_t const> far_text) -> Advisor {
   return { game, far_text, AdviceTopic::TACTICS };
 }
 
@@ -66,7 +68,7 @@ void ForEligibleUnits(Game& game, Visit&& visit) {
 // A city-level objective: held by a defending side with an enemy special fighting unit next to it, the officer urges
 // its defense; held by the enemy under the attacking side's influence with a unit of ours next to it, the officer
 // sees the chance to take it.
-uint16_t opeu_advice_tactical_objective_threat(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tactical_objective_threat(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Tactics(game, far_text) };
   auto const side{ data.current_side };
@@ -89,7 +91,7 @@ uint16_t opeu_advice_tactical_objective_threat(Game& game, const uint8_t* far_te
 
 // A free general and a division led by a deputy: appoint a commander. A tired commander: leave it to the division
 // commander. The selected unit outnumbered by enemy special units around it: one time in three, move headquarters.
-uint16_t opeu_advice_tactical_command(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tactical_command(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Tactics(game, far_text) };
   auto const side{ data.current_side };
@@ -116,7 +118,7 @@ uint16_t opeu_advice_tactical_command(Game& game, const uint8_t* far_text) {
 }
 
 // An attacking side with at least twelve cheap units and five short of a supply: one time in three, reorganize.
-uint16_t opeu_advice_tactical_reorganize(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tactical_reorganize(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Tactics(game, far_text) };
   if (data.side_stance[data.current_side] != Bits(Stance::OFFENSIVE)) return 0;
@@ -138,7 +140,7 @@ uint16_t opeu_advice_tactical_reorganize(Game& game, const uint8_t* far_text) {
 // For each unit of ours, in three passes: outnumbered by enemy special units around it (with chance 1/(6 - g)), send
 // help; a fighting unit without an order inside our influence, send it to the front; a cheap fighting unit outside
 // it, pull back. Each of the last two one time in three.
-uint16_t opeu_advice_tactical_unit_deployment(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tactical_unit_deployment(Game& game, std::span<std::uint8_t const> far_text) {
   auto&         data{ Data(game) };
   auto const    advisor{ Tactics(game, far_text) };
   auto const    side{ data.current_side };
@@ -176,20 +178,20 @@ uint16_t opeu_advice_tactical_unit_deployment(Game& game, const uint8_t* far_tex
 }
 
 // Whether the side's request slot holds a pending request.
-uint16_t opeu_side_objective_slot_pending(Game& game, const uint8_t*, uint8_t slot) {
+uint16_t opeu_side_objective_slot_pending(Game& game, std::span<std::uint8_t const>, uint8_t slot) {
   auto& data{ Data(game) };
   return Record<Side>(data, data.current_side_ptr).requests[slot].kind != NO_REQUEST;
 }
 
 // Whether the side's request configuration is of `kind`.
-uint16_t opeu_side_request_kind_is(Game& game, const uint8_t*, uint8_t kind) {
+uint16_t opeu_side_request_kind_is(Game& game, std::span<std::uint8_t const>, uint8_t kind) {
   auto const& data{ Data(game) };
   return data.request_configs[data.current_side].kind == kind;
 }
 
 // Below 20 percent of a supply with no airlift and no request under way: one time in three, request supplies.
 // Otherwise an active division with fewer than four ready units: one time in three, reinforce it.
-uint16_t opeu_advice_tactical_supply_reinforce(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tactical_supply_reinforce(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Tactics(game, far_text) };
   auto const side{ data.current_side };
@@ -209,7 +211,7 @@ uint16_t opeu_advice_tactical_supply_reinforce(Game& game, const uint8_t* far_te
 
 // A defending side none of whose divisions' engineers (unit slot 6) is laying, clearing or bridging: one time in
 // three, plant mines.
-uint16_t opeu_advice_tactical_land_mines(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tactical_land_mines(Game& game, std::span<std::uint8_t const> far_text) {
   auto&        data{ Data(game) };
   auto const   advisor{ Tactics(game, far_text) };
   auto const   side{ data.current_side };
@@ -227,7 +229,7 @@ uint16_t opeu_advice_tactical_land_mines(Game& game, const uint8_t* far_text) {
 
 // Whether a ready division has an idle unit of a fighting category. A division is skipped by the low bit of its first
 // unit's second order slot, not by the division's reserve flag.
-uint8_t opeu_ready_group_has_idle_unit(Game& game, const uint8_t*) {
+uint8_t opeu_ready_group_has_idle_unit(Game& game, std::span<std::uint8_t const>) {
   auto&      data{ Data(game) };
   auto const side{ data.current_side };
   for (std::uint8_t g{ 0 }; g < GROUPS_PER_SIDE; ++g) {
@@ -244,7 +246,7 @@ uint8_t opeu_ready_group_has_idle_unit(Game& game, const uint8_t*) {
 // drop or the airlift is idle, one time in three ask the air force for help. At night with an able operations chief
 // and no side order: call in the special forces. Strong morale, clear weather, a very able intelligence chief and an
 // idle fighting unit: suggest a paratroop attack.
-uint16_t opeu_advice_tactical_air_special_forces(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tactical_air_special_forces(Game& game, std::span<std::uint8_t const> far_text) {
   auto&         data{ Data(game) };
   auto const    advisor{ Tactics(game, far_text) };
   auto const&   side{ Record<Side>(data, data.current_side_ptr) };
@@ -261,7 +263,7 @@ uint16_t opeu_advice_tactical_air_special_forces(Game& game, const uint8_t* far_
 }
 
 // The side's first linked objective: ours, solidify its defenses; the enemy's, rush in and take it.
-uint16_t opeu_advice_tactical_linked_objective(Game& game, const uint8_t* far_text) {
+uint16_t opeu_advice_tactical_linked_objective(Game& game, std::span<std::uint8_t const> far_text) {
   auto&      data{ Data(game) };
   auto const advisor{ Tactics(game, far_text) };
   auto const objective{ data.objective_links[data.current_side * 21] };
@@ -270,8 +272,8 @@ uint16_t opeu_advice_tactical_linked_objective(Game& game, const uint8_t* far_te
 }
 
 // Tactical advice: runs the checks until one gives advice.
-void opeu_advice_tactical(Game& game, const uint8_t* far_text) {
-  using Check = uint16_t (*)(Game&, const uint8_t*);
+void opeu_advice_tactical(Game& game, std::span<std::uint8_t const> far_text) {
+  using Check = uint16_t (*)(Game&, std::span<std::uint8_t const>);
   static constexpr Check CHECKS[]{
     opeu_advice_tactical_objective_threat, opeu_advice_tactical_command,    opeu_advice_tactical_reorganize,         opeu_advice_tactical_unit_deployment,
     opeu_advice_tactical_supply_reinforce, opeu_advice_tactical_land_mines, opeu_advice_tactical_air_special_forces, opeu_advice_tactical_linked_objective,

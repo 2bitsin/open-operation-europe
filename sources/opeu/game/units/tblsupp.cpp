@@ -42,12 +42,13 @@ void opeu_tbl_draw_supplies(Game& game, DrawRequest const& request) {
     auto const  side{ opeu_objective_side(game, near) };
     if (flags & DRAW_NAMES) {
       StartRowName(game, window, entry, NAME_INDENT, side);
-      opeu_cursor_print(game, std::array<std::uint16_t, 2>{ Near(data, data.tbl_supply_name), near });
+      opeu_cursor_print(game, std::array<FormatArgument, 2>{ Near(data, data.tbl_supply_name), near });
     }
     if ((side == data.current_side && opeu_objective_eligible(game, near)) || (side != data.current_side && (city.flags & Bits(ObjectiveFlag::MARKED)))) {
       auto const percentages{ ObjectiveResourcePercentages(data, near) };
-      opeu_request_format(game, std::array<std::uint16_t, 10>{ text, Near(data, data.tbl_supply_row), city.resources[1], percentages.fuel, city.resources[0], percentages.ammunition, city.resources[2],
-                                                               percentages.food, city.strength, city.strength_limit });
+      opeu_request_format(game, text,
+                          std::array<FormatArgument, 9>{ Near(data, data.tbl_supply_row), city.resources[1], percentages.fuel, city.resources[0], percentages.ammunition, city.resources[2],
+                                                         percentages.food, city.strength, city.strength_limit });
     } else
       opeu_string_copy(game, text, Near(data, data.tbl_supply_blank));
     DrawRowText(game, window, layout, entry, text);

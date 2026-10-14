@@ -33,7 +33,7 @@ void opeu_scenario_frame(Game& game) {
 
 void opeu_scenario_message(Game& game, uint16_t text) {
   opeu_army_position(game, 4, 0x19);
-  opeu_cursor_print(game, std::array<std::uint16_t, 2>{ MESSAGE_FORMAT, text });
+  opeu_cursor_print(game, std::array<FormatArgument, 2>{ MESSAGE_FORMAT, text });
 }
 
 void opeu_scenario_clear_panel(Game& game) {

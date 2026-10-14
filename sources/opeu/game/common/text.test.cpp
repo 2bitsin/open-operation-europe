@@ -19,7 +19,7 @@ auto Segment() -> std::unique_ptr<DataSegment> {
   return data;
 }
 
-auto Format(std::string_view format, std::initializer_list<std::uint16_t> words) -> std::string {
+auto Format(std::string_view format, std::initializer_list<FormatArgument> words) -> std::string {
   auto const data{ Segment() };
   return FormatText(*data, format, std::span{ words.begin(), words.size() });
 }
@@ -37,6 +37,32 @@ TEST(StoreText, WritesTheTextWithItsTerminator) {
   EXPECT_EQ(CString(*data, FORMAT_AT), "%d");
 }
 
+TEST(Text, ReadsANearTextOrCharacters) {
+  auto const data{ Segment() };
+  std::string_view constexpr MONTGOMERY{ "Montgomery" };
+  EXPECT_EQ(Text{ NAME_AT }.View(*data), "Rommel");
+  EXPECT_EQ(Text{ MONTGOMERY }.View(*data), "Montgomery");
+  EXPECT_EQ(Text{ NAME_AT }.Near(), NAME_AT);
+}
+
+TEST(Text, ReadsABufferAsItIsWhenRead) {
+  auto          data{ Segment() };
+  TextBuffer<8> buffer;
+  Text const    text{ buffer };
+  StoreText(*data, buffer, "Zhukov");
+  EXPECT_EQ(text.View(*data), "Zhukov");
+  EXPECT_EQ(buffer.View(), "Zhukov");
+}
+
+TEST(TextTarget, WritesIntoTheSegmentOrABuffer) {
+  auto          data{ Segment() };
+  TextBuffer<4> buffer;
+  StoreText(*data, buffer, "abc");
+  StoreText(*data, TextTarget{ FORMAT_AT }, "xyz");
+  EXPECT_EQ(buffer.View(), "abc");
+  EXPECT_EQ(TextTarget{ FORMAT_AT }.Written().View(*data), "xyz");
+}
+
 TEST(FormatText, FormatsSignedUnsignedAndHexWords) {
   EXPECT_EQ(Format("%d %u %x %o", { 0xffff, 0xffff, 0xbeef, 8 }), "-1 65535 BEEF 10");
   EXPECT_EQ(Format("%+d", { 5 }), "+5");
@@ -52,6 +78,12 @@ TEST(FormatText, CountsTheSignAgainstTheWidth) {
 
 TEST(FormatText, TakesStringsByNearPointerAndCutsThemAtThePrecision) {
   EXPECT_EQ(Format("%s/%.3s/%8s", { NAME_AT, NAME_AT, NAME_AT }), "Rommel/Rom/  Rommel");
+}
+
+TEST(FormatText, TakesTheCharactersOfABuffer) {
+  TextBuffer<8> name;
+  StoreText(*Segment(), name, "Patton");
+  EXPECT_EQ(Format("%s and %s", { name, NAME_AT }), "Patton and Rommel");
 }
 
 TEST(FormatText, TakesALongFromTwoWords) {

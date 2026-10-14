@@ -150,9 +150,8 @@ auto ReprintGeneral(Game& game, ListWindow const& window, std::uint16_t general)
   opeu_text_color(game, 7);
   opeu_army_position(game, static_cast<std::int16_t>(static_cast<std::uint16_t>(Byte(game, window.widths) + window.x - 0x1c)),
                      static_cast<std::int16_t>(static_cast<std::uint16_t>((i - data.list_top) * ROW_HEIGHT + window.y + 0x12)));
-  opeu_cursor_print(game, std::array<std::uint16_t, 8>{ static_cast<std::uint16_t>(Near(data, data.general_stats_line)), static_cast<std::uint16_t>(person.leadership),
-                                                        static_cast<std::uint16_t>(person.charm), static_cast<std::uint16_t>(person.bravery), static_cast<std::uint16_t>(person.health),
-                                                        static_cast<std::uint16_t>(person.infantry), static_cast<std::uint16_t>(person.artillery), static_cast<std::uint16_t>(person.armor) });
+  opeu_cursor_print(
+      game, std::array<FormatArgument, 8>{ Near(data, data.general_stats_line), person.leadership, person.charm, person.bravery, person.health, person.infantry, person.artillery, person.armor });
 }
 
 // Clears the prompt line and asks "Are you satisfied with the Div 4 Commander selection?"; the paper stays highlighted

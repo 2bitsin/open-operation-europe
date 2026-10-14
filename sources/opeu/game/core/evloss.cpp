@@ -55,9 +55,9 @@ constexpr std::uint16_t NAME_A{ 0x14 };
 constexpr std::uint16_t NAME_B{ 0x10 };
 
 // The format with one word, the word computed before the format is looked up.
-auto Format(Game& game, std::uint16_t message, std::uint16_t word) -> void {
+auto Format(Game& game, std::uint16_t message, FormatArgument word) -> void {
   auto const format{ opeu_message_lookup(game, message) };
-  opeu_request_format(game, std::array<std::uint16_t, 3>{ TEXT, format, word });
+  opeu_request_format(game, TEXT, std::array<FormatArgument, 2>{ format, word });
 }
 
 // Whether the unit is worn out: by random thresholds on its elements' average morale and experience, or on its
@@ -95,7 +95,7 @@ void Strike(Game& game, Unit const& unit, std::uint16_t movement, std::uint16_t 
   if (data.side_status[1] == SIDE_PLAYED && opeu_unit_special(game, near)) {
     auto const unit_name{ opeu_unit_name(game, near, name) };
     auto const format{ opeu_message_lookup(game, static_cast<int16_t>(PARTISANS_STRIKE_ENEMY)) };
-    opeu_request_format(game, std::array<std::uint16_t, 4>{ TEXT, format, movement, unit_name });
+    opeu_request_format(game, TEXT, std::array<FormatArgument, 3>{ format, movement, unit_name });
     opeu_unit_side_report(game, near, TEXT);
     opeu_location_flash(game, unit.x, unit.y, 1);
     opeu_daily_show(game, PRESENT_A_ID, 1, Presenter::PARTISAN_LOSSES);

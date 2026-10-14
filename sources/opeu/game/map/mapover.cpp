@@ -24,6 +24,7 @@
 #include "port.hpp"
 #include "services.hpp"
 
+#include <algorithm>
 #include <array>
 
 using namespace opeu::game;
@@ -67,7 +68,7 @@ void opeu_overview_unit_draw(Game& game, uint16_t unit, uint16_t x, uint16_t y) 
   ServiceLocals const locals{ GLYPH_BYTES };
   auto const          buffer{ locals.At(0) };
   auto const          draw{ [&](uint16_t glyphs, uint16_t mask) {
-    opeu_read_far_bytes(game, port_far(SPRITE_SEGMENT, 0), static_cast<std::uint16_t>(glyphs), static_cast<std::uint16_t>(buffer), GLYPH_BYTES);
+    std::ranges::copy(FarBytes(game, SPRITE_SEGMENT, glyphs).first(GLYPH_BYTES), game.State().Bytes(buffer, GLYPH_BYTES).begin());
     opeu_sprite_recolor(game, buffer, GLYPH_BYTES, opeu_unit_side(unit));
     SetStream(data, SPRITE_SEGMENT, mask);
     Compose(game, x, y, buffer, DATA_SEGMENT);
