@@ -47,7 +47,7 @@ private:
 };
 
 struct WindowSpec {
-  std::string title{};
+  std::string title;
   int         width{};  // the window's size in pixels
   int         height{}; //
 };
@@ -64,7 +64,7 @@ public:
 
   [[nodiscard]] auto Renderer() const -> SDL_Renderer& override;
   // Takes every pending event off the queue and says whether the user asked to close the window.
-  auto DrainEvents() -> WindowState;
+  static auto DrainEvents() -> WindowState;
 
 private:
   WindowRenderer(VideoSubsystem video, UniqueWindow window, UniqueRenderer renderer);

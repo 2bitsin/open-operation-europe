@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
+#include <format>
 #include <iterator>
 #include <print>
 #include <ranges>
@@ -191,9 +192,9 @@ constexpr std::array<KeyMap, 105> KEYMAP{ {
 // clang-format on
 
 auto FindKey(SDL_Scancode const scancode) -> std::optional<KeyMap> {
-  auto const found{ std::ranges::find(KEYMAP, scancode, &KeyMap::scancode) };
-  if (found == KEYMAP.end()) return std::nullopt;
-  return *found;
+  auto matches{ KEYMAP | std::views::filter([scancode](KeyMap const& key) { return key.scancode == scancode; }) };
+  if (matches.empty()) return std::nullopt;
+  return matches.front();
 }
 
 // BIOS INT 16h ASCII of a key for the given SDL modifier state.
@@ -297,16 +298,19 @@ public:
   auto               UnlockAudio() const -> void;
 
 private:
-  auto                OpenWindow(PlatConfig const& config, int width, int height, int scale) -> int;
-  auto                Redraw() const -> void;
-  auto                ReplaceTexture(int width, int height) -> void;
-  auto                Convert(Frame const& frame) -> void;
-  [[nodiscard]] auto  Translated(SDL_Event& sdl) const -> std::optional<InputEvent>;
-  [[nodiscard]] auto  KeyEvent(SDL_KeyboardEvent const& key) const -> std::optional<InputEvent>;
-  [[nodiscard]] auto  ButtonEvent(SDL_Event& sdl) const -> std::optional<InputEvent>;
-  auto                Place(float fx, float fy, InputEvent& event) const -> void;
-  [[nodiscard]] auto  SaveDir() -> std::string const&;
-  static auto SDLCALL FillAudio(void* backend, SDL_AudioStream* stream, int additional, int total) -> void;
+  [[nodiscard]] auto        OpenWindow(PlatConfig const& config) -> bool;
+  [[nodiscard]] auto        InitSubsystems() -> bool;
+  [[nodiscard]] auto        MakeWindow(PlatConfig const& config, std::string const& title) -> bool;
+  auto                      ClearWindow() const -> void;
+  auto                      Redraw() const -> void;
+  auto                      ReplaceTexture(int width, int height) -> void;
+  auto                      Convert(Frame const& frame) -> void;
+  [[nodiscard]] auto        Translated(SDL_Event& sdl) const -> std::optional<InputEvent>;
+  [[nodiscard]] static auto KeyEvent(SDL_KeyboardEvent const& key) -> std::optional<InputEvent>;
+  [[nodiscard]] auto        ButtonEvent(SDL_Event& sdl) const -> std::optional<InputEvent>;
+  auto                      Place(float fx, float fy, InputEvent& event) const -> void;
+  [[nodiscard]] auto        SaveDir() -> std::string const&;
+  static auto SDLCALL       FillAudio(void* backend, SDL_AudioStream* stream, int additional, int total) -> void;
 
   bool          _inited{ false };
   bool          _headless{ false };
@@ -343,9 +347,6 @@ auto TheBackend() -> Backend& {
 auto Backend::Init(PlatConfig const& config) -> int {
   if (_inited) return 0;
   _headless = config.headless != 0;
-  auto const width{ config.width > 0 ? config.width : DEFAULT_WIDTH };
-  auto const height{ config.height > 0 ? config.height : DEFAULT_HEIGHT };
-  auto const scale{ std::max(config.scale, 1) };
 
   if (_headless) {
     // No subsystems: timers and the filesystem helpers need none.
@@ -354,7 +355,7 @@ auto Backend::Init(PlatConfig const& config) -> int {
       return -1;
     }
     _sdl_flags = 0;
-  } else if (OpenWindow(config, width, height, scale) != 0) {
+  } else if (!OpenWindow(config)) {
     return -1;
   }
   _t0_ns  = SDL_GetTicksNS();
@@ -362,13 +363,34 @@ auto Backend::Init(PlatConfig const& config) -> int {
   return 0;
 }
 
-auto Backend::OpenWindow(PlatConfig const& config, int const width, int const height, int const scale) -> int {
+// The window's logical size and its integer scale on the desktop.
+struct WindowSize {
+  int width;
+  int height;
+  int scale;
+};
+
+[[nodiscard]] auto SizeOf(PlatConfig const& config) -> WindowSize {
+  return {
+    .width  = config.width > 0 ? config.width : DEFAULT_WIDTH,
+    .height = config.height > 0 ? config.height : DEFAULT_HEIGHT,
+    .scale  = std::max(config.scale, 1),
+  };
+}
+
+auto Backend::OpenWindow(PlatConfig const& config) -> bool {
   auto const title{ std::string{ config.title.empty() ? DEFAULT_TITLE : config.title } };
   SDL_SetAppMetadata(title.c_str(), nullptr, nullptr);
   target::PrepareHints();
+  if (!InitSubsystems() || !MakeWindow(config, title)) return false;
+  ClearWindow();
+  return true;
+}
+
+auto Backend::InitSubsystems() -> bool {
   if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
     std::println(stderr, "plat_init: SDL_Init(video): {}", SDL_GetError());
-    return -1;
+    return false;
   }
   _sdl_flags = SDL_INIT_VIDEO | SDL_INIT_EVENTS;
   // Audio is optional: continue silently if there is no device.
@@ -376,12 +398,16 @@ auto Backend::OpenWindow(PlatConfig const& config, int const width, int const he
     _sdl_flags |= SDL_INIT_AUDIO;
   else
     std::println(stderr, "plat_init: no audio: {}", SDL_GetError());
+  return true;
+}
 
+auto Backend::MakeWindow(PlatConfig const& config, std::string const& title) -> bool {
+  auto const      size{ SizeOf(config) };
   SDL_WindowFlags window_flags{ SDL_WINDOW_RESIZABLE | target::ExtraWindowFlags() };
   if (config.fullscreen != 0) window_flags |= SDL_WINDOW_FULLSCREEN;
   SDL_Window*   window{ nullptr };
   SDL_Renderer* renderer{ nullptr };
-  auto const    created{ SDL_CreateWindowAndRenderer(title.c_str(), width * scale, height * scale, window_flags, &window, &renderer) };
+  auto const    created{ SDL_CreateWindowAndRenderer(title.c_str(), size.width * size.scale, size.height * size.scale, window_flags, &window, &renderer) };
   _window.reset(window);
   _renderer.reset(renderer);
   if (!created) {
@@ -389,17 +415,20 @@ auto Backend::OpenWindow(PlatConfig const& config, int const width, int const he
     _renderer.reset();
     _window.reset();
     SDL_Quit();
-    return -1;
+    return false;
   }
   target::PaceFrames(*_renderer);
-  SDL_SetRenderLogicalPresentation(_renderer.get(), width, height, PRESENTATION);
+  SDL_SetRenderLogicalPresentation(_renderer.get(), size.width, size.height, PRESENTATION);
+  return true;
+}
+
+auto Backend::ClearWindow() const -> void {
   if constexpr (HIDE_CURSOR) SDL_HideCursor();
   // Never deliver text-input events; the backend derives ASCII itself.
   SDL_StopTextInput(_window.get());
   SDL_SetRenderDrawColor(_renderer.get(), 0, 0, 0, 255);
   SDL_RenderClear(_renderer.get());
   SDL_RenderPresent(_renderer.get());
-  return 0;
 }
 
 auto Backend::Shutdown() -> void {
@@ -486,7 +515,7 @@ auto Backend::Place(float const fx, float const fy, InputEvent& event) const -> 
 }
 
 // SDL key repeat arrives as further KEY_DOWN events (repeat=1), which is exactly the DOS typematic behaviour.
-auto Backend::KeyEvent(SDL_KeyboardEvent const& key) const -> std::optional<InputEvent> {
+auto Backend::KeyEvent(SDL_KeyboardEvent const& key) -> std::optional<InputEvent> {
   auto const found{ FindKey(key.scancode) };
   if (!found) return std::nullopt;
   auto const down{ key.type == SDL_EVENT_KEY_DOWN };
@@ -575,7 +604,7 @@ auto Backend::Resolve(std::string_view const dos_name) -> Resolution {
     auto const last{ rest.find_first_not_of("\\/") == std::string_view::npos };
     if (path.size() + 1 + length + 1 > PATH_MAX_LENGTH) return {};
     // Fast path: the exact spelling exists.
-    if (auto const exact{ path + "/" + component }; PathExists(exact)) {
+    if (auto const exact{ std::format("{}/{}", path, component) }; PathExists(exact)) {
       path = exact;
       continue;
     }

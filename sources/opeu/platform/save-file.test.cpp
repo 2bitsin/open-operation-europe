@@ -10,6 +10,7 @@
 #include <string>
 
 namespace opeu::platform::detail::save_file_test {
+namespace {
 
 class SaveFiles : public ::testing::Test {
 protected:
@@ -21,18 +22,27 @@ protected:
   auto TearDown() -> void override {
     std::filesystem::remove_all(_saves);
   }
+  [[nodiscard]] auto Saves() const -> std::filesystem::path const& {
+    return _saves;
+  }
+
+private:
   std::filesystem::path _saves;
 };
 
 TEST_F(SaveFiles, CreateTheDosSpellingAndReadItBack) {
   auto created{ SaveFile::Open("Savedata", FileMode::CREATE) };
-  ASSERT_TRUE(created);
+  if (!created) {
+    FAIL() << "the save file did not open";
+  }
   std::array<std::uint8_t, 3> const bytes{ 1, 2, 3 };
   EXPECT_EQ(created->Write(bytes), 3U);
   created.reset();
-  EXPECT_TRUE(std::filesystem::exists(_saves / "SAVEDATA"));
+  EXPECT_TRUE(std::filesystem::exists(Saves() / "SAVEDATA"));
   auto read{ SaveFile::Open("savedata", FileMode::READ) };
-  ASSERT_TRUE(read);
+  if (!read) {
+    FAIL() << "the save file did not open";
+  }
   std::array<std::uint8_t, 8> buffer{};
   EXPECT_EQ(read->Read(buffer), 3U);
   EXPECT_EQ(buffer[2], 3);
@@ -46,10 +56,12 @@ TEST_F(SaveFiles, OpenOnlyWhatExistsUnlessCreating) {
 
 TEST_F(SaveFiles, SeekFromEveryOriginButNotBeforeTheStart) {
   {
-    std::ofstream{ _saves / "DATA", std::ios::binary } << "abcdef";
+    std::ofstream{ Saves() / "DATA", std::ios::binary } << "abcdef";
   }
   auto file{ SaveFile::Open("data", FileMode::READ_WRITE) };
-  ASSERT_TRUE(file);
+  if (!file) {
+    FAIL() << "the save file did not open";
+  }
   EXPECT_EQ(file->Seek(2, SeekOrigin::START), 2);
   EXPECT_EQ(file->Seek(1, SeekOrigin::CURRENT), 3);
   EXPECT_EQ(file->Seek(-1, SeekOrigin::END), 5);
@@ -58,8 +70,9 @@ TEST_F(SaveFiles, SeekFromEveryOriginButNotBeforeTheStart) {
   EXPECT_EQ(file->Write(x), 1U);
   file->Flush();
   std::string contents;
-  std::ifstream{ _saves / "DATA", std::ios::binary } >> contents;
+  std::ifstream{ Saves() / "DATA", std::ios::binary } >> contents;
   EXPECT_EQ(contents, "abcdeX");
 }
 
+} // namespace
 }
