@@ -85,8 +85,8 @@ auto AssetRecord(Asset const& asset, assets::Image const& image) -> json::Object
 
 Extractor::Extractor(assets::Source const& source, std::filesystem::path out, Emit emit) : _source{ source }, _catalogue{ source }, _out{ std::move(out) }, _emit{ std::move(emit) } { }
 
-auto Extractor::Run() const -> Done {
-  return Palettes().and_then([this] { return Graphics(); }).and_then([this] { return Tables(); }).and_then([this] { return Music(); });
+auto Extractor::Run(assets::CodeTable const& table) const -> Done {
+  return Palettes().and_then([this] { return Graphics(); }).and_then([&] { return Tables(table); }).and_then([&] { return Texts(table); }).and_then([this] { return Music(); });
 }
 
 auto Extractor::Palettes() const -> Done {
@@ -120,7 +120,7 @@ auto Extractor::Graphic(Asset const& asset) const -> Done {
   return done;
 }
 
-auto Extractor::Tables() const -> Done {
+auto Extractor::Tables(assets::CodeTable const& table) const -> Done {
   auto const file{ _source.get().File("SCEDATA").and_then(assets::DecodeScenarioFile) };
   if (!file) return Failed("SCEDATA", file.error());
   auto const grids{ [this](std::string_view const name) { return _source.get().File(name).and_then(assets::DecodeCellGrids); } };
@@ -129,7 +129,7 @@ auto Extractor::Tables() const -> Done {
   auto const selectors{ grids("HEXDISP.DAT") };
   auto const fields{ _source.get().File("HEXMAP.DAT").and_then(assets::DecodeBattleFields) };
   if (!cells || !tiles || !selectors || !fields) return Failed("map layers", assets::DecodeError::BAD_SIZE);
-  _emit(TableRecord(assets::SCENARIO_TABLE, assets::ScenarioTableText(*file)));
+  _emit(TableRecord(assets::SCENARIO_TABLE, assets::ScenarioTableText(*file, table)));
   _emit(TableRecord(assets::MAP_TABLE, assets::MapTableText(assets::MapLayers{ .cells = *cells, .tiles = *tiles, .battle_fields = *selectors })));
   _emit(TableRecord(assets::BATTLE_FIELD_TABLE, assets::BattleFieldTableText(*fields)));
   _emit(TableRecord(assets::PALETTE_TABLE, assets::PaletteTableText(assets::ClassicPalettes())));

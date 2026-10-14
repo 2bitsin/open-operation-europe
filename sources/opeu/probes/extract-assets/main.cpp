@@ -37,7 +37,7 @@ auto Run(std::span<std::string_view const> const args) -> int {
   auto const extractor{
     Extractor{ *source, args[2], [](std::string_view const record) { std::println("{}", record); } }
   };
-  if (auto const done{ extractor.Run().and_then([&] { return extractor.Texts(*table); }) }; !done) {
+  if (auto const done{ extractor.Run(*table) }; !done) {
     std::println(stderr, "{}", done.error());
     return 1;
   }

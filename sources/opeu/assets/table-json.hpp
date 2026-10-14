@@ -120,8 +120,8 @@ template <std::size_t SIDE>
   return std::ranges::all_of(text, [](char const c) { return static_cast<std::uint8_t>(c) < 0x80; });
 }
 
-// A game text as a record member: under `name` when ASCII; else, in KOEI's double-byte code, its bytes in hex under
-// `name`_koei, so that a table reads back without the code table (texts/messages.json holds their UTF-8).
+// A game text as a record member: under `name` when ASCII; else its bytes in hex under `name`_koei (scenario-table.cpp
+// writes KOEI's code as UTF-8 where the code table maps it, and this otherwise).
 [[nodiscard]] inline auto TextMember(std::string_view const name, std::string_view const text) -> Json {
   auto member = Json::object();
   if (IsAscii(text)) {

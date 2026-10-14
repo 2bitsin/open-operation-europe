@@ -27,15 +27,16 @@ public:
 
   Extractor(assets::Source const& source, std::filesystem::path out, Emit emit);
 
-  [[nodiscard]] auto Run() const -> std::expected<void, std::string>;
-  // The messages of every text the shipped files hold, as `table` decodes them.
-  [[nodiscard]] auto Texts(assets::CodeTable const& table) const -> std::expected<void, std::string>;
+  // Everything, the game's texts through `table`.
+  [[nodiscard]] auto Run(assets::CodeTable const& table) const -> std::expected<void, std::string>;
 
 private:
   [[nodiscard]] auto Graphics() const -> std::expected<void, std::string>;
   [[nodiscard]] auto Graphic(assets::Asset const& asset) const -> std::expected<void, std::string>;
   [[nodiscard]] auto Palettes() const -> std::expected<void, std::string>;
-  [[nodiscard]] auto Tables() const -> std::expected<void, std::string>;
+  [[nodiscard]] auto Tables(assets::CodeTable const& table) const -> std::expected<void, std::string>;
+  // The messages of every text the shipped files hold, as `table` decodes them.
+  [[nodiscard]] auto Texts(assets::CodeTable const& table) const -> std::expected<void, std::string>;
   [[nodiscard]] auto EpilogueToken() const -> std::expected<void, std::string>;
   [[nodiscard]] auto Music() const -> std::expected<void, std::string>;
   [[nodiscard]] auto MusicTable(assets::MusicTable const& table, std::vector<std::byte> const& bank) const -> std::expected<void, std::string>;

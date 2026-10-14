@@ -4,6 +4,7 @@
 #include "packs.hpp"
 #include "shipped.hpp"
 
+#include "opeu/assets/code-table.hpp"
 #include "opeu/assets/glyph-code-table.hpp"
 #include "opeu/assets/glyphs.hpp"
 #include "opeu/assets/map-tables.hpp"
@@ -15,6 +16,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -51,21 +53,41 @@ auto Table(std::string_view const path) -> std::vector<std::byte> {
   return ClassicFile(path);
 }
 
+auto PackedCodeTable() -> CodeTable {
+  return ReadCodeTable(ClassicFile(CODE_TABLE)).value();
+}
+
 }
 
 TEST(ScenarioTable, HoldsEveryRecordTheDecoderReads) {
-  EXPECT_EQ(ReadScenarioTable(Table(SCENARIO_TABLE)), DecodedScenarios());
+  EXPECT_EQ(ReadScenarioTable(Table(SCENARIO_TABLE), PackedCodeTable()), DecodedScenarios());
 }
 
 TEST(ScenarioTable, ReadsBackWhatItWrites) {
   auto const decoded{ DecodedScenarios() };
-  EXPECT_EQ(ReadScenarioTable(ToBytes(ScenarioTableText(decoded))), decoded);
+  EXPECT_EQ(ReadScenarioTable(ToBytes(ScenarioTableText(decoded, PackedCodeTable())), PackedCodeTable()), decoded);
 }
 
-TEST(ScenarioTable, KeepsSetupZerosKoeiNamesAsTheirBytes) {
-  auto const read{ ReadScenarioTable(Table(SCENARIO_TABLE)).value() };
+TEST(ScenarioTable, WritesSetupZerosKoeiNamesAsUtf8) {
+  auto const text{ Table(SCENARIO_TABLE) };
+  auto const read{ ReadScenarioTable(text, PackedCodeTable()).value() };
   EXPECT_EQ(read.SetupOf(0).people.front().name, DecodedScenarios().SetupOf(0).people.front().name);
   EXPECT_FALSE(read.SetupOf(0).people.front().name.empty());
+  EXPECT_TRUE(AsText(text).contains(R"("name": "龍施泰特")"));
+  EXPECT_FALSE(AsText(text).contains("_koei"));
+}
+
+TEST(ScenarioTable, KeepsAKoeiNameTheCodeTableCannotNameAsItsBytes) {
+  auto file{ DecodedScenarios() };
+  auto setups{ ScenarioFile::Setups{} };
+  std::ranges::transform(Indices(setups.size()), setups.begin(), [&file](std::size_t const n) { return file.SetupOf(n); });
+  setups.front().people.front().name = "\x81\x40";
+  auto const edited{
+    ScenarioFile{ {}, {}, setups }
+  };
+  auto const text{ ScenarioTableText(edited, PackedCodeTable()) };
+  EXPECT_TRUE(text.contains(R"("name_koei":"8140")"));
+  EXPECT_EQ(ReadScenarioTable(ToBytes(text), PackedCodeTable()), edited);
 }
 
 TEST(MapTable, HoldsEveryLayerTheDecoderReads) {
