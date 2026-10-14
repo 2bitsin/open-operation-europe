@@ -4,6 +4,7 @@
 #include "common/game.hpp"
 #include "core/app.hpp"
 #include "intro.hpp"
+#include "link/image.hpp"
 #include "machine.hpp"
 #include "native-machine.hpp"
 #include "platform.hpp"
@@ -97,18 +98,18 @@ auto ParseOptions(std::span<char*> args, char const*& dump_path) -> bool {
   return true;
 }
 
-// Diagnostic: the initial far-data arena (the data segments as composed from the game's data modules).
+// Diagnostic: the initial conventional memory (the far data and the data segment as composed from the game's data
+// modules).
 auto DumpArena(char const* path) -> void {
   std::ofstream file{ path, std::ios::binary };
-  file.write(reinterpret_cast<char const*>(port_arena), PORT_ARENA_SIZE); // NOLINT(*-reinterpret-cast): bytes out
-  if (!file) port_fatal("cannot write %s", path);                         // NOLINT(*-pro-type-vararg): the glue's printf-shaped fatal exit
+  auto const    image{ opeu::game::InitialArenaImage() };
+  file.write(reinterpret_cast<char const*>(image.data()), static_cast<std::streamsize>(image.size())); // NOLINT(*-reinterpret-cast): bytes out
+  if (!file) port_fatal("cannot write %s", path);                                                      // NOLINT(*-pro-type-vararg): the glue's printf-shaped fatal exit
 }
 // The game's application entry on the data segment the arena holds and the machine it runs on, the native devices
 // (adapters over the services) wired in here; it returns after the scenario's end.
 auto RunGame() -> void {
-  opeu::game::GameState state{
-    opeu::game::SegmentBytes{ port_ds, opeu::game::SEGMENT_SIZE }
-  };
+  auto                          state{ opeu::game::GameState::Initial() };
   opeu::services::NativeDevices devices;
   opeu::services::Machine       machine{ devices.Devices() };
   opeu::game::Game              game{ state, machine };

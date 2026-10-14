@@ -81,7 +81,7 @@ void opeu_battle_load_terrain(Game& game) {
   auto& data{ Data(game) };
   data.stream_ptr[1] = data.hex_display_segment;
   data.stream_ptr[0] = static_cast<uint16_t>(data.battle_y * MAP_WIDTH + data.battle_x);
-  data.hexmap_index  = static_cast<uint8_t>(*port_far(static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])));
+  data.hexmap_index  = FarBytes(game, static_cast<std::uint16_t>(data.stream_ptr[1]), static_cast<std::uint16_t>(data.stream_ptr[0])).front();
   auto const position{ (static_cast<int32_t>(data.hexmap_index - 1) + data.hexmap_offsets[std::to_underlying(CurrentScenario(data))]) * static_cast<int32_t>(TERRAIN_RECORD) };
   auto const handle{ opeu_open_resource(game, Near(data, data.hexmap_filename)) };
   auto&      files{ game.Machine().Files() };

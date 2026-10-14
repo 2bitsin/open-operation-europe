@@ -1,8 +1,6 @@
 #include "opeu/game/common/data-segment.hpp"
 #include "opeu/game/common/game-state.hpp"
 
-#include "port.hpp"
-
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -18,13 +16,9 @@ static_assert(UNITS_AT == 0x14fc && GROUPS_AT == 0x0774 && ELEMENTS_AT == 0x07fc
 static_assert(sizeof(Unit) * UNITS_PER_SIDE * SIDE_COUNT == sizeof(DataSegment::units));
 static_assert(sizeof(Element) * ELEMENTS_PER_SIDE * SIDE_COUNT == sizeof(DataSegment::elements));
 
-// The state the game starts from: MAIN's data objects and module data copied into a fresh arena, viewed as the entry
-// views it (B6 builds it without the arena).
+// The state the game starts from, built without the arena.
 auto Initial() -> GameState {
-  port_memory_init();
-  return GameState{
-    SegmentBytes{ port_ds, SEGMENT_SIZE }
-  };
+  return GameState::Initial();
 }
 
 auto IsElement(std::uint16_t near) -> bool {

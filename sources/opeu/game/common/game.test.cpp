@@ -8,27 +8,25 @@
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <utility>
 
 namespace opeu::game::detail::game_test {
 namespace {
 
-// A zeroed data segment, the state over it and a game on an empty machine: no arena, no globals.
+// A state with a zeroed data segment and a game on an empty machine: no arena, no globals.
 class Fixture {
 public:
-  Fixture() : _bytes{ std::make_unique<std::array<std::uint8_t, SEGMENT_SIZE>>() }, _state{ SegmentBytes{ *_bytes } }, _game{ _state, _machine } { }
-
-  [[nodiscard]] auto Bytes() -> std::array<std::uint8_t, SEGMENT_SIZE>& {
-    return *_bytes;
+  [[nodiscard]] auto Bytes() -> std::span<std::uint8_t> {
+    return _state.Bytes(0, SEGMENT_SIZE);
   }
   [[nodiscard]] auto Game() -> game::Game& {
     return _game;
   }
 
 private:
-  std::unique_ptr<std::array<std::uint8_t, SEGMENT_SIZE>> _bytes;
-  GameState                                               _state;
-  services::Machine                                       _machine;
-  game::Game                                              _game;
+  GameState         _state;
+  services::Machine _machine;
+  game::Game        _game{ _state, _machine };
 };
 } // namespace
 
@@ -69,6 +67,20 @@ TEST(GameState, ViewsANearBufferInPlace) {
   EXPECT_EQ(buffer.size(), 4u);
   EXPECT_TRUE(std::ranges::all_of(std::span{ fixture.Bytes() }.subspan(0x2000, 4), [](auto const byte) { return byte == 9; }));
   EXPECT_EQ(fixture.Bytes()[0x2004], 0);
+}
+
+TEST(GameState, StartsWithAZeroedSegmentOfItsOwn) {
+  GameState const state;
+  EXPECT_TRUE(std::ranges::all_of(state.Bytes(0, SEGMENT_SIZE), [](auto const byte) { return byte == 0; }));
+}
+
+TEST(GameState, KeepsItsSegmentWhenMoved) {
+  GameState  state;
+  auto const at{ &state.Data() };
+  state.Data().month = 7;
+  GameState const moved{ std::move(state) };
+  EXPECT_EQ(&moved.Data(), at);
+  EXPECT_EQ(moved.Data().month, 7);
 }
 
 TEST(GameState, ViewsTheRestOfTheSegmentFromANearAddress) {

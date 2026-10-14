@@ -6,27 +6,23 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 
 namespace opeu::game::detail::random_test {
 namespace {
 
-// A zeroed data segment and the state over it.
+// A state with a zeroed data segment.
 class Fixture {
 public:
-  Fixture() : _bytes{ std::make_unique<std::array<std::uint8_t, SEGMENT_SIZE>>() }, _state{ SegmentBytes{ *_bytes } } { }
-
   [[nodiscard]] auto State() -> GameState& {
     return _state;
   }
   [[nodiscard]] auto Stored() const -> RandomState {
-    auto const at{ offsetof(DataSegment, random_state) };
-    return { (*_bytes)[at], (*_bytes)[at + 1], (*_bytes)[at + 2], (*_bytes)[at + 3] };
+    auto const stored{ _state.Bytes(offsetof(DataSegment, random_state), 4) };
+    return { stored[0], stored[1], stored[2], stored[3] };
   }
 
 private:
-  std::unique_ptr<std::array<std::uint8_t, SEGMENT_SIZE>> _bytes;
-  GameState                                               _state;
+  GameState _state;
 };
 } // namespace
 

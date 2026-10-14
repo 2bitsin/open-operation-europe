@@ -1,6 +1,6 @@
 // The simulation's state: what a saved game or a determinism check compares. Today it is MAIN's 64 KiB data segment
-// as typed records (common/data-segment.hpp), viewed where the arena holds it (#14a); it owns the segment once nothing
-// addresses the data segment as far memory any more (#14b), and M4 splits it into the game's domain objects.
+// as typed records (common/data-segment.hpp), owned on the heap, and the random generator; M4 splits it into the game's
+// domain objects.
 #pragma once
 
 #include "common/data-segment.hpp"
@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <span>
 
 namespace opeu::game::detail::game_state {
@@ -21,13 +22,17 @@ using SegmentBytes = std::span<std::uint8_t, SEGMENT_SIZE>;
 
 class GameState {
 public:
-  explicit GameState(SegmentBytes segment) noexcept : _segment{ segment } { }
+  // A zeroed data segment: the state a test fills in field by field.
+  GameState() : _data{ std::make_unique<DataSegment>() }, _segment{ BytesOf(*_data) } { }
+  // The state the game starts from: the data modules' fields and the data segment's share of the data image
+  // (link/image.cpp).
+  [[nodiscard]] static auto Initial() -> GameState;
 
   [[nodiscard]] auto Data() noexcept -> DataSegment& {
-    return data_segment::Data(_segment.data());
+    return *_data;
   }
   [[nodiscard]] auto Data() const noexcept -> DataSegment const& {
-    return data_segment::Data(static_cast<std::uint8_t const*>(_segment.data()));
+    return *_data;
   }
 
   // The byte at a near address: a byte variable a routine receives by its address.
@@ -75,6 +80,11 @@ public:
   }
 
 private:
+  // The segment's bytes, which the near addresses index.
+  static auto BytesOf(DataSegment& data) noexcept -> SegmentBytes {
+    return SegmentBytes{ reinterpret_cast<std::uint8_t*>(&data), SEGMENT_SIZE }; // NOLINT(*-reinterpret-cast): the records' bytes
+  }
+
   auto Synchronised(auto draw) -> std::uint16_t {
     RandomState stored;
     std::ranges::copy(std::span{ Data().random_state }.first<stored.size()>(), stored.begin());
@@ -87,8 +97,9 @@ private:
     std::ranges::copy(_generator.Stored(), Data().random_state.begin());
   }
 
-  SegmentBytes    _segment;
-  RandomGenerator _generator;
+  std::unique_ptr<DataSegment> _data;
+  SegmentBytes                 _segment;
+  RandomGenerator              _generator;
 };
 } // namespace opeu::game::detail::game_state
 

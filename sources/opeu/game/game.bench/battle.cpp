@@ -52,7 +52,7 @@ struct Cell {
 // impassable rocks and a diagonal of occupied cells with a gap, so the flood has to go round. The data segment is the game's initial image, which holds the terrain and type tables.
 class BattleField {
 public:
-  BattleField() : _state{ InitialSegment() }, _game{ _state, _machine }, _data{ Data(_game) } {
+  BattleField() : _state{ InitialState() }, _game{ _state, _machine }, _data{ Data(_game) } {
     std::ranges::for_each(Cells(), [this](Cell const cell) { LayCell(cell); });
     PlaceElement();
   }
@@ -105,10 +105,10 @@ public:
   }
 
 private:
-  // The game's initial data segment, freshly composed in the arena.
-  [[nodiscard]] static auto InitialSegment() -> SegmentBytes {
+  // The game's initial state, its far data freshly composed in the arena.
+  [[nodiscard]] static auto InitialState() -> GameState {
     port_memory_init();
-    return SegmentBytes{ port_ds, SEGMENT_SIZE };
+    return GameState::Initial();
   }
 
   auto LayCell(Cell const cell) -> void {

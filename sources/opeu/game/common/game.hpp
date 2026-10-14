@@ -62,9 +62,12 @@ private:
 }
 
 // The far memory from segment:offset to its end: an image or a buffer a drawing service reads or writes, whose extent
-// only the service knows (B7 gives the far data typed buffers).
+// only the service knows (B7 gives the far data typed buffers). A far address inside the data segment reaches the
+// state's segment, up to its end.
 [[nodiscard]] inline auto FarBytes(Game const& game, std::uint16_t segment, std::uint16_t offset) -> std::span<std::uint8_t> {
   auto const linear{ std::size_t{ segment } * 16 + offset };
+  auto const data_segment{ std::size_t{ game.Ui().ds_segment } * 16 };
+  if (linear >= data_segment && linear - data_segment < SEGMENT_SIZE) return std::span{ game.Segment() }.subspan(linear - data_segment);
   Expects(linear < game.Ui().memory.size(), "a far address lies inside far memory");
   return game.Ui().memory.subspan(linear);
 }

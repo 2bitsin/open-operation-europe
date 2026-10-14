@@ -26,7 +26,7 @@ constexpr std::uint8_t TANK_TYPE{ 2 };
 // fuel and food by quantity.
 class Fixture {
 public:
-  Fixture() : _bytes{ std::make_unique<std::array<std::uint8_t, SEGMENT_SIZE>>() }, _state{ SegmentBytes{ *_bytes } } {
+  Fixture() {
     auto& data{ Data() };
     data.element_types[INFANTRY_TYPE].category      = 0;
     data.element_types[INFANTRY_TYPE].fuel_capacity = 1;
@@ -59,9 +59,8 @@ public:
   }
 
 private:
-  std::unique_ptr<std::array<std::uint8_t, SEGMENT_SIZE>> _bytes;
-  GameState                                               _state;
-  std::size_t                                             _next_element{ 0 };
+  GameState   _state;
+  std::size_t _next_element{ 0 };
 };
 } // namespace
 
