@@ -119,8 +119,10 @@ private:
 
 // ---- audio ----
 
+// One channel of one frame of 16-bit PCM, the format the audio device opens with.
+using Sample = std::int16_t;
 // Fills interleaved stereo samples on the audio thread; it must never block.
-using AudioSource = std::function<void(std::span<std::int16_t> stereo)>;
+using AudioSource = std::function<void(std::span<Sample> stereo)>;
 
 // Opens the audio device at `rate` Hz pulling from `source`; true when a device now pulls (never headless).
 [[nodiscard]] auto OpenAudio(int rate, AudioSource source) -> bool;
@@ -149,6 +151,7 @@ using detail::platform::OpenAudio;
 using detail::platform::PALETTE_BYTES;
 using detail::platform::PollEvent;
 using detail::platform::Present;
+using detail::platform::Sample;
 using detail::platform::SaveFile;
 using detail::platform::SeekOrigin;
 using detail::platform::SleepMs;

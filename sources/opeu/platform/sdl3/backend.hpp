@@ -67,7 +67,7 @@ private:
   [[nodiscard]] auto        ButtonEvent(SDL_Event& sdl) const -> std::optional<InputEvent>;
   auto                      Place(float fx, float fy, InputEvent& event) const -> void;
   [[nodiscard]] auto        SaveDir() -> std::string const&;
-  static auto SDLCALL       FillAudio(void* backend, SDL_AudioStream* stream, int additional, int total) -> void;
+  auto                      FillAudio(SDL_AudioStream& stream, int bytes) const -> void;
 
   bool          _inited{ false };
   bool          _headless{ false };

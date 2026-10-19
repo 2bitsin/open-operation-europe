@@ -29,8 +29,8 @@
 
 #include <algorithm>
 #include <array>
-#include <cstdio>
 #include <format>
+#include <iostream>
 #include <iterator>
 #include <print>
 #include <ranges>
@@ -233,7 +233,13 @@ auto ButtonNumber(Uint8 const button) -> std::optional<std::uint8_t> {
 }
 
 auto Uppercase(char const c) -> char {
-  return static_cast<char>(SDL_toupper(static_cast<unsigned char>(c)));
+  return static_cast<char>(SDL_toupper(static_cast<std::uint8_t>(c)));
+}
+
+// The first positive extent of the texture's, the frame's and the default; the default when none is.
+auto FirstPositive(std::array<int, 3> const& extents) -> int {
+  auto positive{ extents | std::views::filter([](int const extent) { return extent > 0; }) };
+  return positive.empty() ? extents.back() : positive.front();
 }
 
 auto IsSeparator(char const c) -> bool {
@@ -250,19 +256,18 @@ struct FindContext {
   std::optional<std::string> found;
 };
 
-auto SDLCALL FindEntry(void* const context, [[maybe_unused]] char const* const directory, char const* const name) -> SDL_EnumerationResult {
-  auto&                  find{ *static_cast<FindContext*>(context) };
-  std::string_view const entry{ name };
-  if (SDL_strcasecmp(name, find.want.c_str()) == 0) {
-    find.found = std::string{ entry };
-    if (find.want == entry) return SDL_ENUM_SUCCESS;
-  }
-  return SDL_ENUM_CONTINUE;
-}
-
-auto Spelled(std::string const& directory, std::string const& want) -> std::optional<std::string> {
-  FindContext find{ .want = want, .found = std::nullopt };
-  SDL_EnumerateDirectory(directory.c_str(), FindEntry, &find);
+auto Spelled(std::string const& directory, FindContext find) -> std::optional<std::string> {
+  // SDL_EnumerateDirectoryCallback: the context, the directory (unused) and one entry's name.
+  auto const entry{ [](void* const context, char const*, char const* const name) -> SDL_EnumerationResult {
+    auto&                  search{ *static_cast<FindContext*>(context) };
+    std::string_view const spelling{ name };
+    if (SDL_strcasecmp(name, search.want.c_str()) == 0) {
+      search.found = std::string{ spelling };
+      if (search.want == spelling) return SDL_ENUM_SUCCESS;
+    }
+    return SDL_ENUM_CONTINUE;
+  } };
+  SDL_EnumerateDirectory(directory.c_str(), entry, &find);
   return find.found;
 }
 
@@ -333,7 +338,7 @@ auto Backend::InitSubsystems() -> std::expected<void, std::string> {
   if (SDL_InitSubSystem(SDL_INIT_AUDIO))
     _sdl_flags |= SDL_INIT_AUDIO;
   else
-    std::println(stderr, "plat_init: no audio: {}", SDL_GetError());
+    std::println(std::cerr, "plat_init: no audio: {}", SDL_GetError());
   return {};
 }
 
@@ -440,12 +445,8 @@ auto Backend::WritePng(std::string const& path) const -> bool {
 // ---- input --------------------------------------------------------------------------------------------------------
 
 auto Backend::Place(float const fx, float const fy, InputEvent& event) const -> void {
-  auto const extent{ [](int const texture, int const frame, int const fallback) -> int {
-    if (texture > 0) return texture;
-    return frame > 0 ? frame : fallback;
-  } };
-  auto const width{ extent(_texture_width, _frame_width, DEFAULT_WIDTH) };
-  auto const height{ extent(_texture_height, _frame_height, DEFAULT_HEIGHT) };
+  auto const width{ FirstPositive({ _texture_width, _frame_width, DEFAULT_WIDTH }) };
+  auto const height{ FirstPositive({ _texture_height, _frame_height, DEFAULT_HEIGHT }) };
   event.x = std::clamp(static_cast<int>(SDL_floorf(fx)), 0, width - 1);
   event.y = std::clamp(static_cast<int>(SDL_floorf(fy)), 0, height - 1);
 }
@@ -544,7 +545,7 @@ auto Backend::Resolve(std::string_view const dos_name) -> Resolution {
       path = exact;
       continue;
     }
-    if (auto const spelled{ Spelled(path, component) }) {
+    if (auto const spelled{ Spelled(path, { .want = component, .found = std::nullopt }) }) {
       if (path.size() + 1 + spelled->size() + 1 > PATH_MAX_LENGTH) return {};
       path += "/" + *spelled;
       continue;
@@ -559,19 +560,18 @@ auto Backend::Resolve(std::string_view const dos_name) -> Resolution {
 
 // ---- audio --------------------------------------------------------------------------------------------------------
 
-auto SDLCALL Backend::FillAudio(void* const backend, SDL_AudioStream* const stream, int additional, [[maybe_unused]] int const total) -> void {
-  auto const&                                                                self{ *static_cast<Backend const*>(backend) };
-  std::array<std::int16_t, static_cast<std::size_t>(AUDIO_CHUNK_FRAMES) * 2> samples{};
-  // `additional` is in bytes; one frame is 4 bytes (S16 stereo).
-  while (additional >= 4) {
-    auto const frames{ std::min(additional / 4, AUDIO_CHUNK_FRAMES) };
+// Puts `bytes` bytes of the source's samples into the device's stream; one frame is 4 bytes (S16 stereo).
+auto Backend::FillAudio(SDL_AudioStream& stream, int bytes) const -> void {
+  std::array<Sample, static_cast<std::size_t>(AUDIO_CHUNK_FRAMES) * 2> samples{};
+  while (bytes >= 4) {
+    auto const frames{ std::min(bytes / 4, AUDIO_CHUNK_FRAMES) };
     auto const chunk{ std::span{ samples }.first(static_cast<std::size_t>(frames) * 2) };
-    if (self._audio_source)
-      self._audio_source(chunk);
+    if (_audio_source)
+      _audio_source(chunk);
     else
-      std::ranges::fill(chunk, std::int16_t{ 0 });
-    SDL_PutAudioStreamData(stream, chunk.data(), frames * 4);
-    additional -= frames * 4;
+      std::ranges::fill(chunk, Sample{ 0 });
+    SDL_PutAudioStreamData(&stream, chunk.data(), frames * 4);
+    bytes -= frames * 4;
   }
 }
 
@@ -582,9 +582,11 @@ auto Backend::OpenAudio(int rate, AudioSource source) -> bool {
   _audio.reset();
   _audio_source = std::move(source);
   SDL_AudioSpec const spec{ .format = SDL_AUDIO_S16, .channels = 2, .freq = rate };
-  _audio.reset(SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, FillAudio, this));
+  // SDL's audio thread asks for `additional` more bytes of the stream.
+  auto const fill{ [](void* const backend, SDL_AudioStream* const stream, int const additional, int) { static_cast<Backend const*>(backend)->FillAudio(*stream, additional); } };
+  _audio.reset(SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, fill, this));
   if (!_audio) {
-    std::println(stderr, "plat_audio_open: {}", SDL_GetError());
+    std::println(std::cerr, "plat_audio_open: {}", SDL_GetError());
     return false;
   }
   SDL_ResumeAudioStreamDevice(_audio.get());
@@ -628,7 +630,7 @@ auto plat_init(PlatConfig const* const cfg) -> int {
   if (cfg == nullptr) return -1;
   auto const opened{ TheBackend().Init(*cfg) };
   if (opened) return 0;
-  std::println(stderr, "plat_init: {}", opened.error());
+  std::println(std::cerr, "plat_init: {}", opened.error());
   return -1;
 }
 

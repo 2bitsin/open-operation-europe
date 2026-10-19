@@ -4,6 +4,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <functional>
 #include <memory>
 
 namespace opeu::platform::detail::handles {
@@ -13,7 +14,7 @@ template <auto DESTROY>
 struct Destroy {
   template <class _Handle>
   auto operator()(_Handle* const handle) const noexcept -> void {
-    DESTROY(handle);
+    std::invoke(DESTROY, handle);
   }
 };
 

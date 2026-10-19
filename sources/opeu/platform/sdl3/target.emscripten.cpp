@@ -4,6 +4,8 @@
 
 #include <emscripten/emscripten.h>
 
+#include <cstdint>
+
 namespace opeu::platform::detail::target {
 
 // The canvas gets CSS size x devicePixelRatio pixels. Without SDL_WINDOW_HIGH_PIXEL_DENSITY the backing store is CSS
@@ -30,7 +32,7 @@ auto AfterFrame() -> void {
 
 // Yield to the browser event loop (ASYNCIFY/JSPI unwinds the stack and resumes here from a timer).
 auto Sleep(int const ms, bool const headless) -> void {
-  if (ms >= 0 && !headless) emscripten_sleep(static_cast<unsigned>(ms));
+  if (ms >= 0 && !headless) emscripten_sleep(static_cast<std::uint32_t>(ms));
 }
 
 auto DefaultSaveDir() -> std::string {
