@@ -457,14 +457,17 @@ auto Narrowed(Image const& image, std::size_t const width) -> Image {
     return Indices(image.Height()) | std::views::transform([values, &image, width](std::size_t const row) { return values.subspan(row * image.Width(), width); }) | std::views::join
            | std::ranges::to<std::vector>();
   } };
-  return Image{ width, image.Height(), left(image.Pixels()), image.HasMask() ? left(image.Opaque()) : std::vector<std::uint8_t>{} };
+  return Image{
+    { .width = width, .height = image.Height() },
+    left(image.Pixels()), image.HasMask() ? left(image.Opaque()) : std::vector<std::uint8_t>{}
+  };
 }
 
 // A one-bit asset as its shape drawn in the ink, everything else transparent.
 auto Inked(Image const& bits, Asset const& asset) -> Image {
   auto opaque{ bits.Pixels() | std::views::transform([&](std::uint8_t const bit) { return static_cast<std::uint8_t>((bit != 0) != asset.ink_where_clear); }) | std::ranges::to<std::vector>() };
   auto pixels{ opaque | std::views::transform([&](std::uint8_t const drawn) { return drawn != 0 ? asset.ink : std::uint8_t{ 0 }; }) | std::ranges::to<std::vector>() };
-  return Image{ bits.Width(), bits.Height(), std::move(pixels), std::move(opaque) };
+  return Image{ bits.Shape(), std::move(pixels), std::move(opaque) };
 }
 
 auto Region(Bytes const file, Asset const& asset, std::size_t const planes) -> Decoded<Bytes> {

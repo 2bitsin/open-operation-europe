@@ -163,7 +163,7 @@ TEST(Display, ShowsAnIndexedImageInAPalette) {
   auto const indices{ std::views::iota(0uz, 64uz) | std::views::transform([](std::size_t const n) { return static_cast<std::uint8_t>(n % 16); }) | std::ranges::to<std::vector>() };
   auto const opaque{ std::views::iota(0uz, 64uz) | std::views::transform([](std::size_t const n) { return static_cast<std::uint8_t>(n < 32 ? 1 : 0); }) | std::ranges::to<std::vector>() };
   auto const image{
-    assets::Image{ 16, 4, indices, opaque }
+    assets::Image{ { .width = 16, .height = 4 }, indices, opaque }
   };
   auto const in_day{ Texture::Upload(headless.display.Renderer(), assets::ToTexture(image, day)).value() };
   auto const in_night{ Texture::Upload(headless.display.Renderer(), assets::ToTexture(image, night)).value() };

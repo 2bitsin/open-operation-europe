@@ -56,9 +56,16 @@ auto ReadIndexed(Bytes const png) -> Packed<Image> {
   return Decode(png, 1).transform([](Decoded8 const& grey) {
     auto const drawn{ [](std::uint8_t const index) { return index != TRANSPARENT_INDEX; } };
     auto       pixels{ grey.samples | std::views::transform([&](std::uint8_t const index) { return drawn(index) ? index : std::uint8_t{ 0 }; }) | std::ranges::to<std::vector>() };
-    if (std::ranges::all_of(grey.samples, drawn)) return Image{ grey.width, grey.height, std::move(pixels) };
+    if (std::ranges::all_of(grey.samples, drawn))
+      return Image{
+        { .width = grey.width, .height = grey.height },
+        std::move(pixels)
+      };
     auto opaque{ grey.samples | std::views::transform([&](std::uint8_t const index) { return static_cast<std::uint8_t>(drawn(index)); }) | std::ranges::to<std::vector>() };
-    return Image{ grey.width, grey.height, std::move(pixels), std::move(opaque) };
+    return Image{
+      { .width = grey.width, .height = grey.height },
+      std::move(pixels), std::move(opaque)
+    };
   });
 }
 

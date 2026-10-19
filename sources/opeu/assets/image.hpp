@@ -12,24 +12,38 @@
 
 namespace opeu::assets::detail::image {
 
+// A picture's size in pixels.
+struct ImageShape {
+  std::size_t width{};
+  std::size_t height{};
+
+  [[nodiscard]] constexpr auto Area() const noexcept -> std::size_t {
+    return width * height;
+  }
+  auto operator==(ImageShape const&) const -> bool = default;
+};
+
 // An indexed picture: palette indices row-major, and optionally which pixels are drawn (a sprite's mask). The
 // sizes always agree; an image without a mask draws every pixel.
 class Image {
 public:
   Image() = default;
-  Image(std::size_t width, std::size_t height, std::vector<std::uint8_t> pixels, std::vector<std::uint8_t> opaque = {});
+  Image(ImageShape shape, std::vector<std::uint8_t> pixels, std::vector<std::uint8_t> opaque = {});
 
+  [[nodiscard]] auto Shape() const noexcept -> ImageShape {
+    return _shape;
+  }
   [[nodiscard]] auto Width() const noexcept -> std::size_t {
-    return _width;
+    return _shape.width;
   }
   [[nodiscard]] auto Height() const noexcept -> std::size_t {
-    return _height;
+    return _shape.height;
   }
   [[nodiscard]] auto At(std::size_t const x, std::size_t const y) const -> std::uint8_t {
-    return _pixels[(y * _width) + x];
+    return _pixels[(y * _shape.width) + x];
   }
   [[nodiscard]] auto Drawn(std::size_t const x, std::size_t const y) const -> bool {
-    return _opaque.empty() || _opaque[(y * _width) + x] != 0;
+    return _opaque.empty() || _opaque[(y * _shape.width) + x] != 0;
   }
   [[nodiscard]] auto HasMask() const noexcept -> bool {
     return !_opaque.empty();
@@ -53,8 +67,7 @@ public:
   auto operator==(Image const&) const -> bool = default;
 
 private:
-  std::size_t               _width{};
-  std::size_t               _height{};
+  ImageShape                _shape;
   std::vector<std::uint8_t> _pixels;
   std::vector<std::uint8_t> _opaque;
 };
@@ -96,5 +109,6 @@ using detail::image::Decoded;
 using detail::image::DecodeError;
 using detail::image::Describe;
 using detail::image::Image;
+using detail::image::ImageShape;
 using detail::image::Need;
 }

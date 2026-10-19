@@ -88,7 +88,10 @@ public:
       pixels.push_back(IndexOf(_units[TOP + (row * LINE_UNITS) + (x / 4)], x));
       opaque.push_back(x / 4 < _extents[row] ? 1 : 0);
     }
-    return Image{ units * 4, _height, std::move(pixels), std::move(opaque) };
+    return Image{
+      { .width = units * 4, .height = _height },
+      std::move(pixels), std::move(opaque)
+    };
   }
   [[nodiscard]] auto Width() const noexcept -> std::size_t {
     return _width;
@@ -162,7 +165,10 @@ private:
     auto pixels{ std::vector<std::uint8_t>{} };
     pixels.reserve(std::size_t{ _width } * _height);
     for (auto const [row, x] : Grid(_height, _width)) pixels.push_back(IndexOf(_units[TOP + (row * LINE_UNITS) + (x / 4)], x));
-    return Image{ _width, _height, std::move(pixels) };
+    return Image{
+      { .width = _width, .height = _height },
+      std::move(pixels)
+    };
   }
 
   _Reader&                 _reader;

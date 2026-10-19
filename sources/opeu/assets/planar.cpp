@@ -40,7 +40,10 @@ auto DecodePlanes(Bytes const bytes, PlaneLayout const& layout) -> Decoded<Image
       auto const byte{ image[layout.At(plane, column, row)] };
       for (auto const pixel : Indices(8)) pixels[(row * width) + (column * 8) + pixel] |= static_cast<std::uint8_t>(PixelBit(byte, pixel) << plane);
     }
-    return Image{ width, layout.height, std::move(pixels) };
+    return Image{
+      { .width = width, .height = layout.height },
+      std::move(pixels)
+    };
   });
 }
 
@@ -59,7 +62,7 @@ namespace {
 // `image` with a mask whose set bits keep the background.
 [[nodiscard]] auto Masked(Image const& image, Image const& keep) -> Image {
   auto opaque{ keep.Pixels() | std::views::transform([](std::uint8_t const bit) { return static_cast<std::uint8_t>(bit ^ 1U); }) | std::ranges::to<std::vector>() };
-  return Image{ image.Width(), image.Height(), image.Pixels() | std::ranges::to<std::vector>(), std::move(opaque) };
+  return Image{ image.Shape(), image.Pixels() | std::ranges::to<std::vector>(), std::move(opaque) };
 }
 
 }

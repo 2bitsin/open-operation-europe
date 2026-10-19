@@ -42,9 +42,9 @@ auto IndexMap(Image const& image) -> Image {
   auto const count{ image.Pixels().size() };
   auto const drawn{ [&image](std::size_t const n) { return image.Opaque().empty() || image.Opaque()[n] != 0; } };
   auto       pixels{ Indices(count) | std::views::transform([&](std::size_t const n) { return drawn(n) ? image.Pixels()[n] : std::uint8_t{ 0 }; }) | std::ranges::to<std::vector>() };
-  if (std::ranges::all_of(Indices(count), drawn)) return Image{ image.Width(), image.Height(), std::move(pixels) };
+  if (std::ranges::all_of(Indices(count), drawn)) return Image{ image.Shape(), std::move(pixels) };
   auto opaque{ Indices(count) | std::views::transform([&](std::size_t const n) { return static_cast<std::uint8_t>(drawn(n)); }) | std::ranges::to<std::vector>() };
-  return Image{ image.Width(), image.Height(), std::move(pixels), std::move(opaque) };
+  return Image{ image.Shape(), std::move(pixels), std::move(opaque) };
 }
 
 auto Palettes(Asset const& asset) -> std::vector<std::string> {

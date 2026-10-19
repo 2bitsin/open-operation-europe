@@ -80,7 +80,7 @@ TEST(Palette, LevelsBecomeTheScreensColours) {
 
 TEST(Texture, ResolvesPaletteAndMaskToRgba) {
   auto const image{
-    Image{ 2, 1, { 7, 1 }, { 1, 0 } }
+    Image{ { .width = 2, .height = 1 }, { 7, 1 }, { 1, 0 } }
   };
   auto const texture{ ToTexture(image, Present(FindPalette("main/day"))) };
   EXPECT_EQ(texture.Width(), 2U);

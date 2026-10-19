@@ -22,7 +22,7 @@ auto KeyedImage(assets::Image const& image, Keying const keying) -> assets::Imag
   auto opaque{ assets::Indices(image.Pixels().size())
                | std::views::transform([&image](std::size_t const n) { return static_cast<std::uint8_t>(image.Pixels()[n] != 0 && (!image.HasMask() || image.Opaque()[n] != 0)); })
                | std::ranges::to<std::vector>() };
-  return assets::Image{ image.Width(), image.Height(), image.Pixels() | std::ranges::to<std::vector>(), std::move(opaque) };
+  return assets::Image{ image.Shape(), image.Pixels() | std::ranges::to<std::vector>(), std::move(opaque) };
 }
 
 auto KeyedImage(assets::Texture const& image, Keying const keying, std::optional<assets::Colour> const background) -> assets::Texture {
