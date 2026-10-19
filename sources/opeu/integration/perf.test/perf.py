@@ -171,12 +171,16 @@ class Build:
         return 'debug' if kind == 'debug' else 'release'
 
     def benches(self, targets: list[str] = BENCH_TARGETS) -> list[Path]:
-        """Configures the tree with BUILD_BENCHMARKING on and builds the benchmark executables. The bench gates of
-        several modules run at once under ctest, so the configure and build hold a lock on the tree."""
+        """Configures the tree with BUILD_BENCHMARKING on, unless it already is, and builds the benchmark executables.
+        The bench gates of several modules run at once under ctest, so the configure and build hold a lock on the
+        tree; the gate that finds the tree configured skips the configure, which takes about 37 s of CPU since the
+        asset packs' 6246 embedded files (buildutil's resource overlay is quadratic in them) and, paid once per gate,
+        put the second gate past ctest's 60 s."""
         cmake = self.cache('CMAKE_COMMAND') or 'cmake'
         with open(self.root / '.perf-benches.lock', 'w') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
-            run_checked([cmake, '-DBUILD_BENCHMARKING=ON', str(self.root)])
+            if self.cache('BUILD_BENCHMARKING') != 'ON':
+                run_checked([cmake, '-DBUILD_BENCHMARKING=ON', str(self.root)])
             run_checked([cmake, '--build', str(self.root), '--target', *targets])
         found = {name: sorted(self.root.rglob(name)) for name in targets}
         missing = [name for name, paths in found.items() if not paths]
