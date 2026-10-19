@@ -175,7 +175,9 @@ The rule: no change may make the game notably slower. Three gates in
   configure, so the next `./buildutil build` turns it off again. The gate
   that finds the switch already on skips the configure: a configure takes
   about 37 s since the asset packs' 6246 embedded files, and two gates
-  each paying one put the second past ctest's 60 s.
+  each paying one put the second past ctest's 60 s. On the CI runners,
+  where the gates also build the benchmarks under the other entries' load,
+  `tools/ci/pipeline.py` runs `./buildutil test --timeout 120`.
 
 The budget is 10 % over the baseline of the same machine
 (`OPEU_PERF_BUDGET=<percent>` overrides it). A shared machine is the hard
