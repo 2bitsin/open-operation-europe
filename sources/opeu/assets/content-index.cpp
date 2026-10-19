@@ -22,9 +22,9 @@ namespace {
 [[nodiscard]] auto KeyOf(Bytes const file, Asset const& asset) -> std::optional<ContentKey> {
   if (asset.layout == Layout::STREAM_8 || asset.layout == Layout::STREAM_16) {
     auto const colours{ asset.layout == Layout::STREAM_8 ? Colours::EIGHT : Colours::SIXTEEN };
-    auto const picture{ DecodePicture(file.subspan(std::min<std::size_t>(asset.at, file.size())), colours) };
-    if (!picture) return std::nullopt;
-    return StreamKey(asset.layout, FingerprintOf(file.subspan(asset.at, picture->length)));
+    auto const length{ StreamLength(file.subspan(std::min<std::size_t>(asset.at, file.size())), colours) };
+    if (!length) return std::nullopt;
+    return StreamKey(asset.layout, FingerprintOf(file.subspan(asset.at, *length)));
   }
   // A one-bit shape inked where its bits are clear, or narrower than its bytes, is not what the set bits draw.
   if (asset.layout == Layout::BITMAP && (asset.ink_where_clear || (asset.width != 0 && asset.width != asset.width_bytes * 8U))) return std::nullopt;

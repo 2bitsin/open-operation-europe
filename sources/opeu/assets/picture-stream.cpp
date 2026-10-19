@@ -68,7 +68,8 @@ class StreamDecoder {
 public:
   StreamDecoder(_Reader& reader, Colours const colours) : _reader{ reader }, _colours{ colours } { }
 
-  auto Run(Room const room) -> Decoded<Picture> {
+  // Draws the whole stream into the unit buffer; the stream bytes it read, header included.
+  auto Run(Room const room) -> Decoded<std::size_t> {
     if (auto const header{ Header(room) }; !header) return std::unexpected{ header.error() };
     if (_colours == Colours::SIXTEEN) std::ranges::generate(_runs, [this] { return _reader.NextWord(); });
     _units.assign(TOP + ((_height + 1uz) * LINE_UNITS) + 16, 0);
@@ -76,7 +77,18 @@ public:
     for (auto const row : Indices(_height)) {
       if (!DecodeRow(row)) return std::unexpected{ DecodeError::TRUNCATED };
     }
-    return Picture{ .image = Pixels(), .length = _reader.Position() };
+    return _reader.Position();
+  }
+
+  // The picture's own width and height, as palette indices.
+  [[nodiscard]] auto Pixels() const -> Image {
+    auto pixels{ std::vector<std::uint8_t>{} };
+    pixels.reserve(std::size_t{ _width } * _height);
+    for (auto const [row, x] : Grid(_height, _width)) pixels.push_back(IndexOf(_units[TOP + (row * LINE_UNITS) + (x / 4)], x));
+    return Image{
+      { .width = _width, .height = _height },
+      std::move(pixels)
+    };
   }
 
   // The units every row wrote, each row from its first unit, as many as the longest row wrote.
@@ -160,17 +172,6 @@ private:
     return static_cast<unsigned>((c >> 4) << (4 * upper) | (c & 0x0F) << (4 * lower));
   }
 
-  // The picture's own width and height, as palette indices.
-  [[nodiscard]] auto Pixels() const -> Image {
-    auto pixels{ std::vector<std::uint8_t>{} };
-    pixels.reserve(std::size_t{ _width } * _height);
-    for (auto const [row, x] : Grid(_height, _width)) pixels.push_back(IndexOf(_units[TOP + (row * LINE_UNITS) + (x / 4)], x));
-    return Image{
-      { .width = _width, .height = _height },
-      std::move(pixels)
-    };
-  }
-
   _Reader&                 _reader;
   Colours                  _colours;
   unsigned                 _width{};
@@ -184,6 +185,14 @@ private:
 
 auto DecodePicture(Bytes const bytes, Colours const colours) -> Decoded<Picture> {
   auto reader{ ByteReader{ bytes } };
+  auto decoder{
+    StreamDecoder{ reader, colours }
+  };
+  return decoder.Run(Room{}).transform([&decoder](std::size_t const length) { return Picture{ .image = decoder.Pixels(), .length = length }; });
+}
+
+auto StreamLength(Bytes const bytes, Colours const colours) -> Decoded<std::size_t> {
+  auto reader{ ByteReader{ bytes } };
   return StreamDecoder{ reader, colours }.Run(Room{});
 }
 
@@ -192,9 +201,8 @@ auto DecodePictureAsDrawn(NextByte const& next, Colours const colours, Room cons
   auto decoder{
     StreamDecoder{ reader, colours }
   };
-  return decoder.Run(room).transform([&](Picture const&) {
-    return DrawnPicture{ .image = decoder.Drawn(), .width = decoder.Width(), .height = decoder.Height(), .length = reader.Position(), .fingerprint = reader.Fingerprinted() };
-  });
+  return decoder.Run(room).transform(
+      [&](std::size_t) { return DrawnPicture{ .image = decoder.Drawn(), .width = decoder.Width(), .height = decoder.Height(), .length = reader.Position(), .fingerprint = reader.Fingerprinted() }; });
 }
 
 }

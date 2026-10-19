@@ -59,6 +59,17 @@ TEST(PictureStream, EightColourLiteralAndCopies) {
   EXPECT_TRUE(std::ranges::all_of(picture->image.Pixels(), [](std::uint8_t const index) { return index == 1; }));
 }
 
+TEST(PictureStream, LengthIsTheDecodedStreams) {
+  auto const bytes{ Of(8, 0, 2, 0, 0x00, 0x0F, 0x80, 0xC1, 0xAA) };
+  EXPECT_EQ(StreamLength(bytes, Colours::EIGHT), DecodePicture(bytes, Colours::EIGHT).transform([](Picture const& picture) { return picture.length; }));
+  EXPECT_EQ(StreamLength(bytes, Colours::EIGHT), 8U);
+}
+
+TEST(PictureStream, LengthRefusesWhatDecodingRefuses) {
+  EXPECT_EQ(StreamLength(Of(0x81, 0x02, 1, 0), Colours::EIGHT).error(), DecodeError::BAD_HEADER);
+  EXPECT_EQ(StreamLength(Of(8, 0, 1, 0, 0x00), Colours::EIGHT).error(), DecodeError::TRUNCATED);
+}
+
 TEST(PictureStream, RefuseAnOffScreenSize) {
   auto const bytes{ Of(0x81, 0x02, 1, 0) };
   EXPECT_EQ(DecodePicture(bytes, Colours::EIGHT).error(), DecodeError::BAD_HEADER);

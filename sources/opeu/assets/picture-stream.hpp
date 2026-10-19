@@ -25,6 +25,9 @@ struct Picture {
 // Decodes the stream that starts at the first byte. The picture is decoded as if drawn at the left edge of an
 // otherwise black screen, so a copy from a row above the first reads black.
 [[nodiscard]] auto DecodePicture(Bytes bytes, Colours colours) -> Decoded<Picture>;
+// The length in bytes of the stream that starts at the first byte, header included: DecodePicture's without the
+// picture.
+[[nodiscard]] auto StreamLength(Bytes bytes, Colours colours) -> Decoded<std::size_t>;
 
 // The next byte of a stream on every call: the game's reader of a file it has open, a test's bytes. It never ends.
 using NextByte = std::function<std::uint8_t()>;
@@ -59,4 +62,5 @@ using detail::picture_stream::DrawnPicture;
 using detail::picture_stream::NextByte;
 using detail::picture_stream::Picture;
 using detail::picture_stream::Room;
+using detail::picture_stream::StreamLength;
 }
