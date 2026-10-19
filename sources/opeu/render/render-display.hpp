@@ -2,9 +2,10 @@
 // The game's screen: services::Display (what the game draws with) on the frame of colour numbers the services' native
 // display draws (services::NativeDisplay over the Canvas: byte copies, the game's own routines), with the source layer
 // beside it (source-layer.hpp): which cells show an image of the pack, recognised from the bytes the game hands over
-// (assets::ContentIndex), and which are raw numbers. The pump takes the frame as palette entries (RenderIndexed);
-// Present and Capture turn the numbers into colours on the CPU and upload them: nothing is ever read back from the
-// renderer. docs/rendering.md is the design, the source layer's rule and the remaster present it prepares.
+// (assets::ContentIndex), and which are raw numbers. The pump presents through Present, which hands the frame to the
+// platform as palette entries (the window, the pointer, the headless PNG); Capture turns the numbers into colours on
+// the CPU when asked, and nothing is ever read back from the renderer. docs/rendering.md is the design, the source
+// layer's rule and the remaster present it prepares, which draws on the display's renderer.
 
 #include "opeu/assets/content-index.hpp"
 #include "opeu/assets/pack.hpp"
@@ -89,14 +90,14 @@ public:
   auto DrawShiftedStamp(services::Area area, services::Stamp const& stamp) -> void override;
   auto ShowOverlay(services::Overlay const& overlay) -> services::OverlayId override;
   auto HideOverlay(services::OverlayId overlay) -> void override;
-  // The frame to the renderer's output: its numbers in their colours, uploaded.
+  // The frame to the player: to the platform as palette entries with the pointer, unless nothing changed.
   auto Present() -> void override;
 
   // ---- the platform's side
   // The frame as Present shows it, 640x480 RGBA.
   [[nodiscard]] auto Capture() const -> assets::Texture;
-  // The frame as palette entries and every entry's 8-bit levels, what the pump presents; whether either changed since
-  // the previous call.
+  // The frame as palette entries and every entry's 8-bit levels, what Present hands the platform; whether either
+  // changed since the previous call.
   auto               RenderIndexed(std::span<std::uint8_t, FRAME_PIXELS> frame, std::span<std::uint8_t, PALETTE_LEVELS> palette) -> bool;
   [[nodiscard]] auto Statistics() const noexcept -> ByteStatistics {
     return _images.Statistics();

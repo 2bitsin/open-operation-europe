@@ -58,7 +58,10 @@ sources' flags and include roots (the old port's `-Wall -Wextra ...`,
 buildutil compiles it as C++23 (`cxx_standard` below); the recovered code is
 make the module's GoogleTest suite. Python `*.test/` suites run under pytest in the
 same `./buildutil test`. `assets.embed/` in `sources/opeu/opeu/` is compiled
-into the executable as `opeu::resources`. The layout reference is
+into the executable as `opeu::resources`. The game's screen is
+presented through SDL_Renderer over the classic asset pack
+compiled into the executable (`assets/packs.embed/`), opened by the entry
+(`opeu/game-screen.hpp`), so a run needs no pack built beforehand. The layout reference is
 
 The suites `./buildutil test` runs: build identity (platform), the VGALIB
 and SYSLIB drawing checks and the file service (services), the embedded

@@ -1,8 +1,11 @@
 // Operation Europe: the program entry. The host prepares what the DOS start-up and the launcher provided (the
 // initialised data segment, the memory arena, the display, input and the FM driver), runs the opening, then calls the
-// game's application entry with its service table.
+// game's application entry on its machine: the game's screen on SDL_Renderer over the classic pack (game-screen.hpp)
+// and the native files, input, sound and clock.
+#include "assets.hpp"
 #include "common/game.hpp"
 #include "core/app.hpp"
+#include "game-screen.hpp"
 #include "intro.hpp"
 #include "link/image.hpp"
 #include "machine.hpp"
@@ -10,12 +13,14 @@
 #include "platform.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include "shown-frames.hpp"
 
 #include <array>
 #include <charconv>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
+#include <expected>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -23,6 +28,7 @@
 #include <print>
 #include <ranges>
 #include <span>
+#include <string>
 #include <string_view>
 #include <tuple>
 #include <vector>
@@ -148,14 +154,24 @@ auto DumpArena(std::filesystem::path const& path) -> void {
   if (!file) port_fatal("cannot write %s", path.string().c_str());                                     // NOLINT(*-pro-type-vararg): the glue's printf-shaped fatal exit
 }
 
-// The game's application entry on its initial state and the machine it runs on, the native devices (adapters over the
-// services) wired in here; it returns after the scenario's end.
-auto RunGame() -> void {
-  auto                          state{ opeu::game::GameState::Initial() };
-  opeu::services::NativeDevices devices;
-  opeu::services::Machine       machine{ devices.Devices() };
-  opeu::game::Game              game{ state, machine };
+// The native devices with `display` in place of the native one.
+auto WithDisplay(opeu::services::Devices const native, opeu::services::Display& display) -> opeu::services::Devices {
+  return { .display = display, .files = native.files, .input = native.input, .sound = native.sound, .clock = native.clock };
+}
+
+// The game's application entry on its initial state and the machine it runs on: the game's screen, which the pump
+// shows from now on, and the native files, input, sound and clock (adapters over the services); it returns after the
+// scenario's end. The screen's error when it cannot be opened.
+auto RunGame() -> std::expected<void, std::string> {
+  auto       state{ opeu::game::GameState::Initial() };
+  auto const screen{ GameScreen::Open(ShippedFiles()) };
+  if (!screen) return std::unexpected{ screen.error() };
+  opeu::services::ShownFrames const shown{ (*screen)->Display() };
+  opeu::services::NativeDevices     native;
+  opeu::services::Machine           machine{ WithDisplay(native.Devices(), (*screen)->Display()) };
+  opeu::game::Game                  game{ state, machine };
   opeu_application_entry(game);
+  return {};
 }
 } // namespace
 
@@ -198,7 +214,10 @@ auto Main(std::span<std::string_view const> const command_line) -> int {
   port_fm_init();
   // The launcher ran the opening between the FM driver and the game.
   opeu::intro::RunIntro({ .request = intro.request, .bank_dump = BankDumpPath() });
-  RunGame();
+  if (auto const ran{ RunGame() }; !ran) {
+    std::println(stderr, "opeu: cannot open the game's screen: {}", ran.error());
+    return 1;
+  }
   port_exit(0);
   return 0;
 }

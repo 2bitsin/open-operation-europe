@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <string_view>
 
-namespace opeu::opeu::detail::assets_test {
+namespace opeu::app::detail::assets_test {
 
 auto Size(std::string_view const name) -> std::size_t {
   auto const found{ AssetFind(name) };

@@ -1,7 +1,6 @@
 #include "opeu/render/render-display.hpp"
 
 #include "opeu/contract.hpp"
-#include "opeu/render/texture.hpp"
 #include "opeu/services/canvas.hpp"
 #include "opeu/services/vgalib.hpp"
 
@@ -491,11 +490,10 @@ auto RenderDisplay::HideOverlay(services::OverlayId const overlay) -> void {
 
 // ---- the platform's side -------------------------------------------------------------------------------------------
 
+// The window and the headless PNG take the frame as palette entries with the pointer, skipped when nothing changed;
+// the numbers are coloured only when Capture asks for them.
 auto RenderDisplay::Present() -> void {
-  auto const frame{ Required(Texture::Upload(_display.Renderer(), Capture())) };
-  _display.Begin();
-  _display.Draw(frame, Blit{ .destination = LOGICAL_SCREEN });
-  _display.Present();
+  _native.Present();
 }
 
 auto RenderDisplay::Capture() const -> assets::Texture {

@@ -7,6 +7,6 @@
 auto opeu_main(int argc, char** argv) -> int; // NOLINT(readability-identifier-naming): entry.cpp's, renamed with #17
 
 auto main(int argc, char** argv) -> int {
-  opeu::services::FilesUseAssets(opeu::opeu::AssetFind);
+  opeu::services::FilesUseAssets(opeu::app::AssetFind);
   return opeu_main(argc, argv);
 }

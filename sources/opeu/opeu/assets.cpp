@@ -5,8 +5,9 @@
 #include <algorithm>
 #include <cctype>
 #include <string>
+#include <utility>
 
-namespace opeu::opeu::detail::assets {
+namespace opeu::app::detail::assets {
 
 auto AssetFind(std::string_view name) -> std::optional<std::span<std::uint8_t const>> {
   if (auto const last{ name.find_last_of("\\/:") }; last != std::string_view::npos) {
@@ -20,6 +21,12 @@ auto AssetFind(std::string_view name) -> std::optional<std::span<std::uint8_t co
     return std::nullopt;
   }
   return std::span<std::uint8_t const>{ found->data, found->size };
+}
+
+auto ShippedFiles() -> ::opeu::assets::TableSource {
+  auto files{ ::opeu::assets::TableSource::Files{} };
+  std::ranges::for_each(resources::all(), [&files](resources::Resource const& file) { files.emplace(file.name, file.bytes()); });
+  return ::opeu::assets::TableSource{ std::move(files) };
 }
 
 }

@@ -27,6 +27,7 @@
 #include "platform.hpp"
 #include "port.hpp"
 #include "services.hpp"
+#include "shown-frames.hpp"
 #include "vgalib.hpp"
 
 #include <algorithm>
@@ -35,6 +36,7 @@
 #include <cstdlib>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <optional>
 #include <ranges>
 #include <sstream>
@@ -250,12 +252,24 @@ auto PrintBacktrace() -> void {
 #endif
 }
 
+}
+
 // ---- the pump ----
 
+// Named outside the anonymous namespace so that ShownFrames (shown-frames.hpp) can hold the pump it shows on.
 class Pump {
 public:
   [[nodiscard]] auto TimeUs() const -> std::uint64_t {
     return port_options.headless != 0 ? _virtual_us : platform::TicksUs();
+  }
+
+  // `display` presents the frames from now on, or the pump presents the services' screen again.
+  auto ShowFrom(Display& display) -> void {
+    _shown = display;
+  }
+  auto ShowServicesScreen() noexcept -> void {
+    _shown.reset();
+    _presented_once = false;
   }
 
   auto Run() -> void {
@@ -280,12 +294,22 @@ private:
     _presented_once = true;
   }
 
+  // The screen to the player: the shown display presents itself (it skips an unchanged frame, which the platform still
+  // holds), else the services' screen.
   auto Present() -> void {
+    if (_shown) {
+      _shown->get().Present();
+      return;
+    }
     static_cast<void>(Render());
     Show();
   }
 
   auto PresentChanges() -> void {
+    if (_shown) {
+      _shown->get().Present();
+      return;
+    }
     if (Render()) Show();
   }
 
@@ -375,9 +399,12 @@ private:
   std::uint64_t                                      _last_present_us{};
   bool                                               _presented_once{};
   std::optional<InputScript>                         _script;
+  std::optional<std::reference_wrapper<Display>>     _shown; // none: the services' screen
   std::uint32_t                                      _idle{};
   std::uint64_t                                      _last_poll_us{};
 };
+
+namespace {
 
 // The pump of the process (legacy: port_pump and port_time_us are free functions).
 auto ThePump() -> Pump& {
@@ -386,6 +413,18 @@ auto ThePump() -> Pump& {
 }
 
 }
+}
+
+namespace opeu::services::detail::shown_frames {
+
+ShownFrames::~ShownFrames() {
+  _pump.get().ShowServicesScreen();
+}
+
+ShownFrames::ShownFrames(Display& display) : _pump{ pump::ThePump() } {
+  _pump.get().ShowFrom(display);
+}
+
 }
 
 auto port_time_us() -> std::uint64_t {
