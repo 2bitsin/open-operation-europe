@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
 
 namespace opeu::platform::detail::view_scale {
 
@@ -13,9 +12,11 @@ namespace {
   return std::max(view.density, 1.0f / 8.0f);
 }
 
-// `pixels` within the rounding of one window coordinate of `wanted`.
-[[nodiscard]] auto Near(int const pixels, int const wanted, float const density) -> bool {
-  return std::abs(pixels - wanted) <= static_cast<int>(std::ceil(density));
+// A window of `pixels` shows the frame at `scale`, within the rounding of one window coordinate.
+[[nodiscard]] auto ShowsScale(View const& view, Size const pixels, int const scale) -> bool {
+  auto const slack{ static_cast<int>(std::ceil(Density(view))) };
+  auto const near{ [slack](int const actual, int const wanted) { return actual >= wanted - slack && actual <= wanted + slack; } };
+  return near(pixels.width, view.frame.width * scale) && near(pixels.height, view.frame.height * scale);
 }
 
 } // namespace
@@ -47,8 +48,7 @@ auto WindowSize(View const& view, int const scale) -> Size {
 
 auto Snapped(View const& view, Size const pixels) -> std::optional<Size> {
   auto const scale{ NearestScale(view, pixels) };
-  auto const density{ Density(view) };
-  if (Near(pixels.width, view.frame.width * scale, density) && Near(pixels.height, view.frame.height * scale, density)) return std::nullopt;
+  if (ShowsScale(view, pixels, scale)) return std::nullopt;
   return WindowSize(view, scale);
 }
 
