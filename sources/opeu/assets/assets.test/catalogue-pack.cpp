@@ -32,6 +32,15 @@ TEST(CataloguePack, ListsEveryAssetOfTheCatalogueAndTheUnitIconsVariants) {
   EXPECT_TRUE(std::ranges::contains(ids, "text-glyph/065"));
 }
 
+TEST(CataloguePack, ListsWhatItFindsWithoutDrawing) {
+  auto const  shipped{ ShippedPack{} };
+  auto const& decoders{ shipped.Decoders() };
+  EXPECT_TRUE(decoders.Lists("battle-unit/class-03/facing-1/side-0"));
+  EXPECT_TRUE(decoders.Lists("portrait/118"));
+  EXPECT_FALSE(decoders.Lists("portrait/999"));
+  EXPECT_EQ(decoders.Lists("dialog/yes"), decoders.Find("dialog/yes").has_value());
+}
+
 TEST(CataloguePack, KnowsTheAnimationsFontsPalettesAndScale) {
   auto const  shipped{ ShippedPack{} };
   auto const& decoders{ shipped.Decoders() };

@@ -30,6 +30,10 @@ auto Pack::Find(std::string_view const id) const -> std::optional<PackedAsset> {
   return _manifest.Find(id);
 }
 
+auto Pack::Lists(std::string_view const id) const -> bool {
+  return _manifest.Lists(id);
+}
+
 auto Pack::Load(std::string_view const id) const -> Packed<LoadedAsset> {
   auto entry{ _manifest.Find(id) };
   if (!entry) return Fail(PackFault::UNKNOWN_ASSET, std::string{ id });

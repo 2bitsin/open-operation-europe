@@ -117,6 +117,10 @@ auto Manifest::Find(std::string_view const id) const -> std::optional<PackedAsse
   return Lookup(_contents.assets, id);
 }
 
+auto Manifest::Lists(std::string_view const id) const -> bool {
+  return _contents.assets.contains(id);
+}
+
 auto Manifest::Ids() const -> std::vector<std::string> {
   return _contents.assets | std::views::keys | std::ranges::to<std::vector>();
 }

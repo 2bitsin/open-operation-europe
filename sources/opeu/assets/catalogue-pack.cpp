@@ -130,6 +130,10 @@ auto CataloguePack::Find(std::string_view const id) const -> std::optional<Packe
   return std::move(drawn->entry);
 }
 
+auto CataloguePack::Lists(std::string_view const id) const -> bool {
+  return _listed.contains(id);
+}
+
 auto CataloguePack::Load(std::string_view const id) const -> Packed<LoadedAsset> {
   auto drawn{ Draw(id) };
   if (!drawn) return std::unexpected{ drawn.error() };

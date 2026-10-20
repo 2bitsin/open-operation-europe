@@ -27,6 +27,10 @@ auto FallbackPack::Find(std::string_view const id) const -> std::optional<Packed
   return Holder(id).Find(id);
 }
 
+auto FallbackPack::Lists(std::string_view const id) const -> bool {
+  return _preferred->Lists(id) || _fallback->Lists(id);
+}
+
 auto FallbackPack::Load(std::string_view const id) const -> Packed<LoadedAsset> {
   return Holder(id).Load(id);
 }
@@ -56,7 +60,7 @@ auto FallbackPack::Scale() const -> std::uint32_t {
 }
 
 auto FallbackPack::Holder(std::string_view const id) const -> AssetPack const& {
-  return _preferred->Find(id) ? *_preferred : *_fallback;
+  return _preferred->Lists(id) ? *_preferred : *_fallback;
 }
 
 }

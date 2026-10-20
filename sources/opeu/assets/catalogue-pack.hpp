@@ -26,6 +26,7 @@ public:
   explicit CataloguePack(Catalogue catalogue);
 
   [[nodiscard]] auto Find(std::string_view id) const -> std::optional<PackedAsset> override;
+  [[nodiscard]] auto Lists(std::string_view id) const -> bool override; // without drawing the image
   [[nodiscard]] auto Load(std::string_view id) const -> Packed<LoadedAsset> override;
   [[nodiscard]] auto Palette(std::string_view name) const -> std::optional<PaletteColours> override;
   [[nodiscard]] auto Ids() const -> std::vector<std::string> override;

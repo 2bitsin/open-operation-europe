@@ -80,6 +80,13 @@ TEST(FallbackPack, ListsTheIdsOfBothPacks) {
   EXPECT_TRUE(std::ranges::contains(ids, "dialog/yes"));
 }
 
+TEST(FallbackPack, ListsAnIdEitherPackHolds) {
+  auto const pack{ Remastered() };
+  EXPECT_TRUE(pack.Lists("portrait/200"));
+  EXPECT_TRUE(pack.Lists("portrait/117"));
+  EXPECT_FALSE(pack.Lists("portrait/999"));
+}
+
 TEST(FallbackPack, TakesAnimationsAndFontsByNameFromThePreferredPackFirst) {
   auto const pack{ Remastered() };
   EXPECT_EQ(pack.Frames("battle-blast/large"), std::vector<std::string>{ "portrait/118" });

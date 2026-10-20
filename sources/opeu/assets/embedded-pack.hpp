@@ -30,10 +30,6 @@ private:
   std::string _directory;
 };
 
-// A remaster over the classic pack, or the classic pack alone when the remaster's files hold no pack.json. A remaster
-// that has a manifest but cannot be read is an error, not a silent fall back.
-[[nodiscard]] auto OpenLayered(std::unique_ptr<PackFiles const> classic, std::unique_ptr<PackFiles const> remaster) -> Packed<std::unique_ptr<AssetPack const>>;
-
 // The embedded pack in packs.embed/<directory>/.
 [[nodiscard]] auto OpenEmbeddedPack(std::string_view directory) -> Packed<Pack>;
 
@@ -47,6 +43,5 @@ using detail::embedded_pack::CLASSIC_PACK;
 using detail::embedded_pack::EmbeddedPackFiles;
 using detail::embedded_pack::OpenEmbeddedPack;
 using detail::embedded_pack::OpenGamePack;
-using detail::embedded_pack::OpenLayered;
 using detail::embedded_pack::REMASTER_PACK;
 }

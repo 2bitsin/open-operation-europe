@@ -3,10 +3,13 @@
 #include "packs.hpp"
 
 #include "opeu/assets/embedded-pack.hpp"
+#include "opeu/assets/layered-pack.hpp"
 
 #include <gtest/gtest.h>
 
+#include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace opeu::assets {
@@ -14,14 +17,13 @@ namespace opeu::assets {
 namespace {
 using namespace std::string_literals;
 using namespace std::string_view_literals;
-using test::CLASSIC_DIRECTORY;
 using test::ClassicEmbedded;
 using test::ToBytes;
 
 constexpr auto REMASTER_SAMPLE{ "assets.test/remaster-sample"sv };
 
 auto Layered(std::unique_ptr<PackFiles const> remaster) -> Packed<std::unique_ptr<AssetPack const>> {
-  return OpenLayered(std::make_unique<DirectoryPackFiles const>(CLASSIC_DIRECTORY), std::move(remaster));
+  return OpenLayered(std::make_unique<Pack const>(test::ClassicDirectory()), std::move(remaster));
 }
 
 auto RemasteredSample() -> std::unique_ptr<AssetPack const> {
@@ -71,6 +73,23 @@ TEST(RemasterOverClassic, IsTheClassicPackAloneWithoutAManifest) {
   auto const pack{ Layered(std::make_unique<MemoryPackFiles const>(MemoryPackFiles::Files{})) };
   ASSERT_TRUE(pack);
   EXPECT_EQ((*pack)->Load("portrait/118")->texture.Width(), 64U);
+}
+
+TEST(RemasterOverClassic, IsTheClassicPackAloneWithoutARemasterPath) {
+  auto const pack{ OpenLayered(std::make_unique<Pack const>(test::ClassicDirectory()), std::optional<std::filesystem::path>{}) };
+  ASSERT_TRUE(pack);
+  EXPECT_EQ((*pack)->Scale(), 1U);
+}
+
+TEST(RemasterOverClassic, OpensARemasterByPath) {
+  auto const pack{ OpenLayered(std::make_unique<Pack const>(test::ClassicDirectory()), std::optional{ std::filesystem::path{ REMASTER_SAMPLE } }) };
+  ASSERT_TRUE(pack) << Describe(pack.error());
+  EXPECT_EQ((*pack)->Load("portrait/118").value().entry.scale, 4U);
+}
+
+TEST(RemasterOverClassic, RefusesARemasterPathWithoutAPack) {
+  auto const pack{ OpenLayered(std::make_unique<Pack const>(test::ClassicDirectory()), std::optional{ std::filesystem::path{ "no-such-remaster" } }) };
+  EXPECT_FALSE(pack);
 }
 
 TEST(RemasterOverClassic, RefusesABrokenManifest) {

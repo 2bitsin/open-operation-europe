@@ -67,7 +67,7 @@ auto RecognisedImages::Remembered(QuickKey const& quick, std::span<std::uint8_t 
 auto RecognisedImages::Asked(assets::ContentKey const& key) const -> Answer {
   auto const id{ _index.get().Recognise(key) };
   if (!id) return Answer{};
-  auto const packed{ _pack.get().Find(*id).has_value() };
+  auto const packed{ _pack.get().Lists(*id) };
   return Answer{ .bytes = {}, .id = packed ? id : std::nullopt, .unpacked = !packed };
 }
 

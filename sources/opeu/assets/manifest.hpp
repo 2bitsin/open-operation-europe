@@ -89,6 +89,7 @@ public:
     return _contents.scale;
   }
   [[nodiscard]] auto Find(std::string_view id) const -> std::optional<PackedAsset>;
+  [[nodiscard]] auto Lists(std::string_view id) const -> bool;
   [[nodiscard]] auto Ids() const -> std::vector<std::string>; // sorted
   [[nodiscard]] auto Palette(std::string_view name) const -> std::optional<PaletteColours>;
   [[nodiscard]] auto Frames(std::string_view animation) const -> std::optional<std::vector<std::string>>;

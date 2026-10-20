@@ -15,6 +15,7 @@ public:
   FallbackPack(std::unique_ptr<AssetPack const> preferred, std::unique_ptr<AssetPack const> fallback);
 
   [[nodiscard]] auto Find(std::string_view id) const -> std::optional<PackedAsset> override;
+  [[nodiscard]] auto Lists(std::string_view id) const -> bool override;
   [[nodiscard]] auto Load(std::string_view id) const -> Packed<LoadedAsset> override;
   [[nodiscard]] auto Palette(std::string_view name) const -> std::optional<PaletteColours> override;
   [[nodiscard]] auto Ids() const -> std::vector<std::string> override;
