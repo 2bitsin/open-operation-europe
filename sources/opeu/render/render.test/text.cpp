@@ -15,13 +15,14 @@ namespace {
 using test::ExpectGolden;
 using test::OpenHeadless;
 using test::OpenSample;
-using test::PackUnderTest;
+
+using ClassicFontAtlas = test::ClassicSampleTest;
 
 [[nodiscard]] auto Glyphs(GlyphIndex const first, GlyphIndex const count) -> std::vector<GlyphIndex> {
   return std::views::iota(first, first + count) | std::ranges::to<std::vector>();
 }
 
-TEST(FontAtlas, HoldsEveryGlyphOfTheFontInCells) {
+TEST_F(ClassicFontAtlas, HoldsEveryGlyphOfTheFontInCells) {
   auto const headless{ OpenHeadless() };
   auto const pack{ OpenSample(test::CLASSIC) };
   auto const atlas{ FontAtlas::Build(headless.display.Renderer(), pack, GAME_FONT).value() };
@@ -33,7 +34,7 @@ TEST(FontAtlas, HoldsEveryGlyphOfTheFontInCells) {
   EXPECT_EQ(atlas.Atlas().Dimensions(), (Size{ .width = FontAtlas::COLUMNS * 16, .height = 14 }));
 }
 
-TEST(FontAtlas, KnowsTheTextFontsCodesAndCells) {
+TEST_F(ClassicFontAtlas, KnowsTheTextFontsCodesAndCells) {
   auto const headless{ OpenHeadless() };
   auto const pack{ OpenSample(test::CLASSIC) };
   auto const atlas{ FontAtlas::Build(headless.display.Renderer(), pack, TEXT_FONT).value() };
@@ -46,7 +47,7 @@ TEST(FontAtlas, KnowsTheTextFontsCodesAndCells) {
   EXPECT_EQ(GlyphsOf("A~", atlas.Metrics().first_code), (std::vector<GlyphIndex>{ 0x41 - 0x20, 0x7E - 0x20 }));
 }
 
-TEST(FontAtlas, ReportsAnUnknownFont) {
+TEST_F(ClassicFontAtlas, ReportsAnUnknownFont) {
   auto const headless{ OpenHeadless() };
   auto const pack{ OpenSample(test::CLASSIC) };
   EXPECT_FALSE(FontAtlas::Build(headless.display.Renderer(), pack, "kana").has_value());
@@ -58,7 +59,7 @@ struct Inked {
   std::size_t      pen{};
 };
 
-class AtlasText : public testing::TestWithParam<PackUnderTest> {
+class AtlasText : public test::SampleTest {
 public:
   [[nodiscard]] auto Pen(std::size_t const index) const -> Rgba {
     return render::Pen(test::Needed(pack.Palette("main/day"), "the day palette"), index);

@@ -14,6 +14,8 @@
 namespace opeu::render::detail::source_layer_test {
 namespace {
 
+using SourceLayerOverShippedTiles = test::ClassicSampleTest;
+
 using test::Shipped;
 
 constexpr auto TILE{ "view-tile/map-2/10" };
@@ -84,7 +86,7 @@ TEST(SourceLayer, AnXorUndoneByTheSameXorPutsItsCellsBackUnlessDrawnOver) {
 }
 
 // The invalidation through the display: a shipped tile drawn as the game draws it, then a corner of it overwritten.
-TEST(SourceLayer, ACornerDrawnOverAShippedTileMakesItsCellRaw) {
+TEST_F(SourceLayerOverShippedTiles, ACornerDrawnOverAShippedTileMakesItsCellRaw) {
   auto  rendered{ test::Rendered{} };
   auto& display{ rendered.Screen() };
   display.EnterGraphics();

@@ -20,6 +20,8 @@
 namespace opeu::render::detail::display_scenes_test {
 namespace {
 
+using DisplayScenes = test::ClassicSampleTest;
+
 using test::CLASSIC;
 using test::ExpectGolden;
 using test::ExpectSame;
@@ -69,7 +71,7 @@ auto MapView(services::Display& display) -> void {
       0x000F);
 }
 
-TEST(DisplayScenes, AMapViewByDayAndAfterNightfall) {
+TEST_F(DisplayScenes, AMapViewByDayAndAfterNightfall) {
   auto const day{ ExpectSame([](services::Display& display) {
     MapView(display);
     return Outcome{};
@@ -136,7 +138,7 @@ auto Dialog(services::Display& display) -> void {
   std::ignore = display.Highlight({ .x = 21, .y = 128, .width = 6, .height = 16 }, 0x0107); // the menu row chosen: one XOR
 }
 
-TEST(DisplayScenes, ADialogWithAPortraitAndText) {
+TEST_F(DisplayScenes, ADialogWithAPortraitAndText) {
   auto const run{ ExpectSame([](services::Display& display) {
     Dialog(display);
     return Outcome{};
@@ -177,7 +179,7 @@ auto BattleCell(services::Display& display, int const tracers) -> Outcome {
   return Outcome{};
 }
 
-TEST(DisplayScenes, ABattleCellWithAUnitAndATracer) {
+TEST_F(DisplayScenes, ABattleCellWithAUnitAndATracer) {
   auto const traced{ ExpectSame([](services::Display& display) { return BattleCell(display, 1); }) };
   ExpectGolden(traced.frame, CLASSIC, "display-battle");
   auto const erased{ ExpectSame([](services::Display& display) { return BattleCell(display, 2); }) };
@@ -195,7 +197,7 @@ struct Indexed {
   }
 };
 
-TEST(DisplayScenes, FillThePumpsIndexedFrameAsTheCanvas) {
+TEST_F(DisplayScenes, FillThePumpsIndexedFrameAsTheCanvas) {
   auto native{ Indexed{} };
   std::ignore = test::RunNative([](services::Display& display) {
     Dialog(display);

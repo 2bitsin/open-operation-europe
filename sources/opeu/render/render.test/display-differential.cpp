@@ -19,6 +19,8 @@
 namespace opeu::render::detail::display_differential_test {
 namespace {
 
+using DisplayDifferential = test::ClassicSampleTest;
+
 using services::Corners;
 using test::ExpectSame;
 using test::Noise;
@@ -56,7 +58,7 @@ constexpr auto IMAGE{ Noise<2048>(7) };
 
 // ---- the screen ---------------------------------------------------------------------------------------------------
 
-TEST(DisplayDifferential, StartsEntersAndLeavesGraphicsAsTheCanvas) {
+TEST_F(DisplayDifferential, StartsEntersAndLeavesGraphicsAsTheCanvas) {
   ExpectSame([](services::Display&) { return Outcome{}; });
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
@@ -75,7 +77,7 @@ TEST(DisplayDifferential, StartsEntersAndLeavesGraphicsAsTheCanvas) {
   });
 }
 
-TEST(DisplayDifferential, RecoloursWhatIsDrawnWhenThePaletteChanges) {
+TEST_F(DisplayDifferential, RecoloursWhatIsDrawnWhenThePaletteChanges) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto const night{ Levels("main/night") };
@@ -99,7 +101,7 @@ TEST(DisplayDifferential, RecoloursWhatIsDrawnWhenThePaletteChanges) {
 
 // ---- images -------------------------------------------------------------------------------------------------------
 
-TEST(DisplayDifferential, DrawsColumnImagesInEveryMode) {
+TEST_F(DisplayDifferential, DrawsColumnImagesInEveryMode) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto outcome{ Outcome{} };
@@ -113,7 +115,7 @@ TEST(DisplayDifferential, DrawsColumnImagesInEveryMode) {
   });
 }
 
-TEST(DisplayDifferential, DrawsThreeByteColumnImagesInEveryMode) {
+TEST_F(DisplayDifferential, DrawsThreeByteColumnImagesInEveryMode) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto outcome{ Outcome{} };
@@ -125,7 +127,7 @@ TEST(DisplayDifferential, DrawsThreeByteColumnImagesInEveryMode) {
   });
 }
 
-TEST(DisplayDifferential, DrawsBitsWithEveryPen) {
+TEST_F(DisplayDifferential, DrawsBitsWithEveryPen) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto outcome{ Outcome{} };
@@ -143,7 +145,7 @@ TEST(DisplayDifferential, DrawsBitsWithEveryPen) {
   });
 }
 
-TEST(DisplayDifferential, DrawsBitsOnPaper) {
+TEST_F(DisplayDifferential, DrawsBitsOnPaper) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     display.DrawBitsOnPaper({ .x = 2, .y = 50, .width = 6, .height = 10 }, { .mode = 0x030C, .bytes = IMAGE });
@@ -153,7 +155,7 @@ TEST(DisplayDifferential, DrawsBitsOnPaper) {
   });
 }
 
-TEST(DisplayDifferential, DrawsShiftedBitsAtAnyPixel) {
+TEST_F(DisplayDifferential, DrawsShiftedBitsAtAnyPixel) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto outcome{ Outcome{} };
@@ -168,7 +170,7 @@ TEST(DisplayDifferential, DrawsShiftedBitsAtAnyPixel) {
 
 // The Canvas gives a shifted image's transparent pixels after a row's first column the screen of that first column
 // (a quirk the renderer drops, docs/rendering.md): over one colour the two agree.
-TEST(DisplayDifferential, DrawsShiftedColumnsWithColourZeroTransparent) {
+TEST_F(DisplayDifferential, DrawsShiftedColumnsWithColourZeroTransparent) {
   ExpectSame([](services::Display& display) {
     QuietScreen(display);
     std::ignore = display.Box({ .x = 0, .y = 60, .width = 80, .height = 40 }, 9);
@@ -180,7 +182,7 @@ TEST(DisplayDifferential, DrawsShiftedColumnsWithColourZeroTransparent) {
 
 // What SaveColumns leaves in the game's memory is the Display's own (the native adapter's bytes, the renderer's
 // handle): the game only hands it back to DrawColumns mode 0, which puts the rectangle back, here and elsewhere.
-TEST(DisplayDifferential, SavesColumnsAndPutsThemBack) {
+TEST_F(DisplayDifferential, SavesColumnsAndPutsThemBack) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto saved{ std::vector<std::uint8_t>(4uz * 4 * 6) };
@@ -192,7 +194,7 @@ TEST(DisplayDifferential, SavesColumnsAndPutsThemBack) {
   });
 }
 
-TEST(DisplayDifferential, SavesAndRestoresRectanglesByHandle) {
+TEST_F(DisplayDifferential, SavesAndRestoresRectanglesByHandle) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto const kept{ display.Save({ .x = 9, .y = 33, .width = 4, .height = 6 }) };
@@ -203,7 +205,7 @@ TEST(DisplayDifferential, SavesAndRestoresRectanglesByHandle) {
   });
 }
 
-TEST(DisplayDifferential, CopiesColumnRectangles) {
+TEST_F(DisplayDifferential, CopiesColumnRectangles) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     display.CopyColumns({ .x = 4, .y = 10, .width = 6, .height = 12 }, { .x = 9, .y = 14 });    // overlapping, down and right
@@ -213,7 +215,7 @@ TEST(DisplayDifferential, CopiesColumnRectangles) {
   });
 }
 
-TEST(DisplayDifferential, DecodesPicturesAndReadsTheirBytes) {
+TEST_F(DisplayDifferential, DecodesPicturesAndReadsTheirBytes) {
   // 8x3 in eight colours: two literal units; a literal unit and a copy of it; the row above copied down. (A copy that
   // reaches left of or above the picture reads the screen on the Canvas and black on the renderer: docs/rendering.md.)
   static auto const EIGHT{
@@ -235,7 +237,7 @@ TEST(DisplayDifferential, DecodesPicturesAndReadsTheirBytes) {
   });
 }
 
-TEST(DisplayDifferential, DecodesShippedPictures) {
+TEST_F(DisplayDifferential, DecodesShippedPictures) {
   ExpectSame([](services::Display& display) { // the title screen, sixteen colours
     QuietScreen(display);
     display.LoadPalette(0, Levels("main/title"));
@@ -257,7 +259,7 @@ TEST(DisplayDifferential, DecodesShippedPictures) {
 
 // ---- shapes -------------------------------------------------------------------------------------------------------
 
-TEST(DisplayDifferential, DrawsBoxesAndHighlights) {
+TEST_F(DisplayDifferential, DrawsBoxesAndHighlights) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto outcome{ Outcome{} };
@@ -273,7 +275,7 @@ TEST(DisplayDifferential, DrawsBoxesAndHighlights) {
   });
 }
 
-TEST(DisplayDifferential, DrawsLinesPlainDashedAndCombined) {
+TEST_F(DisplayDifferential, DrawsLinesPlainDashedAndCombined) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto const line{ [&display](Corners const ends, Word const colour) { display.Line(ends, colour); } };
@@ -329,7 +331,7 @@ TEST(DisplayDifferential, DrawsLinesPlainDashedAndCombined) {
   });
 }
 
-TEST(DisplayDifferential, FillsInclusiveCorners) {
+TEST_F(DisplayDifferential, FillsInclusiveCorners) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     display.Fill(
@@ -356,7 +358,7 @@ TEST(DisplayDifferential, FillsInclusiveCorners) {
 
 // ---- battle cells and sprites ---------------------------------------------------------------------------------------
 
-TEST(DisplayDifferential, SavesAndRestoresBattleCells) {
+TEST_F(DisplayDifferential, SavesAndRestoresBattleCells) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto cell{ std::array<std::uint8_t, SYSLIB_CELL_BYTES>{} };
@@ -372,7 +374,7 @@ TEST(DisplayDifferential, SavesAndRestoresBattleCells) {
   });
 }
 
-TEST(DisplayDifferential, ComposesCellBuffersAsTheLibrary) {
+TEST_F(DisplayDifferential, ComposesCellBuffersAsTheLibrary) {
   ExpectSame([](services::Display& display) {
     auto cell{ std::array<std::uint8_t, SYSLIB_CELL_BYTES>{} };
     std::ranges::copy(std::span{ IMAGE }.subspan(100, cell.size()), cell.begin());
@@ -389,7 +391,7 @@ TEST(DisplayDifferential, ComposesCellBuffersAsTheLibrary) {
   });
 }
 
-TEST(DisplayDifferential, ComposesSpritesOverTheScreen) {
+TEST_F(DisplayDifferential, ComposesSpritesOverTheScreen) {
   ExpectSame([](services::Display& display) {
     BusyScreen(display);
     auto       buffer{ std::vector<std::uint8_t>(6uz * 26 * 4) };

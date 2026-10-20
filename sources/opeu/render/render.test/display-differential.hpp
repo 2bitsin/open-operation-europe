@@ -4,13 +4,14 @@
 // RenderDisplay (its frame as Capture colours it on the CPU), the frames compared pixel by pixel in RGBA and the
 // scripts' outcomes (return values, bytes composed in the game's memory) compared byte by byte. RenderDisplay draws
 // through the native display it composes, so the proof is that it forwards every call unchanged and colours the frame
-// as the pump does; what it adds, the source layer, has its own tests (source-layer.cpp).
+// as the pump does; what it adds, the source layer, has its own tests (source-layer.cpp). It draws from the classic
+// sample and the game's data, so a suite of it derives from ClassicSampleTest and skips in a clone without them.
 
 #include "headless.hpp"
 
 #include "opeu/assets/catalogue.hpp"
 #include "opeu/assets/content-index.hpp"
-#include "opeu/assets/source.hpp"
+#include "opeu/assets/game-data.hpp"
 #include "opeu/render/render-display.hpp"
 #include "opeu/services/native-machine.hpp"
 #include "opeu/services/vgalib.hpp"
@@ -23,6 +24,7 @@
 #include <functional>
 #include <memory>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -32,10 +34,11 @@
 namespace opeu::render::test {
 using namespace std::string_literals;
 using namespace std::string_view_literals;
-// The shipped files, their catalogue and its content index, built once for every test of the run.
+// The shipped files (the private repository's, or OPEU_DATA_DIR's: game-data.test.hpp), their catalogue and its content
+// index, built once for every test of the run.
 class ShippedAssets {
 public:
-  ShippedAssets() : _source{ assets::DirectorySource::Open("../opeu/assets.embed").value() }, _catalogue{ _source }, _index{ _catalogue } { }
+  explicit ShippedAssets(assets::GameData data) : _data{ std::move(data) }, _catalogue{ _data }, _index{ _catalogue } { }
   ShippedAssets(ShippedAssets const&)                    = delete;
   ShippedAssets(ShippedAssets&&)                         = delete;
   auto operator=(ShippedAssets const&) -> ShippedAssets& = delete;
@@ -58,13 +61,20 @@ public:
   }
 
 private:
-  assets::DirectorySource _source;
-  assets::Catalogue       _catalogue;
-  assets::ContentIndex    _index;
+  assets::GameData     _data;
+  assets::Catalogue    _catalogue;
+  assets::ContentIndex _index;
 };
 
+// The game's data the tests find; the test stops when there is none (its suite skips first: ClassicSampleTest).
+[[nodiscard]] inline auto FoundData() -> assets::GameData {
+  auto found{ ::opeu::test::FindTestData(::opeu::test::NamedDataDirectory(), ::opeu::test::IN_TREE_DATA) };
+  if (!found) throw std::runtime_error{ found.error() };
+  return Needed(*std::move(found), "the game's data");
+}
+
 [[nodiscard]] inline auto Shipped() -> ShippedAssets const& {
-  static auto const SHIPPED{ std::make_unique<ShippedAssets const>() };
+  static auto const SHIPPED{ std::make_unique<ShippedAssets const>(FoundData()) };
   return *SHIPPED;
 }
 

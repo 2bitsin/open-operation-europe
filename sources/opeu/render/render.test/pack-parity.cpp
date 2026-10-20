@@ -1,16 +1,18 @@
 // The renderer draws a built pack exactly as the decoders draw the shipped files: for every asset of the pack, as the
 // pack holds it and in every palette the game shows it in, a TextureCache over the pack and one over the decoders'
 // CataloguePack put the same pixels on screen. By default over the classic sample (render.test/packs/); the whole
-// classic pack when OPEU_CLASSIC_PACK names it, which tools/assets/pack.test does on every test run.
+// classic pack when OPEU_CLASSIC_PACK names it, which tools/assets/pack.test does on every test run. A clone without
+// the pack or the game's data skips it.
 #include "headless.hpp"
 
 #include "opeu/assets/catalogue-pack.hpp"
-#include "opeu/assets/source.hpp"
+#include "opeu/assets/catalogue.hpp"
 #include "opeu/render/texture-cache.hpp"
 
 #include <gtest/gtest.h>
 
 #include <filesystem>
+#include <format>
 #include <string>
 #include <vector>
 
@@ -20,8 +22,6 @@ using namespace std::string_view_literals;
 namespace {
 
 using test::OpenHeadless;
-
-constexpr auto SHIPPED{ "../opeu/assets.embed"sv };
 
 [[nodiscard]] auto PackUnderTest() -> std::filesystem::path {
   return std::filesystem::path{ test::Environment("OPEU_CLASSIC_PACK").value_or(std::string{ test::CLASSIC.path }) };
@@ -68,9 +68,18 @@ private:
   TextureCache                    _decoded;
 };
 
-TEST(PackParity, BakesEveryTextureOfThePackAsFromTheDecoders) {
-  auto const shipped{ assets::DirectorySource::Open(SHIPPED).value() };
-  auto const decoders{ assets::CataloguePack{ assets::Catalogue{ shipped } } };
+// The pack under test against the decoders over the game's data: both the private repository's, unless OPEU_CLASSIC_PACK
+// and OPEU_DATA_DIR name others.
+class PackParity : public ::opeu::test::GameDataTest {
+protected:
+  auto SetUp() -> void override {
+    if (!::opeu::test::TestFile(PackUnderTest())) GTEST_SKIP() << ::opeu::test::NoGameData(std::format("the pack under test ({})", PackUnderTest().generic_string()));
+    GameDataTest::SetUp();
+  }
+};
+
+TEST_F(PackParity, BakesEveryTextureOfThePackAsFromTheDecoders) {
+  auto const decoders{ assets::CataloguePack{ assets::Catalogue{ Data() } } };
   auto const pack{ assets::OpenPack(PackUnderTest()) };
   ASSERT_TRUE(pack) << PackUnderTest() << ": " << assets::Describe(pack.error());
   auto headless{ OpenHeadless() };

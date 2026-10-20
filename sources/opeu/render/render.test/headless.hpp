@@ -9,6 +9,11 @@
 //   python3 tools/assets/pack.py --out _local/render/sample --archive sources/opeu/render/render.test/packs/classic.opeupack --only <its ids>
 // (the ids are its pack.json's; tools/assets/pack.test checks it is current), and the goldens with
 // OPEU_REGENERATE_GOLDENS=1 on the test run, which writes each into its pack's directory.
+//
+// The samples and their goldens are made from the game's data, so they are the private repository's only: a suite that
+// draws from a sample derives from SampleTest or ClassicSampleTest and skips, whole, in a clone without them.
+
+#include "opeu/game-data.test.hpp"
 
 #include "opeu/assets/pack.hpp"
 #include "opeu/assets/png-reader.hpp"
@@ -55,6 +60,28 @@ inline constexpr auto CLASSIC{
   PackUnderTest{ .name = "classic", .path = "render.test/packs/classic.opeupack" }
 };
 inline constexpr auto PACKS{ std::array{ CLASSIC } };
+
+// Skips the calling suite unless this clone holds every pack's sample.
+inline auto SkipWithoutSamples() -> void {
+  auto missing{ PACKS | std::views::filter([](PackUnderTest const& under_test) { return !::opeu::test::TestFile(under_test.path); }) };
+  if (!std::ranges::empty(missing)) GTEST_SKIP() << ::opeu::test::NoGameData(std::format("the {} pack's sample ({})", missing.front().name, missing.front().path));
+}
+
+// A suite drawn from each pack's sample, PackUnderTest its parameter.
+class SampleTest : public testing::TestWithParam<PackUnderTest> {
+public:
+  static auto SetUpTestSuite() -> void {
+    SkipWithoutSamples();
+  }
+};
+
+// A suite drawn from the classic sample alone.
+class ClassicSampleTest : public testing::Test {
+public:
+  static auto SetUpTestSuite() -> void {
+    SkipWithoutSamples();
+  }
+};
 
 // gtest prints the parameter by its name.
 inline auto operator<<(std::ostream& out, PackUnderTest const& under_test) -> std::ostream& {

@@ -17,6 +17,8 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 namespace {
 
+using BoundedMemory = test::ClassicSampleTest;
+
 constexpr auto FRAMES{ 2000uz };
 
 using services::Area;
@@ -40,7 +42,7 @@ auto Tick(RenderDisplay& display, std::size_t const frame) -> void {
   display.HideOverlay(bar);
 }
 
-TEST(BoundedMemory, ALongRunHoldsWhatOneStretchOfTicksHolds) {
+TEST_F(BoundedMemory, ALongRunHoldsWhatOneStretchOfTicksHolds) {
   auto  rendered{ test::Rendered{} };
   auto& display{ rendered.Screen() };
   display.EnterGraphics();

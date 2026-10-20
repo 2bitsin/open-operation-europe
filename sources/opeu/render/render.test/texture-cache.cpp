@@ -12,7 +12,6 @@ namespace {
 using test::ExpectGolden;
 using test::OpenHeadless;
 using test::OpenSample;
-using test::PackUnderTest;
 
 constexpr auto TILE{ "view-tile/map-2/17"sv };
 constexpr auto PORTRAIT{ "portrait/118"sv };
@@ -29,7 +28,7 @@ constexpr auto UNIT{ "battle-unit/class-03/facing-1"sv };
   return display.Read(At(Point{}, baked.size)).value();
 }
 
-class TextureCaches : public testing::TestWithParam<PackUnderTest> {
+class TextureCaches : public test::SampleTest {
 public:
   [[nodiscard]] auto Cache(std::size_t const capacity) const -> TextureCache {
     return TextureCache{ headless.display.Renderer(), pack, capacity };

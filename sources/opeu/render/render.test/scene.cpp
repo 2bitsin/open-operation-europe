@@ -18,9 +18,8 @@ namespace {
 using test::ExpectGolden;
 using test::OpenHeadless;
 using test::OpenSample;
-using test::PackUnderTest;
 
-class Scenes : public testing::TestWithParam<PackUnderTest> {
+class Scenes : public test::SampleTest {
 public:
   test::Headless    headless{ OpenHeadless() };
   assets::Pack      pack{ OpenSample(GetParam()) };
