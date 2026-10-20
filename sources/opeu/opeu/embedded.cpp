@@ -61,27 +61,18 @@ auto EmbeddedTable() -> assets::GameData::Table {
 }
 
 auto EmbeddedData() -> std::optional<assets::GameData::Table> {
-  if constexpr (DATA_EMBEDDED) {
-    return EmbeddedTable();
-  } else {
-    return std::nullopt;
-  }
+  if (!DATA_EMBEDDED) return std::nullopt; // a plain if: the table's code is compiled, and checked, in every build
+  return EmbeddedTable();
 }
 
 auto EmbeddedPackFiles(std::string_view const directory) -> std::unique_ptr<assets::PackFiles const> {
-  if constexpr (PACK_EMBEDDED) {
-    return std::make_unique<ResourcePackFiles const>(directory);
-  } else {
-    return std::make_unique<assets::MemoryPackFiles const>(assets::MemoryPackFiles::Files{});
-  }
+  if (!PACK_EMBEDDED) return std::make_unique<assets::MemoryPackFiles const>(assets::MemoryPackFiles::Files{});
+  return std::make_unique<ResourcePackFiles const>(directory);
 }
 
 auto OpenEmbeddedPack(std::string_view const directory) -> std::optional<assets::Packed<assets::Pack>> {
-  if constexpr (PACK_EMBEDDED) {
-    return assets::Pack::Open(EmbeddedPackFiles(directory));
-  } else {
-    return std::nullopt;
-  }
+  if (!PACK_EMBEDDED) return std::nullopt;
+  return assets::Pack::Open(EmbeddedPackFiles(directory));
 }
 
 }
