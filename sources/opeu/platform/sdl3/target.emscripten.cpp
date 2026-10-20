@@ -5,6 +5,10 @@
 #include <emscripten/emscripten.h>
 
 #include <cstdint>
+#include <string>
+
+// ShowMissingData's JavaScript reads the report with UTF8ToString.
+EM_JS_DEPS(page_needs_data, "$UTF8ToString");
 
 namespace opeu::platform::detail::target {
 
@@ -42,5 +46,20 @@ auto DefaultSaveDir() -> std::string {
 }
 
 auto PrepareSaveDir([[maybe_unused]] std::string const& path) -> void { }
+
+auto DataDirectories() -> std::vector<std::filesystem::path> {
+  return { "/data" }; // web/pre.js mounts IDBFS there, and the page puts the player's files in it
+}
+
+auto ShowMissingData(std::string_view const report) -> void {
+  // The page's file picker (web/shell.html): Module.opeuNeedData shows the report and takes the player's files into
+  // /data, then reloads the page; absent outside a page (node).
+  auto const text{ std::string{ report } };
+  EM_ASM(
+      {
+        if (Module.opeuNeedData) Module.opeuNeedData(UTF8ToString($0));
+      },
+      text.c_str());
+}
 
 }

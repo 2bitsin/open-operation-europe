@@ -6,7 +6,8 @@
 # options (-s settings, --pre-js, --shell-file), its LINK_DEPENDS, or the
 # find-module path FindSDL3 needs. buildutil itself gives the application
 # its .html suffix and installs opeu.{html,js,wasm}; the data files are
-# #embed-ed into the wasm, so there is no preload file.
+# #embed-ed into the wasm where the tree holds them, else the page keeps the
+# player's own in /data, so there is no preload file.
 if(NOT EMSCRIPTEN)
   return()
 endif()
@@ -27,7 +28,8 @@ function(opeu_browser)
   # instrumented. The unwound stack of the deepest wait (turn processing ->
   # battle -> dialog -> key wait) fits 1 MiB with a wide margin, the native
   # stack of the same chains 4 MiB. FS and the run dependencies serve
-  # web/pre.js (the IDBFS mount of /saves, export and import); NODEFS lets a
+  # web/pre.js (the IDBFS mounts of /saves and /data, export and import, the
+  # player's data files); NODEFS lets a
   # headless run under node read its script and write its output.
   target_link_options(opeu-opeu PRIVATE
     -sASYNCIFY=1 -sASYNCIFY_STACK_SIZE=1048576

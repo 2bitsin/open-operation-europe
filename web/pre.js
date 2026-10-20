@@ -1,16 +1,20 @@
 /* Operation Europe, web build: file system set-up before main() runs.
  *
- * Platform glue only (docs/port.md, "Web build"). The original data files
- * are compiled into the wasm (sources/opeu/opeu/assets.embed/), so there is
- * no preloaded .data file; the only files on the virtual file system are
- * saved games, in /saves (the port's save directory on Emscripten):
+ * Platform glue only (docs/port.md, "The browser build"). A tree that holds
+ * the game's data files compiles them into the wasm, and the page needs no
+ * file. A tree without them (the public mirror) builds a wasm that looks in
+ * /data, where the page keeps the player's own 26 files. Two directories:
  *
- *   browser  /saves is an IDBFS mount with autoPersist: every file the game
- *            writes (SAVEDATA) is copied to IndexedDB when it is closed, and
- *            loaded back from IndexedDB on the next visit.
- *   node     /saves is MEMFS; the host file system is mounted at /host
- *            (NODEFS), so a headless run can read an input script and write
- *            its PNG: node opeu.js --headless --input /host/... --png /host/...
+ *   /saves   saved games (the port's save directory on Emscripten)
+ *   /data    the player's data files, when the wasm has none of its own
+ *
+ *   browser  both are IDBFS mounts with autoPersist: every file written is
+ *            copied to IndexedDB when it is closed, and loaded back from
+ *            IndexedDB on the next visit.
+ *   node     both are MEMFS; the host file system is mounted at /host
+ *            (NODEFS), so a headless run can read an input script, its data
+ *            and write its PNG:
+ *            node opeu.js --headless --data /host/... --input /host/... --png /host/...
  *
  * In the browser main() also waits for the "click to start" of the shell
  * page (Module.opeuStart), which gives the canvas keyboard focus and lets
@@ -21,15 +25,18 @@ if (typeof Module['preRun'] === 'function') Module['preRun'] = [Module['preRun']
 
 Module['preRun'].push(function () {
   FS.mkdir('/saves');
+  FS.mkdir('/data');
   if (ENVIRONMENT_IS_NODE) {
     FS.mkdir('/host');
     FS.mount(NODEFS, { root: '/' }, '/host');
     return;
   }
   FS.mount(IDBFS, { autoPersist: true }, '/saves');
+  FS.mount(IDBFS, { autoPersist: true }, '/data');
   addRunDependency('opeu-saves');
   FS.syncfs(true, function (err) {
-    if (err) console.warn('opeu: cannot load saved files from IndexedDB:', err);
+    if (err) console.warn('opeu: cannot load saved files and data from IndexedDB:', err);
+    if (Module['opeuDataStored']) Module['opeuDataStored'](Module['opeuDataCount']());
     removeRunDependency('opeu-saves');
   });
   if (!Module['opeuAutoStart']) {
@@ -61,4 +68,23 @@ Module['opeuImportSaves'] = function (bytes, done) {
   var name = Module['opeuSaveFileName']() || '/saves/Savedata';
   FS.writeFile(name, bytes);
   FS.syncfs(false, function (err) { if (done) done(err); });
+};
+
+/* The player's data files for the page (shell.html). When the wasm has no
+ * data of its own and /data lacks a file, the entry calls Module.opeuNeedData
+ * with its report; the page takes the files the player picks or drops,
+ * stores them here under their upper-case names and reloads, and the entry
+ * checks them again (it alone decides whether they are the release's).
+ * Forget removes them. Both flush IDBFS before calling back. */
+Module['opeuStoreData'] = function (files, done) {
+  files.forEach(function (file) { FS.writeFile('/data/' + file.name.toUpperCase(), file.bytes); });
+  FS.syncfs(false, function (err) { if (done) done(err); });
+};
+Module['opeuForgetData'] = function (done) {
+  FS.readdir('/data').filter(function (n) { return n !== '.' && n !== '..'; })
+    .forEach(function (n) { FS.unlink('/data/' + n); });
+  FS.syncfs(false, function (err) { if (done) done(err); });
+};
+Module['opeuDataCount'] = function () {
+  return FS.readdir('/data').filter(function (n) { return n !== '.' && n !== '..'; }).length;
 };

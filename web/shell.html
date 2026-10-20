@@ -59,6 +59,19 @@
   #overlay .hint { font-size: 15px; }
   #status { font-size: 13px; color: #999; min-height: 1.4em; }
   #overlay.done { cursor: default; }
+  /* The player's data files, asked for when the build has none of its own
+     (the public mirror's): a picker and a drop zone over the page. */
+  #needdata { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center;
+              justify-content: center; gap: 12px; padding: 16px; background: rgba(0, 0, 0, 0.92); text-align: center; }
+  #needdata h2 { margin: 0; font-size: 20px; font-weight: 600; color: #eee; }
+  #needdata p { max-width: 640px; margin: 0; }
+  #needdata pre { max-width: min(90vw, 760px); max-height: 30vh; overflow: auto; margin: 0; padding: 8px;
+                  text-align: left; font: 12px/1.35 ui-monospace, Menlo, Consolas, monospace; color: #aaa;
+                  background: #111; border: 1px solid #333; border-radius: 4px; }
+  #needdata #drop { width: min(90vw, 520px); padding: 24px 12px; border: 2px dashed #666; border-radius: 8px; cursor: pointer; }
+  #needdata #drop.over { border-color: #ccc; background: #1a1a1a; }
+  #needdata button, #saves #forgetdata { height: 28px; padding: 0 10px; border: 1px solid #555; border-radius: 4px;
+                                         background: #2a2a2a; color: #eee; font: 13px/1 system-ui, sans-serif; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -71,6 +84,7 @@
     <button id="exportsaves" type="button" tabindex="-1">Export saves</button>
     <button id="importsaves" type="button" tabindex="-1">Import saves</button>
     <input id="importfile" type="file" hidden>
+    <button id="forgetdata" type="button" tabindex="-1" hidden>Forget game data</button>
     <span id="savemsg"></span>
   </div>
   <div id="zoom" title="Integer zoom. Click the value to return to automatic fit. When the picture is larger than the window: scroll to pan, or drag with the middle button or Alt+drag; on a touch screen pinch with two fingers to zoom and drag with two fingers to pan. Keys: Cmd/Ctrl+Alt and + / - / 0.">
@@ -232,6 +246,15 @@
   <div class="hint" id="hint">Click or tap to start</div>
   <div id="status">Loading&hellip;</div>
 </div>
+<div id="needdata" hidden>
+  <h2>The game's data files are needed</h2>
+  <p>No game files come with this page. Choose or drop the 26 data files from your own copy of
+     Operation Europe (the 1994 DOS release): the files of its game directory. They stay in this
+     browser and are not sent anywhere.</p>
+  <div id="drop" tabindex="0">Drop the files here, or click to choose them</div>
+  <input id="datafiles" type="file" multiple hidden>
+  <pre id="datareport"></pre>
+</div>
 <script>
   var overlay = document.getElementById('overlay');
   var statusEl = document.getElementById('status');
@@ -265,7 +288,14 @@
       /* one dependency stays open until the click: show "ready" then */
       if (left <= 1 && !started) statusEl.textContent = 'Ready';
     },
+    /* The entry found no data (the build has none of its own, and /data
+       lacks a file): show its report and the picker. */
+    opeuNeedData: function (report) {
+      document.getElementById('datareport').textContent = report;
+      document.getElementById('needdata').hidden = false;
+    },
     onExit: function (code) {
+      if (!document.getElementById('needdata').hidden) return; /* the picker stays: the run ended for want of data */
       overlay.style.display = 'flex';
       overlay.classList.add('done');
       hintEl.textContent = 'The program has ended (exit code ' + code + '). Reload the page to play again.';
@@ -308,6 +338,40 @@
           canvas.focus();
         });
       });
+    });
+  })();
+  (function () {
+    var panel = document.getElementById('needdata');
+    var drop = document.getElementById('drop');
+    var chooser = document.getElementById('datafiles');
+    var forget = document.getElementById('forgetdata');
+    /* The files are stored as given and the page reloads: the entry checks
+       them (names in any case, sizes and fingerprints) and asks again with
+       its report if they are not the release's. */
+    function store(list) {
+      var files = Array.prototype.slice.call(list || []);
+      if (!files.length) return;
+      drop.textContent = 'Storing ' + files.length + ' files...';
+      Promise.all(files.map(function (f) {
+        return f.arrayBuffer().then(function (buf) { return { name: f.name, bytes: new Uint8Array(buf) }; });
+      })).then(function (read) {
+        Module.opeuStoreData(read, function (err) {
+          if (err) { drop.textContent = 'Cannot store the files: ' + err; return; }
+          location.reload();
+        });
+      });
+    }
+    drop.addEventListener('click', function () { chooser.value = ''; chooser.click(); });
+    chooser.addEventListener('change', function () { store(chooser.files); });
+    drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('over'); });
+    drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
+    drop.addEventListener('drop', function (e) { e.preventDefault(); drop.classList.remove('over'); store(e.dataTransfer.files); });
+    panel.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+    /* Forget: shown when the page holds files of its own (pre.js says so
+       once IndexedDB is loaded). */
+    Module.opeuDataStored = function (count) { forget.hidden = count === 0; };
+    forget.addEventListener('click', function () {
+      Module.opeuForgetData(function () { location.reload(); });
     });
   })();
   if (autostart) start();

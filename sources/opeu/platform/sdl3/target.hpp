@@ -6,7 +6,10 @@
 
 #include <SDL3/SDL.h>
 
+#include <filesystem>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace opeu::platform::detail::target {
 
@@ -28,5 +31,11 @@ auto Sleep(int ms, bool headless) -> void;
 [[nodiscard]] auto DefaultSaveDir() -> std::string;
 // Makes sure the save directory exists (the browser's is mounted by the page).
 auto PrepareSaveDir(std::string const& path) -> void;
+// Where the target looks for the game's data files (native: the executable's directory and the per-user data
+// directory; the browser: /data, which the page mounts and fills).
+[[nodiscard]] auto DataDirectories() -> std::vector<std::filesystem::path>;
+// Tells the player the data files are missing (`report`): native, SDL's message box; the browser, the page's file
+// picker (Module.opeuNeedData), when there is a page.
+auto ShowMissingData(std::string_view report) -> void;
 
 }
