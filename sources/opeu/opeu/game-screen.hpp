@@ -1,18 +1,22 @@
-// The screen the game draws on: services::Display on SDL_Renderer (render::RenderDisplay) over the game's pack (the
-// checked-in classic pack compiled into the executable, a remaster laid over it when one is embedded:
-// assets::OpenGamePack) and the content index that tells which of the game's byte images are shipped assets. The pump
-// presents through it (services::ShownFrames, Display::Present).
+// The screen the game draws on: services::Display on SDL_Renderer (render::RenderDisplay) over the game's pack and the
+// content index that tells which of the game's byte images are shipped assets. The pack is the classic pack compiled
+// into the executable when the build has it (embedded.hpp), else the decoders' pack over the game's data
+// (assets::CataloguePack, the same images); a remaster is laid over either. The pump presents through it
+// (services::ShownFrames, Display::Present).
 #pragma once
 
 #include "opeu/assets/content-index.hpp"
+#include "opeu/assets/game-data.hpp"
 #include "opeu/assets/pack.hpp"
-#include "opeu/assets/source.hpp"
 #include "opeu/platform/sdl3/renderer-host.hpp"
 #include "opeu/render/display.hpp"
 #include "opeu/render/render-display.hpp"
 
 #include <expected>
+#include <filesystem>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace opeu::app::detail::game_screen {
@@ -25,10 +29,10 @@ struct FrameSurface {
   render::Display           frame;
 };
 
-// What the screen draws from: the pack, and the shipped files the content index is built from.
+// What the screen draws from: the pack, and the game's data the content index is built from.
 struct ScreenAssets {
-  std::unique_ptr<::opeu::assets::AssetPack const> pack;
-  ::opeu::assets::TableSource                      files;
+  std::unique_ptr<::opeu::assets::AssetPack const>       pack;
+  std::reference_wrapper<::opeu::assets::GameData const> data;
 };
 
 class GameScreen final {
@@ -37,9 +41,10 @@ class GameScreen final {
   };
 
 public:
-  // The screen over the game's pack, recognising the images of the shipped files `files`; the reason when the pack
-  // cannot be read or SDL cannot open the renderer.
-  [[nodiscard]] static auto Open(::opeu::assets::TableSource files) -> std::expected<std::unique_ptr<GameScreen>, std::string>;
+  // The screen over the game's pack with the remaster at `remaster` (else the embedded one, if any) over it,
+  // recognising the images of `data`, which outlives the screen; the reason when a pack cannot be read or SDL cannot
+  // open the renderer.
+  [[nodiscard]] static auto Open(::opeu::assets::GameData const& data, std::optional<std::filesystem::path> const& remaster) -> std::expected<std::unique_ptr<GameScreen>, std::string>;
 
   // Open's: the display reads the pack and the index, which the screen owns.
   GameScreen(Key key, ScreenAssets assets, FrameSurface surface);

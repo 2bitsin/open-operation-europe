@@ -9,3 +9,5 @@
 *.opeupack binary
 /sources/opeu/assets/**/*.png binary
 /sources/opeu/assets/**/pack.json -text eol=lf
+/sources/opeu/opeu/packs.embed/**/*.png binary
+/sources/opeu/opeu/packs.embed/**/pack.json -text eol=lf

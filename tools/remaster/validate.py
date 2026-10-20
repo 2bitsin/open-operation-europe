@@ -321,7 +321,7 @@ def write_manifest(remaster, name):
 def arguments():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('remaster', type=Path, help='the remaster pack directory')
-    parser.add_argument('--classic', type=Path, default=CLASSIC, help='the classic pack (default sources/opeu/assets/packs.embed/classic)')
+    parser.add_argument('--classic', type=Path, default=CLASSIC, help='the classic pack (default sources/opeu/opeu/packs.embed/classic)')
     parser.add_argument('--templates', type=Path, default=TEMPLATES)
     parser.add_argument('--scale', type=int, default=DEFAULT_SCALE, help=f'image pixels per game pixel (default {DEFAULT_SCALE})')
     parser.add_argument('--report', type=Path, default=REPORTS, help='where the report goes')

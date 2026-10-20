@@ -1,11 +1,11 @@
 """A remaster drop-in directory checked against the classic pack, and its manifest written.
 
-A remaster directory (default sources/opeu/assets/packs.embed/remaster) holds PNGs at the classic pack's file names
+A remaster directory (default sources/opeu/opeu/packs.embed/remaster) holds PNGs at the classic pack's file names
 (`portraits/portrait-005-busch.png`, ...) for the assets it replaces, each an integer number of times the classic
 size both ways (4x is the convention; any whole factor works, per image). `pack.py --check-remaster DIR` checks every
 image, lists what is still missing per class, and, when nothing is wrong, writes the remaster's pack.json: the classic
 entries of the replaced ids with their own `scale` and without index maps. The game embeds the directory and draws it
-over the classic pack (assets::OpenGamePack). docs/asset-pack.md, "Remastering", is the workflow.
+over the classic pack (opeu/game-screen.cpp, assets::OpenLayered). docs/asset-pack.md, "Remastering", is the workflow.
 
 Errors:
     unknown-image     the file name is no classic image's (an index map, *.index.png, is never a remaster's)

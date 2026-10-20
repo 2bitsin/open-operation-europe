@@ -13,7 +13,7 @@ TEMPLATES = Templates.load()
 
 
 def sample(root):
-    return ClassicPack.open(root / 'sources' / 'opeu' / 'assets' / 'packs.embed' / 'classic')
+    return ClassicPack.open(root / 'sources' / 'opeu' / 'opeu' / 'packs.embed' / 'classic')
 
 
 def test_every_template_has_its_front_matter():

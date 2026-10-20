@@ -1,4 +1,4 @@
-// A pack loaded from its directory form, its archive form and the executable's embedded files, by id: the loader on
+// A pack loaded from its directory form and its archive form, by id: the loader on
 // the synthetic pack, then the checked-in classic pack's own forms and names.
 #include "packs.hpp"
 #include "present.hpp"
@@ -21,7 +21,6 @@ using test::Present;
 using test::CheckedInClassicTest;
 using test::ClassicArchive;
 using test::ClassicDirectory;
-using test::ClassicEmbedded;
 using test::OpenMemoryPack;
 using test::SAMPLE_IDS;
 using test::SyntheticArchive;
@@ -142,24 +141,22 @@ TEST(Pack, RefusesAFileThatIsNotAPng) {
 TEST(Pack, NeedsAManifest) {
   EXPECT_EQ(OpenMemoryPack({}).error().fault, PackFault::MISSING_FILE);
   EXPECT_EQ(OpenPack("assets.test/no-such.opeupack").error().fault, PackFault::MISSING_FILE);
-  EXPECT_EQ(OpenEmbeddedPack("no-such-pack").error().fault, PackFault::MISSING_FILE);
 }
 
-TEST_F(ClassicPackForms, LoadTheSameFromTheDirectoryTheArchiveAndTheExecutable) {
+TEST_F(ClassicPackForms, LoadTheSameFromTheDirectoryAndAnArchive) {
   auto const directory{ ClassicDirectory() };
   auto const archive{ ClassicArchive() };
-  auto const embedded{ ClassicEmbedded() };
-  ASSERT_EQ(directory.Ids(), embedded.Ids());
+  ASSERT_EQ(directory.Ids(), archive.Ids());
   EXPECT_EQ(directory.Ids().size(), 3'262U);
   EXPECT_TRUE(std::ranges::all_of(SAMPLE_IDS, [&](std::string_view const id) {
     auto const loaded{ directory.Load(id) };
-    return loaded && loaded == archive.Load(id) && loaded == embedded.Load(id) && loaded->indexed.has_value() == loaded->entry.recolour.has_value();
+    return loaded && loaded == archive.Load(id) && loaded->indexed.has_value() == loaded->entry.recolour.has_value();
   }));
   EXPECT_EQ(directory.Load("opening/00").value().entry.recolour, "scene");
 }
 
 TEST_F(ClassicPackForms, NameEachImageForWhatItShows) {
-  auto const pack{ ClassicEmbedded() };
+  auto const pack{ ClassicDirectory() };
   EXPECT_EQ(Present(pack.Find("portrait/005")).image, "portraits/portrait-005-busch.png");
   EXPECT_EQ(Present(pack.Find("silhouette/012")).image, "silhouettes/silhouette-012-pzkpfw-i.png");
   EXPECT_EQ(Present(pack.Find("event/27")).image, "pictures/event-27-pontoon-crossing.png");
@@ -169,7 +166,7 @@ TEST_F(ClassicPackForms, NameEachImageForWhatItShows) {
 }
 
 TEST_F(ClassicPackForms, HoldTheGamesFontsAnimationsAndPalettes) {
-  auto const pack{ ClassicEmbedded() };
+  auto const pack{ ClassicDirectory() };
   EXPECT_EQ(pack.FontNames(), (std::vector<std::string>{ "digit-glyph", "ending-glyph", "game-glyph", "marker-glyph", "sideways-digit-glyph", "text-glyph" }));
   auto const text{ pack.FontNamed("text-glyph") };
   ASSERT_TRUE(text);

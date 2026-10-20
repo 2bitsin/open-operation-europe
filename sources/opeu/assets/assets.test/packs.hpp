@@ -1,13 +1,12 @@
 #pragma once
 // The packs the tests load. The synthetic pack (assets.test/synthetic-pack/: our own pixels, every feature of the
 // format) and its remaster (assets.test/synthetic-remaster/) prove the loader in every clone. The classic pack the
-// module embeds (packs.embed/classic/, checked in and kept current by tools/assets/pack.test) is in the private
-// repository only: its directory, an archive of a few of its images made in memory, and the embedded files; a test of
-// it skips without it (game-data.test.hpp). Tests run in the module directory.
+// application embeds (opeu/packs.embed/classic/, checked in and kept current by tools/assets/pack.test) is in the
+// private repository only: its directory and an archive of a few of its images made in memory; a test of it skips
+// without it (game-data.test.hpp). Tests run in the module directory.
 
 #include "opeu/game-data.test.hpp"
 
-#include "opeu/assets/embedded-pack.hpp"
 #include "opeu/assets/pack-files.hpp"
 #include "opeu/assets/pack.hpp"
 
@@ -31,7 +30,7 @@
 namespace opeu::assets::test {
 using namespace std::string_literals;
 using namespace std::string_view_literals;
-inline constexpr auto CLASSIC_DIRECTORY{ "packs.embed/classic"sv };
+inline constexpr auto CLASSIC_DIRECTORY{ "../opeu/packs.embed/classic"sv };
 inline constexpr auto SYNTHETIC_DIRECTORY{ "assets.test/synthetic-pack"sv };
 inline constexpr auto SYNTHETIC_REMASTER{ "assets.test/synthetic-remaster"sv };
 
@@ -81,10 +80,6 @@ inline constexpr auto SAMPLE_IDS{ std::to_array<std::string_view>({
 
 [[nodiscard]] inline auto ClassicDirectory() -> Pack {
   return OpenPack(CLASSIC_DIRECTORY).value();
-}
-
-[[nodiscard]] inline auto ClassicEmbedded() -> Pack {
-  return OpenEmbeddedPack(CLASSIC_PACK).value();
 }
 
 [[nodiscard]] inline auto SyntheticDirectory() -> Pack {

@@ -5,7 +5,6 @@
 #include "shipped.hpp"
 
 #include "opeu/assets/code-table.hpp"
-#include "opeu/assets/embedded-pack.hpp"
 #include "opeu/assets/glyphs.hpp"
 #include "opeu/assets/messages.hpp"
 #include "opeu/assets/scenario.hpp"
@@ -86,12 +85,6 @@ TEST(Messages, SpellSetupZerosNamesInChinese) {
 TEST(Messages, ReadBackWhatTheyWrite) {
   auto const messages{ PackedMessages() };
   EXPECT_EQ(ReadMessages(ToBytes(MessagesText(messages))), messages);
-}
-
-TEST(Messages, AreEmbeddedWithTheClassicPack) {
-  auto const files{ EmbeddedPackFiles{ CLASSIC_PACK } };
-  EXPECT_EQ(files.Read(MESSAGES), ClassicFile(MESSAGES));
-  EXPECT_EQ(files.Read(CODE_TABLE), ClassicFile(CODE_TABLE));
 }
 
 TEST(CodeTable, GivesEveryGlyphOfTheEndingFontACharacter) {

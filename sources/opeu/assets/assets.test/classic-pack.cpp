@@ -22,7 +22,6 @@ namespace {
 
 using test::ClassicArchive;
 using test::ClassicDirectory;
-using test::ClassicEmbedded;
 
 using test::SAMPLE_IDS;
 
@@ -34,11 +33,10 @@ auto WithoutNaming(LoadedAsset loaded) -> LoadedAsset {
   return loaded;
 }
 
-// The whole pack's two forms: the checked-in directory and the files compiled into the executable.
+// The whole pack as checked in (that the executable embeds the same files is opeu/embedded.test.cpp).
 auto WholePacks() -> std::vector<Pack> {
   auto packs{ std::vector<Pack>{} };
   packs.push_back(ClassicDirectory());
-  packs.push_back(ClassicEmbedded());
   return packs;
 }
 

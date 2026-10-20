@@ -28,7 +28,7 @@ using namespace std::string_view_literals;
 inline constexpr auto NO_GAME_DATA{ "no game data: "sv };
 inline constexpr auto DATA_DIRECTORY_VARIABLE{ "OPEU_DATA_DIR" };
 inline constexpr auto IN_TREE_DATA{ "../opeu/assets.embed"sv };
-inline constexpr auto IN_TREE_CLASSIC_PACK{ "../assets/packs.embed/classic"sv };
+inline constexpr auto IN_TREE_CLASSIC_PACK{ "../opeu/packs.embed/classic"sv };
 
 // The one skip message: what the test needs that this clone does not hold.
 [[nodiscard]] inline auto NoGameData(std::string_view const what) -> std::string {
@@ -65,15 +65,15 @@ protected:
     auto found{ FindTestData(NamedDataDirectory(), IN_TREE_DATA) };
     if (!found) FAIL() << found.error();
     if (!found->has_value()) GTEST_SKIP() << NoGameData("the 26 data files (set OPEU_DATA_DIR to a directory holding them)");
-    _data.emplace(*std::move(*found));
+    _data = std::make_unique<assets::GameData const>(**std::move(found));
   }
 
   [[nodiscard]] auto Data() const -> assets::GameData const& {
-    return _data.value();
+    return *_data;
   }
 
 private:
-  std::optional<assets::GameData> _data;
+  std::unique_ptr<assets::GameData const> _data; // set by SetUp, or the test skipped
 };
 
 // A test of the classic pack: the private repository's checked-in pack, else the decoders' pack over the game's data

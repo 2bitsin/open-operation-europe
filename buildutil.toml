@@ -38,14 +38,6 @@ options_linux = [
 [package]
 kind = "none"
 
-# The asset packs (sources/opeu/assets/packs.embed/: the classic pack and the remaster over it) are compiled into the
-# assets module. Its own namespace, opeu::assets::resources, because the application module already embeds the
-# original data files (sources/opeu/opeu/assets.embed/) into opeu::resources and two modules cannot share one.
-[[resources]]
-module = "opeu-assets"
-dir = "sources/opeu/assets/packs.embed"
-namespace = "opeu::assets"
-
 [venv]
 # tools/rename/rename.py: clang's Python bindings; the wheel bundles a libclang, a system LLVM's is preferred.
 # tools/remaster: Pillow reads, checks and lays out the images; PyYAML reads the prompt templates' front matter.

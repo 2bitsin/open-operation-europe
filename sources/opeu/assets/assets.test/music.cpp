@@ -3,7 +3,6 @@
 // register stream themselves), decodes back into the same parts, and a malformed table or bank is refused.
 #include "packs.hpp"
 
-#include "opeu/assets/embedded-pack.hpp"
 #include "opeu/assets/fingerprint.hpp"
 #include "opeu/assets/music-bank.hpp"
 #include "opeu/assets/music-table.hpp"
@@ -103,11 +102,6 @@ TEST(MusicTables, NameNotesInstrumentsAndDrums) {
   EXPECT_TRUE(text.contains(R"({"op":"note","note":"C3","length":12,"gate":11})"));
   EXPECT_TRUE(text.contains(R"("op":"drums","drums":[)"));
   EXPECT_FALSE(text.contains(R"("op":"ignored")"));
-}
-
-TEST(MusicTables, AreEmbeddedWithTheClassicPack) {
-  auto const files{ EmbeddedPackFiles{ CLASSIC_PACK } };
-  std::ranges::for_each(MUSIC_TABLES, [&files](MusicTable const& table) { EXPECT_EQ(files.Read(table.path), ClassicFile(table.path)) << table.path; });
 }
 
 TEST(MusicTables, RefuseAnUnknownInstrument) {

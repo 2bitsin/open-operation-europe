@@ -158,7 +158,7 @@ def prompt_for(pack, templates, asset_id, scale=None):
 def arguments():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('id', nargs='?', help='the asset to fill the prompt for')
-    parser.add_argument('--pack', type=Path, default=CLASSIC, help='the classic pack (default sources/opeu/assets/packs.embed/classic)')
+    parser.add_argument('--pack', type=Path, default=CLASSIC, help='the classic pack (default sources/opeu/opeu/packs.embed/classic)')
     parser.add_argument('--templates', type=Path, default=TEMPLATES)
     parser.add_argument('--scale', type=int, help="the remaster's scale (default the template's)")
     parser.add_argument('--check', action='store_true', help='check coverage and references against the pack')

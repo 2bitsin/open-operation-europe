@@ -1,8 +1,7 @@
 // A remaster laid over a base pack: the synthetic remaster (two images at 4x and 2x) over the synthetic pack, from its
-// files or its path; and the game's pack, the embedded classic pack, as checked in.
+// files or its path.
 #include "packs.hpp"
 
-#include "opeu/assets/embedded-pack.hpp"
 #include "opeu/assets/layered-pack.hpp"
 
 #include <gtest/gtest.h>
@@ -17,13 +16,9 @@ namespace opeu::assets {
 namespace {
 using namespace std::string_literals;
 using namespace std::string_view_literals;
-using test::CheckedInClassicTest;
-using test::ClassicEmbedded;
 using test::SYNTHETIC_REMASTER;
 using test::SyntheticDirectory;
 using test::ToBytes;
-
-using EmbeddedPack = CheckedInClassicTest;
 
 auto Base() -> std::unique_ptr<AssetPack const> {
   return std::make_unique<Pack const>(SyntheticDirectory());
@@ -92,20 +87,6 @@ TEST(RemasterOverBase, RefusesABrokenManifest) {
   };
   ASSERT_FALSE(pack);
   EXPECT_EQ(pack.error().fault, PackFault::BAD_MANIFEST);
-}
-
-TEST_F(EmbeddedPack, IsTheCheckedInClassicPack) {
-  auto const embedded{ ClassicEmbedded() };
-  auto const directory{ test::ClassicDirectory() };
-  EXPECT_EQ(embedded.Ids(), directory.Ids());
-  EXPECT_EQ(embedded.Load("silhouette/012"), directory.Load("silhouette/012"));
-}
-
-TEST_F(EmbeddedPack, GivesTheGameTheClassicPackWhenNoRemasterIsEmbedded) {
-  auto const game{ OpenGamePack() };
-  ASSERT_TRUE(game) << Describe(game.error());
-  EXPECT_EQ((*game)->Ids().size(), 3'262U);
-  EXPECT_EQ((*game)->Load("portrait/118").value().texture.Width(), 64U);
 }
 
 }

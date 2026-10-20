@@ -18,7 +18,7 @@ namespace {
 
 using test::Present;
 
-using test::ClassicEmbedded;
+using test::ClassicDirectory;
 using test::ShippedPack;
 
 }
@@ -44,7 +44,7 @@ TEST(CataloguePack, ListsWhatItFindsWithoutDrawing) {
 TEST(CataloguePack, KnowsTheAnimationsFontsPalettesAndScale) {
   auto const  shipped{ ShippedPack{} };
   auto const& decoders{ shipped.Decoders() };
-  auto const  classic{ ClassicEmbedded() };
+  auto const  classic{ ClassicDirectory() };
   EXPECT_EQ(decoders.Frames("battle-blast/large"), classic.Frames("battle-blast/large"));
   EXPECT_EQ(decoders.FontNames(), classic.FontNames());
   auto const text{ decoders.FontNamed("text-glyph") };

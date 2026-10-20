@@ -2,7 +2,6 @@
 // initialised data segment, the memory arena, the display, input and the FM driver), runs the opening, then calls the
 // game's application entry on its machine: the game's screen on SDL_Renderer over the classic pack (game-screen.hpp)
 // and the native files, input, sound and clock.
-#include "assets.hpp"
 #include "common/game.hpp"
 #include "core/app.hpp"
 #include "game-screen.hpp"
@@ -10,6 +9,7 @@
 #include "link/image.hpp"
 #include "machine.hpp"
 #include "native-machine.hpp"
+#include "opeu/assets/game-data.hpp"
 #include "platform.hpp"
 #include "port.hpp"
 #include "services.hpp"
@@ -163,9 +163,9 @@ auto WithDisplay(opeu::services::Devices const native, opeu::services::Display& 
 // The game's application entry on its initial state and the machine it runs on: the game's screen, which the pump
 // shows from now on, and the native files, input, sound and clock (adapters over the services); it returns after the
 // scenario's end. The screen's error when it cannot be opened.
-auto RunGame() -> std::expected<void, std::string> {
+auto RunGame(opeu::assets::GameData const& data) -> std::expected<void, std::string> {
   auto       state{ opeu::game::GameState::Initial() };
-  auto const screen{ GameScreen::Open(ShippedFiles()) };
+  auto const screen{ GameScreen::Open(data, std::nullopt) };
   if (!screen) return std::unexpected{ screen.error() };
   opeu::services::ShownFrames const shown{ (*screen)->Display() };
   opeu::services::NativeDevices     native;
@@ -176,7 +176,7 @@ auto RunGame() -> std::expected<void, std::string> {
 }
 } // namespace
 
-auto Main(std::span<std::string_view const> const command_line) -> int {
+auto Main(std::span<std::string_view const> const command_line, opeu::assets::GameData const& data) -> int {
   auto const intro{ opeu::intro::IntroOptions(command_line) }; // --no-intro / --intro
   auto const options{ ParseOptions(intro.remaining) };
   if (!options) {
@@ -214,7 +214,7 @@ auto Main(std::span<std::string_view const> const command_line) -> int {
   port_fm_init();
   // The launcher ran the opening between the FM driver and the game.
   opeu::intro::RunIntro({ .request = intro.request, .bank_dump = BankDumpPath() });
-  if (auto const ran{ RunGame() }; !ran) {
+  if (auto const ran{ RunGame(data) }; !ran) {
     std::println(stderr, "opeu: cannot open the game's screen: {}", ran.error());
     return 1;
   }
@@ -224,11 +224,11 @@ auto Main(std::span<std::string_view const> const command_line) -> int {
 } // namespace opeu::app::detail::entry
 
 // main.cpp of the application module calls this.
-auto opeu_main(int argc, char** argv) -> int {
+auto opeu_main(int argc, char** argv, opeu::assets::GameData const& data) -> int {
   auto const arguments{
     std::span{ argv, static_cast<std::size_t>(argc) }
     | std::views::transform([](char const* argument) { return std::string_view{ argument }; }
     ) | std::ranges::to<std::vector>()
   };
-  return opeu::app::detail::entry::Main(arguments);
+  return opeu::app::detail::entry::Main(arguments, data);
 }

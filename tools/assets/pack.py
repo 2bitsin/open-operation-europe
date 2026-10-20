@@ -8,7 +8,7 @@
 Decodes the shipped files (sources/opeu/opeu/assets.embed) through the extract-assets probe, the assets module's
 decoders, and writes the pack twice:
 
-    DIR (default sources/opeu/assets/packs.embed/classic)   the directory form, checked in and compiled into the game:
+    DIR (default sources/opeu/opeu/packs.embed/classic)   the directory form, checked in and compiled into the game:
                                                            pack.json, <class>/<readable name>.png (naming.py),
                                                            tables/*.json (the data that is no picture) and
                                                            texts/*.json (the messages and the code table)
@@ -16,7 +16,7 @@ decoders, and writes the pack twice:
 
 `--check` writes nothing: it decodes the pack into a scratch directory and exits non-zero, naming the files, when the
 checked-in pack differs from it. `--check-remaster [DIR]` checks a remaster drop-in directory (default
-sources/opeu/assets/packs.embed/remaster) against the classic pack, lists what is still missing and, when nothing is
+sources/opeu/opeu/packs.embed/remaster) against the classic pack, lists what is still missing and, when nothing is
 wrong, writes its pack.json (remaster.py).
 
 A pack is a manifest (pack.json: every asset's stable id, class, geometry, palettes, recolouring, animation frames
@@ -37,7 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from extraction import ROOT, SHIPPED, find_probe, run_probe, write_tables  # noqa: E402
 from naming import Naming  # noqa: E402
 
-PACKS = ROOT / 'sources' / 'opeu' / 'assets' / 'packs.embed'
+PACKS = ROOT / 'sources' / 'opeu' / 'opeu' / 'packs.embed'
 CLASSIC = PACKS / 'classic'
 REMASTER = PACKS / 'remaster'
 ARCHIVE = ROOT / '_local' / 'packs' / 'classic.opeupack'

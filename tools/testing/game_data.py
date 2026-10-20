@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 NO_GAME_DATA = 'no game data: '
 DATA_DIRECTORY_VARIABLE = 'OPEU_DATA_DIR'
 IN_TREE_DATA = ROOT / 'sources' / 'opeu' / 'opeu' / 'assets.embed'
-IN_TREE_CLASSIC_PACK = ROOT / 'sources' / 'opeu' / 'assets' / 'packs.embed' / 'classic'
+IN_TREE_CLASSIC_PACK = ROOT / 'sources' / 'opeu' / 'opeu' / 'packs.embed' / 'classic'
 DATA_FILES_HEADER = ROOT / 'sources' / 'opeu' / 'assets' / 'data-files.hpp'
 
 

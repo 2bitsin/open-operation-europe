@@ -116,12 +116,6 @@ TEST(GlyphCodeTable, HoldsTheEndingFontsCodes) {
   EXPECT_EQ(ReadGlyphCodeTable(Table(GLYPH_CODE_TABLE)), EndingGlyphCodes() | std::ranges::to<std::vector>());
 }
 
-TEST(Tables, AreEmbeddedWithTheClassicPack) {
-  auto const files{ EmbeddedPackFiles{ CLASSIC_PACK } };
-  EXPECT_EQ(files.Read(MAP_TABLE), Table(MAP_TABLE));
-  EXPECT_EQ(files.Read(SCENARIO_TABLE), Table(SCENARIO_TABLE));
-}
-
 TEST(Tables, RefuseAnotherFormat) {
   EXPECT_EQ(ReadGlyphCodeTable(ToBytes(R"({"format": "opeu-tables/0", "glyph_codes": {"ending": []}})")).error().fault, PackFault::BAD_TABLE);
 }
