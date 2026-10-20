@@ -5,14 +5,17 @@
     python3 tools/assets/pack.py --check [--assets DIR] [--probe PATH]
     python3 tools/assets/pack.py --check-remaster [DIR]
 
-Decodes the shipped files (sources/opeu/opeu/assets.embed) through the extract-assets probe, the assets module's
-decoders, and writes the pack twice:
+Decodes the shipped files (sources/opeu/opeu/assets.embed, or in a clone without them the directory OPEU_DATA_DIR
+names) through the extract-assets probe, the assets module's decoders, and writes the pack twice:
 
     DIR (default sources/opeu/opeu/packs.embed/classic)   the directory form, checked in and compiled into the game:
                                                            pack.json, <class>/<readable name>.png (naming.py),
                                                            tables/*.json (the data that is no picture) and
                                                            texts/*.json (the messages and the code table)
     FILE (default _local/packs/classic.opeupack)            the archive form: the same files in one file
+
+In a clone without packs.embed/ (the public mirror) DIR defaults to _local/packs/classic: such a build embeds no pack
+and derives the same one in memory from the player's files.
 
 `--check` writes nothing: it decodes the pack into a scratch directory and exits non-zero, naming the files, when the
 checked-in pack differs from it. `--check-remaster [DIR]` checks a remaster drop-in directory (default
@@ -38,9 +41,10 @@ from extraction import ROOT, SHIPPED, find_probe, run_probe, write_tables  # noq
 from naming import Naming  # noqa: E402
 
 PACKS = ROOT / 'sources' / 'opeu' / 'opeu' / 'packs.embed'
-CLASSIC = PACKS / 'classic'
+LOCAL_PACKS = ROOT / '_local' / 'packs'
+CLASSIC = PACKS / 'classic' if PACKS.is_dir() else LOCAL_PACKS / 'classic'  # the checked-in pack, where the tree holds it
 REMASTER = PACKS / 'remaster'
-ARCHIVE = ROOT / '_local' / 'packs' / 'classic.opeupack'
+ARCHIVE = LOCAL_PACKS / 'classic.opeupack'
 
 FORMAT = 'opeu-pack/1'
 ARCHIVE_FORMAT = 'opeu-archive/1'

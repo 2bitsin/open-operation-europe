@@ -1,11 +1,17 @@
 """The prompt templates: every asset of the classic pack has exactly one, their front matter is complete, their
-references are their own assets, and every prompt fills without a placeholder left."""
+references are their own assets, and every prompt fills without a placeholder left. What reads the checked-in classic
+pack skips in a clone without it."""
 import re
+import sys
+from pathlib import Path
 
 import pytest
 
 from packs import ClassicPack
 from templates import Templates, prompt_for
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'testing'))
+import game_data  # noqa: E402
 
 CLASSIC_TOTAL = 3262
 REQUIRED = {'template', 'title', 'pack_class', 'ids', 'count', 'scale', 'background', 'recolour', 'references', 'rules'}
@@ -13,7 +19,7 @@ TEMPLATES = Templates.load()
 
 
 def sample(root):
-    return ClassicPack.open(root / 'sources' / 'opeu' / 'opeu' / 'packs.embed' / 'classic')
+    return ClassicPack.open(game_data.require_file(root / 'sources' / 'opeu' / 'opeu' / 'packs.embed' / 'classic', 'the checked-in classic pack'))
 
 
 def test_every_template_has_its_front_matter():

@@ -1,17 +1,19 @@
 """tools/assets/extract.py over the shipped files: every asset written, the music tables checked against their banks, and
-a second run byte-identical."""
+a second run byte-identical. Over the private repository's files, or OPEU_DATA_DIR's; without either it skips."""
 import hashlib
 import importlib.util
 import json
 import shutil
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[5]
 SPEC = importlib.util.spec_from_file_location('extract', ROOT / 'tools' / 'assets' / 'extract.py')
 extract = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(extract)
+sys.path.insert(0, str(ROOT / 'tools' / 'testing'))
+import game_data  # noqa: E402
 
-ASSETS = ROOT / 'sources' / 'opeu' / 'opeu' / 'assets.embed'
 PROGRAM_GLYPHS = 96 + 11 + 11 + 2  # the program's text font, digits, sideways digits and markers
 COUNTS = {'battle': 244, 'dialogs': 6, 'glyphs': 1298 + PROGRAM_GLYPHS, 'logos': 4, 'masks': 20, 'pictures': 95,
           'portraits': 120, 'silhouettes': 159, 'tiles': 1152}
@@ -23,12 +25,13 @@ def tree(root):
 
 
 def test_extraction_is_complete_and_byte_stable(tmp_path):
+    data = game_data.require_data()
     probe = shutil.which('extract-assets')
     assert probe, 'extract-assets is not on PATH (buildutil puts <build>/bin there)'
     first, second = tmp_path / 'first', tmp_path / 'second'
-    assert extract.extract(first, ASSETS, probe) == COUNTS
-    extract.extract(second, ASSETS, probe)
-    extract.extract(second, ASSETS, probe)  # over its own earlier output
+    assert extract.extract(first, data, probe) == COUNTS
+    extract.extract(second, data, probe)
+    extract.extract(second, data, probe)  # over its own earlier output
     files = tree(first)
     assert files == tree(second)
     manifest = json.loads((first / 'manifest.json').read_text(encoding='utf-8'))

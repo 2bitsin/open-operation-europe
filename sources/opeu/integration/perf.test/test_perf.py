@@ -12,6 +12,9 @@ have their own gates, one per module (sources/opeu/<module>/<module>.bench/bench
                            play) is within the budget (its measured peak x 1.5, at least 150 MB); the smokes have their
                            own gate with re-attempts, test_smoke_memory.py
 
+Without the game's data the tests that play skip (tools/testing/game_data.py); a clone without the golden saved games
+skips the runs that load them.
+
 A Debug build times perf.DEBUG_RUNS (the runs short enough there) against the Debug baseline.
 
 OPEU_PERF_BUDGET=<percent> sets the budget (default 10 on a machine the baseline lists, 50 elsewhere, where the
@@ -31,7 +34,16 @@ GATED_RUNS = perf.gated_runs(BUILD_TYPE)
 
 @pytest.fixture(scope='session')
 def build():
+    perf.play.game_data.require_data()  # without the game's data, every test that plays skips here
     return perf.tested_build()
+
+
+def playable(name):
+    """The run's name; the test skips when this clone lacks the golden saved game the run loads."""
+    if not perf.play.playable(name):
+        saved = perf.play.saved_game_path(perf.play.RUNS[name].saves_in)
+        perf.play.game_data.require_file(saved, f'the golden saved game {saved.name}')
+    return name
 
 
 @pytest.fixture(scope='session')
@@ -42,7 +54,7 @@ def standard(build):
 @pytest.fixture(scope='session')
 def session(build, standard):
     """RUN_SAMPLES plays of every gated run with their calibration processes; the runs over their CPU limit are played RUN_RETRY_SAMPLES more times (with calibrations again) and judged on all their plays."""
-    found = perf.sample_runs(build.opeu, GATED_RUNS, perf.RUN_SAMPLES)
+    found = perf.sample_runs(build.opeu, [name for name in GATED_RUNS if perf.play.playable(name)], perf.RUN_SAMPLES)
     slowdown = standard.run_slowdown(found)
     over = [name for name, samples in found.runs.items()
             if name in standard.numbers['runs'] and median_cpu(samples) > standard.run_limit(name, slowdown)]
@@ -69,6 +81,7 @@ def test_baseline_covers_every_run(standard):
 
 @pytest.mark.parametrize('name', GATED_RUNS)
 def test_run_cost(name, session, standard):
+    playable(name)
     assert name in standard.numbers['runs'], f'{name} has no baseline yet; re-baseline (docs/building.md)'
     slowdown, why = judged(standard, session)
     cost, limit = median_cpu(session.runs[name]), standard.run_limit(name, slowdown)
@@ -85,6 +98,7 @@ def test_suite_cost(session, standard):
 
 @pytest.mark.parametrize('name', [name for name in perf.memory_budgeted_names() if name in GATED_RUNS])
 def test_run_memory(name, session, standard):
+    playable(name)
     peak, limit = perf.median_rss(session.runs[name]), standard.memory_limit(name)
     assert peak <= limit, (f'{name} uses too much memory: peak RSS {peak:.1f} MB (median of {len(session.runs[name])} '
                            f'plays), budget {limit:.1f} MB (measured {standard.memory[name]["peak_mb"]:.1f} MB)')

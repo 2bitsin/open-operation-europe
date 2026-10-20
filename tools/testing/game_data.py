@@ -50,7 +50,8 @@ def data_directory() -> Path | None:
 
 
 def require_data() -> Path:
-    """The directory of the 26 data files, or the test skips."""
+    """The directory of the 26 data files, or the test skips. A suite that runs `opeu` calls it first: the private
+    repository's build embeds the files, and a build without them finds OPEU_DATA_DIR's, which the game inherits."""
     directory = data_directory()
     if directory is None:
         pytest.skip(no_game_data(f'the 26 data files (set {DATA_DIRECTORY_VARIABLE} to a directory holding them)'))

@@ -2,13 +2,16 @@
 extract-assets probe that decodes them (sources/opeu/probes/extract-assets, the assets module's decoders), and how
 JSON is written."""
 import json
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SHIPPED = ROOT / 'sources' / 'opeu' / 'opeu' / 'assets.embed'
+IN_TREE_DATA = ROOT / 'sources' / 'opeu' / 'opeu' / 'assets.embed'
+# The 26 data files: the private repository's, else (a clone without them) the directory OPEU_DATA_DIR names.
+SHIPPED = Path(os.environ['OPEU_DATA_DIR']) if not IN_TREE_DATA.is_dir() and os.environ.get('OPEU_DATA_DIR') else IN_TREE_DATA
 CODE_TABLE = Path(__file__).resolve().parent / 'code-table.json'  # by hand: KOEI's text code and Unicode, with reasons
 PACKED_CODE_TABLE = 'texts/code-table.json'
 LINE_RECORD_MEMBERS = 16  # a record of more members (the messages) is written a member a line

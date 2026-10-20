@@ -22,6 +22,10 @@ seconds in Debug. Here:
                            everything (a demo, a save, a command-dialog run,
                            a scenario played to its end).
 
+Without the game's data (a clone without it, unless OPEU_DATA_DIR names the
+26 files, which `opeu` then finds itself) the suite skips; a clone without
+the golden saved games skips the runs and checks that use them.
+
 The runs are played play.default_workers() at a time (min(cores, 4), or
 OPEU_TEST_WORKERS).
 
@@ -58,8 +62,10 @@ def opeu() -> str:
 @pytest.fixture(scope='session')
 def played(tmp_path_factory: pytest.TempPathFactory) -> dict[tuple[str, int], tuple[dict, Path, float]]:
   """{(name, pass): (result, output dir, peak RSS in MB)} for every run, played in parallel, the longest first."""
+  play.game_data.require_data()  # without the game's data, every test of the suite skips here
   root = tmp_path_factory.mktemp('play')
-  jobs = sorted([(name, 1) for name in play.RUNS] + [(name, 2) for name in TWICE], key=lambda job: -play.RUNS[job[0]].ms)
+  jobs = sorted([(name, 1) for name in play.RUNS if play.playable(name)] + [(name, 2) for name in TWICE if play.playable(name)],
+                key=lambda job: -play.RUNS[job[0]].ms)
   binary = opeu()
 
   def one(job: tuple[str, int]) -> tuple[tuple[str, int], tuple[dict, Path, float]]:
@@ -76,9 +82,22 @@ def test_goldens_cover_every_run() -> None:
   assert sorted(play.load_goldens()) == sorted(play.RUNS)
 
 
+def golden_saved_game(name: str) -> bytes:
+  """A golden saved game, or the test skips in a clone without it."""
+  play.game_data.require_file(play.saved_game_path(name), f'the golden saved game {play.saved_game_path(name).name}')
+  return play.saved_game(name)
+
+
+def result(played: dict, name: str, round_: int = 1) -> tuple[dict, Path, float]:
+  """A run's result; the test skips when the clone lacks the saved game the run loads."""
+  if not play.playable(name):
+    golden_saved_game(play.RUNS[name].saves_in)
+  return played[(name, round_)]
+
+
 def saved_game_problem(name: str, out: Path) -> list[str]:
   """The first byte where a run's SAVEDATA differs from its golden saved game, with the expected copy written beside it."""
-  want = play.saved_game(name)
+  want = golden_saved_game(name)
   path = out / 'saves' / 'SAVEDATA'
   got = path.read_bytes() if path.exists() else b''
   if got == want:
@@ -92,16 +111,17 @@ def saved_game_problem(name: str, out: Path) -> list[str]:
 
 @pytest.mark.parametrize('name', list(play.RUNS))
 def test_run(name: str, played: dict) -> None:
-  actual, out, _ = played[(name, 1)]
+  actual, out, _ = result(played, name)
   problems = play.differences(play.load_goldens()[name], actual)
+  assert not problems, f'{name}: behaviour changed; outputs in {out}\n  ' + '\n  '.join(problems)
   if name in play.SAVED_GAMES:
     problems += saved_game_problem(name, out)
   assert not problems, f'{name}: behaviour changed; outputs in {out}\n  ' + '\n  '.join(problems)
 
 
 def test_load_save_round_trip(played: dict) -> None:
-  _, out, _ = played[('load-save', 1)]
-  loaded = play.saved_game('save-new')
+  _, out, _ = result(played, 'load-save')
+  loaded = golden_saved_game('save-new')
   saved = (out / 'saves' / 'SAVEDATA').read_bytes()
   assert saved == loaded, f'loading and saving at once changed the saved game; outputs in {out}'
 
@@ -116,8 +136,8 @@ def changed_slots(before: bytes, after: bytes) -> list[int]:
 
 @pytest.mark.parametrize('name', list(ONE_SLOT_SAVES))
 def test_save_touches_one_slot(name: str, played: dict) -> None:
-  _, out, _ = played[(name, 1)]
-  before = play.saved_game(play.RUNS[name].saves_in)
+  _, out, _ = result(played, name)
+  before = golden_saved_game(play.RUNS[name].saves_in)
   after = (out / 'saves' / 'SAVEDATA').read_bytes()
   assert len(after) == len(before) == SAVEDATA_HEADER + SLOTS * SLOT
   changed = changed_slots(before, after)
@@ -126,14 +146,14 @@ def test_save_touches_one_slot(name: str, played: dict) -> None:
 
 def test_slot_record_names_the_game(played: dict) -> None:
   """Slot 2's record after load-play-save: scenario, delivery, year, month, day, hour, ...: France, 5/10 09:00."""
-  _, out, _ = played[('load-play-save', 1)]
+  _, out, _ = result(played, 'load-play-save')
   after = (out / 'saves' / 'SAVEDATA').read_bytes()
   assert after[12] == 0 and after[15:18] == bytes([5, 10, 9]), after[12:24].hex()
 
 
 @pytest.mark.parametrize('name', TWICE)
 def test_deterministic(name: str, played: dict) -> None:
-  (first, out1, _), (second, out2, _) = played[(name, 1)], played[(name, 2)]
+  (first, out1, _), (second, out2, _) = result(played, name), result(played, name, 2)
   problems = play.differences(first, second)
   assert not problems, f'{name}: two plays of one script differ; outputs in {out1} and {out2}\n  ' + '\n  '.join(
     problems)

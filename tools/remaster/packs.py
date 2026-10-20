@@ -9,7 +9,8 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 LOCAL = ROOT / '_local'
-CLASSIC = ROOT / 'sources' / 'opeu' / 'opeu' / 'packs.embed' / 'classic'
+PACKS = ROOT / 'sources' / 'opeu' / 'opeu' / 'packs.embed'
+CLASSIC = PACKS / 'classic' if PACKS.is_dir() else LOCAL / 'packs' / 'classic'  # where pack.py writes it in either tree
 REMASTER = LOCAL / 'remaster'
 MANIFEST = 'pack.json'
 FORMAT = 'opeu-pack/1'

@@ -1,7 +1,8 @@
 """tools/assets/pack.py: the classic pack is complete, byte-stable in both forms, the checked-in pack the game embeds
 is what the decoders make (pack.py --check), every image has a readable name and a description, the C++ loader reads
 every image of the whole pack as the decoders draw it, the renderer bakes every texture of it exactly as from the
-decoders, and --check-remaster checks a drop-in directory and writes its manifest."""
+decoders, and --check-remaster checks a drop-in directory and writes its manifest. Over the private repository's data
+files, or OPEU_DATA_DIR's; what needs the checked-in pack or the renderer's sample skips in a clone without them."""
 import hashlib
 import importlib.util
 import json
@@ -9,6 +10,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -16,6 +18,9 @@ from PIL import Image
 
 HERE = Path(__file__).resolve().parents[1]
 ROOT = HERE.parents[1]
+sys.path.insert(0, str(ROOT / 'tools' / 'testing'))
+import game_data  # noqa: E402
+
 SPEC = importlib.util.spec_from_file_location('pack', HERE / 'pack.py')
 pack = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(pack)
@@ -64,8 +69,9 @@ def run_gtest(module, directory, pattern, pack_path):
 
 @pytest.fixture(scope='module')
 def classic(tmp_path_factory):
+    data = game_data.require_data()
     out = tmp_path_factory.mktemp('packs')
-    counts = pack.build(out / 'classic', out / 'classic.opeupack')
+    counts = pack.build(out / 'classic', out / 'classic.opeupack', data)
     return out / 'classic', out / 'classic.opeupack', counts
 
 
@@ -107,7 +113,8 @@ def test_the_archive_holds_the_directory(classic):
 
 def test_the_checked_in_pack_is_what_the_decoders_make(classic):
     directory, _, _ = classic
-    stale = pack.differences(pack.tree(directory), pack.tree(pack.CLASSIC))
+    checked_in = game_data.require_file(pack.PACKS / 'classic', 'the checked-in classic pack')
+    stale = pack.differences(pack.tree(directory), pack.tree(checked_in))
     assert not stale, f'{len(stale)} files differ ({stale[:5]}); rebuild with python3 tools/assets/pack.py'
 
 
@@ -148,9 +155,10 @@ def test_a_remaster_image_of_the_wrong_size_or_name_is_refused(tmp_path):
 
 
 def test_the_renderers_sample_is_current(tmp_path):
-    sample = RENDER / 'render.test' / 'packs' / 'classic.opeupack'
+    sample = game_data.require_file(RENDER / 'render.test' / 'packs' / 'classic.opeupack', "the renderer's classic sample")
+    data = game_data.require_data()
     listed = json.loads(pack.read_archive(sample)['pack.json'])['assets']
-    pack.build(tmp_path / 'render', tmp_path / 'render.opeupack', only={a['id'] for a in listed if 'variant_of' not in a})
+    pack.build(tmp_path / 'render', tmp_path / 'render.opeupack', data, only={a['id'] for a in listed if 'variant_of' not in a})
     assert (tmp_path / 'render.opeupack').read_bytes() == sample.read_bytes(), 'regenerate it: see render.test/headless.hpp'
 
 

@@ -26,6 +26,8 @@ import sys
 from pathlib import Path
 
 OPEU = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(OPEU.parents[1] / 'tools' / 'testing'))
+import game_data  # noqa: E402
 
 RATE = 49716
 
@@ -110,6 +112,7 @@ def main(argv):
 
 
 def test_audio(tmp_path):
+    game_data.require_data()  # without the game's data the check skips; opeu finds OPEU_DATA_DIR's itself
     opeu = shutil.which('opeu')
     assert opeu, 'opeu is not on PATH (buildutil puts <build>/bin there)'
     script = OPEU / 'integration' / 'fixtures' / 'smoke-input.txt'

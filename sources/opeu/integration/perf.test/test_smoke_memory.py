@@ -7,6 +7,8 @@ the budgets (docs/testing.md, "The memory gate").
 
   test_smoke_memory[<smoke>]          the smoke's peak RSS is within its budget
   test_every_smoke_has_a_budget       the baseline budgets every smoke
+
+Without the game's data the smokes skip (tools/testing/game_data.py).
 """
 import statistics
 
@@ -23,6 +25,7 @@ def standard():
 @pytest.fixture(scope='session')
 def peaks(standard):
     """{smoke: peak RSS of each play}: one play each, RUN_RETRY_SAMPLES more for a smoke over its budget."""
+    perf.play.game_data.require_data()  # without the game's data the smokes skip
     opeu = perf.tested_build().opeu
     found = perf.play_smokes(opeu, 1)
     over = [name for name, p in found.items() if name in standard.memory and p[0] > standard.memory_limit(name)]

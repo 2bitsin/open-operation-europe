@@ -23,6 +23,8 @@ import sys
 import zlib
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[4] / 'tools' / 'testing'))
+import game_data  # noqa: E402
 
 
 def read_png(path):
@@ -94,6 +96,7 @@ def main(argv):
 
 
 def test_open_run(tmp_path):
+    game_data.require_data()  # without the game's data the runs skip; opeu finds OPEU_DATA_DIR's itself
     opeu = shutil.which('opeu')
     assert opeu, 'opeu is not on PATH (buildutil puts <build>/bin there)'
     assert main(['test_open_run.py', opeu, str(tmp_path)]) == 0

@@ -84,6 +84,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parents[3] / 'tools' / 'testing'))
+import game_data  # noqa: E402
+
 FIXTURES = HERE.parent / 'fixtures'
 GOLDEN_DIR = FIXTURES / 'play'
 GOLDENS = GOLDEN_DIR / 'goldens.json'
@@ -516,8 +519,18 @@ def fixture_text(name: str) -> str:
   return (FIXTURES / name).read_text()
 
 
+def saved_game_path(name: str) -> Path:
+  """A golden saved game: made with the game's data, so the private repository's only."""
+  return GOLDEN_DIR / f'{name}.SAVEDATA.gz'
+
+
 def saved_game(name: str) -> bytes:
-  return gzip.decompress((GOLDEN_DIR / f'{name}.SAVEDATA.gz').read_bytes())
+  return gzip.decompress(saved_game_path(name).read_bytes())
+
+
+def playable(name: str) -> bool:
+  """Whether this clone holds what the run starts from (the golden saved game it loads, if any)."""
+  return not RUNS[name].saves_in or saved_game_path(RUNS[name].saves_in).exists()
 
 
 @dataclass(frozen=True)
