@@ -25,7 +25,8 @@ REMASTER_SPEC.loader.exec_module(remaster_tool)
 
 MODULE = ROOT / 'sources' / 'opeu' / 'assets'
 RENDER = ROOT / 'sources' / 'opeu' / 'render'
-REMASTER_SAMPLE = MODULE / 'assets.test' / 'remaster-sample'
+SYNTHETIC_PACK = MODULE / 'assets.test' / 'synthetic-pack'
+SYNTHETIC_REMASTER = MODULE / 'assets.test' / 'synthetic-remaster'
 PROGRAM_GLYPHS = 96 + 11 + 11 + 2  # the program's text font, digits, sideways digits and markers
 COUNTS = {'battle': 244 + 44, 'dialogs': 6, 'glyphs': 1298 + PROGRAM_GLYPHS, 'logos': 4, 'masks': 20, 'pictures': 95,
           'portraits': 120, 'silhouettes': 159, 'tiles': 1152}
@@ -126,22 +127,23 @@ def test_every_image_has_a_readable_unique_name_and_a_description(classic):
 
 def test_a_remaster_is_checked_and_listed(tmp_path):
     remaster = tmp_path / 'remaster'
-    shutil.copytree(REMASTER_SAMPLE, remaster)
+    shutil.copytree(SYNTHETIC_REMASTER, remaster)
     (remaster / 'pack.json').unlink()
-    checked = remaster_tool.check_remaster(remaster, pack.CLASSIC)
-    assert not checked.findings and checked.replaced == {'portrait/118': 4, 'dialog/yes': 2}
-    assert checked.missing['portraits'] == 119 and checked.total['portraits'] == 120
-    remaster_tool.write_manifest(remaster, pack.CLASSIC, checked)
-    assert (remaster / 'pack.json').read_bytes() == (REMASTER_SAMPLE / 'pack.json').read_bytes()
+    checked = remaster_tool.check_remaster(remaster, SYNTHETIC_PACK)
+    assert not checked.findings and checked.replaced == {'portrait/1': 4, 'sprite/1': 2}
+    assert checked.missing['sprites'] == 2 and checked.total['sprites'] == 3
+    remaster_tool.write_manifest(remaster, SYNTHETIC_PACK, checked)
+    assert (remaster / 'pack.json').read_bytes() == (SYNTHETIC_REMASTER / 'pack.json').read_bytes()
 
 
 def test_a_remaster_image_of_the_wrong_size_or_name_is_refused(tmp_path):
     remaster = tmp_path / 'remaster'
     (remaster / 'portraits').mkdir(parents=True)
-    Image.new('RGBA', (100, 100)).save(remaster / 'portraits' / 'portrait-010-rommel.png')
-    Image.new('RGBA', (64, 80)).save(remaster / 'portraits' / 'rommel.png')
-    Image.new('RGB', (128, 160)).save(remaster / 'portraits' / 'portrait-005-busch.png')
-    checks = sorted(f.check for f in remaster_tool.check_remaster(remaster, pack.CLASSIC).findings)
+    (remaster / 'tiles').mkdir(parents=True)
+    Image.new('RGBA', (100, 100)).save(remaster / 'portraits' / 'portrait-1.png')
+    Image.new('RGBA', (8, 8)).save(remaster / 'portraits' / 'rommel.png')
+    Image.new('RGB', (16, 16)).save(remaster / 'tiles' / 'tile-0.png')
+    checks = sorted(f.check for f in remaster_tool.check_remaster(remaster, SYNTHETIC_PACK).findings)
     assert checks == ['not-rgba', 'unknown-image', 'wrong-size']
 
 

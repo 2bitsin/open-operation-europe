@@ -17,10 +17,10 @@ namespace opeu::assets {
 namespace {
 
 using test::ArchiveOf;
-using test::CLASSIC_DIRECTORY;
-using test::ClassicFile;
-using test::SampleArchive;
-using test::SamplePaths;
+using test::SYNTHETIC_DIRECTORY;
+using test::SyntheticArchiveBytes;
+using test::SyntheticFile;
+using test::SyntheticPaths;
 using test::ToBytes;
 
 auto Fault(Packed<ArchivePackFiles> const& archive) -> PackFault {
@@ -40,10 +40,10 @@ auto Sorted(std::vector<std::string> paths) -> std::vector<std::string> {
 }
 
 TEST(ArchivePackFiles, HoldTheDirectoryFormsFiles) {
-  auto const archive{ ArchivePackFiles::FromBytes(SampleArchive()) };
+  auto const archive{ ArchivePackFiles::FromBytes(SyntheticArchiveBytes()) };
   ASSERT_TRUE(archive) << Describe(archive.error());
-  EXPECT_EQ(archive->Paths(), Sorted(SamplePaths()));
-  EXPECT_TRUE(std::ranges::all_of(archive->Paths(), [&](std::string const& path) { return archive->Read(path) == ClassicFile(path); }));
+  EXPECT_EQ(archive->Paths(), Sorted(SyntheticPaths()));
+  EXPECT_TRUE(std::ranges::all_of(archive->Paths(), [&](std::string const& path) { return archive->Read(path) == SyntheticFile(path); }));
 }
 
 TEST(ArchivePackFiles, ReadAWellFormedArchive) {
@@ -79,13 +79,13 @@ TEST(ArchivePackFiles, SayAMissingArchiveIsMissing) {
 }
 
 TEST(DirectoryPackFiles, ReadFilesUnderTheRoot) {
-  auto const files{ DirectoryPackFiles{ CLASSIC_DIRECTORY } };
+  auto const files{ DirectoryPackFiles{ SYNTHETIC_DIRECTORY } };
   EXPECT_TRUE(files.Read("pack.json"));
   EXPECT_EQ(files.Read("no-such.png").error().fault, PackFault::MISSING_FILE);
 }
 
 TEST(DirectoryPackFiles, RefusePathsThatLeaveThePack) {
-  auto const files{ DirectoryPackFiles{ CLASSIC_DIRECTORY } };
+  auto const files{ DirectoryPackFiles{ SYNTHETIC_DIRECTORY } };
   EXPECT_EQ(files.Read("../../CMakeLists.txt").error().fault, PackFault::BAD_MANIFEST);
   EXPECT_EQ(files.Read("/etc/hosts").error().fault, PackFault::BAD_MANIFEST);
 }

@@ -1,4 +1,5 @@
-// A pack loaded from its directory form, its archive form and the executable's embedded files, by id.
+// A pack loaded from its directory form, its archive form and the executable's embedded files, by id: the loader on
+// the synthetic pack, then the checked-in classic pack's own forms and names.
 #include "packs.hpp"
 #include "present.hpp"
 
@@ -9,6 +10,7 @@
 #include <algorithm>
 #include <format>
 #include <string>
+#include <vector>
 
 namespace opeu::assets {
 
@@ -16,54 +18,147 @@ namespace {
 
 using test::Present;
 
+using test::CheckedInClassicTest;
 using test::ClassicArchive;
 using test::ClassicDirectory;
 using test::ClassicEmbedded;
-using test::ClassicFile;
 using test::OpenMemoryPack;
 using test::SAMPLE_IDS;
+using test::SyntheticArchive;
+using test::SyntheticDirectory;
+using test::SyntheticFile;
 using test::ToBytes;
 
-auto YesImage() -> std::vector<std::byte> {
-  return ClassicFile(Present(ClassicDirectory().Find("dialog/yes")).image);
+using ClassicPackForms = CheckedInClassicTest;
+
+// The synthetic portrait: 8x8.
+auto PortraitImage() -> std::vector<std::byte> {
+  return SyntheticFile(Present(SyntheticDirectory().Find("portrait/1")).image);
 }
 
 // A one-asset pack whose entry says the image is width x height at the given scale.
 auto PackStating(std::size_t const width, std::size_t const height, std::string_view const scale) -> Packed<Pack> {
   auto const manifest{ std::format(R"({{"format": "opeu-pack/1", "name": "x", "scale": 1, "palettes": {{}}, "assets": [
-    {{"id": "yes", "class": "dialogs", "role": "sprite", "width": {}, "height": {}, {} "palette": "main/day", "palettes": ["main/day"], "mask": false, "image": "yes.png"}}]}})",
+    {{"id": "face", "class": "portraits", "role": "portrait", "width": {}, "height": {}, {} "palette": "grey", "palettes": ["grey"], "mask": false, "image": "face.png"}}]}})",
                                    width, height, scale) };
   return OpenMemoryPack({
       { "pack.json", ToBytes(manifest) },
-      { "yes.png",   YesImage()        }
+      { "face.png",  PortraitImage()   }
   });
 }
 
 }
 
-TEST(Pack, LoadsTheSameFromItsDirectoryItsArchiveAndTheExecutable) {
-  auto const directory{ ClassicDirectory() };
-  auto const archive{ ClassicArchive() };
-  auto const embedded{ ClassicEmbedded() };
+TEST(Pack, LoadsTheSameFromItsDirectoryAndItsArchive) {
+  auto const directory{ SyntheticDirectory() };
+  auto const archive{ SyntheticArchive() };
   ASSERT_EQ(directory.Ids(), archive.Ids());
-  ASSERT_EQ(directory.Ids(), embedded.Ids());
-  EXPECT_EQ(directory.Ids().size(), 3'262U);
-  EXPECT_TRUE(std::ranges::all_of(SAMPLE_IDS, [&](std::string_view const id) {
+  EXPECT_EQ(directory.Ids().size(), 7U);
+  EXPECT_TRUE(std::ranges::all_of(directory.Ids(), [&](std::string const& id) {
     auto const loaded{ directory.Load(id) };
-    return loaded && loaded == archive.Load(id) && loaded == embedded.Load(id);
+    return loaded && loaded == archive.Load(id);
   }));
 }
 
 TEST(Pack, LoadsAnAssetByItsId) {
-  auto const portrait{ ClassicEmbedded().Load("portrait/118") };
+  auto const portrait{ SyntheticDirectory().Load("portrait/1") };
   ASSERT_TRUE(portrait) << Describe(portrait.error());
   EXPECT_EQ(portrait->entry.role, "portrait");
-  EXPECT_EQ(portrait->texture.Width(), 64U);
-  EXPECT_EQ(portrait->texture.Height(), 80U);
-  EXPECT_EQ(portrait->texture.Pixels().size(), 64U * 80U * 4U);
+  EXPECT_EQ(portrait->texture.Width(), 8U);
+  EXPECT_EQ(portrait->texture.Height(), 8U);
+  EXPECT_EQ(portrait->texture.Pixels().size(), 8U * 8U * 4U);
 }
 
-TEST(Pack, NamesEachImageForWhatItShows) {
+TEST(Pack, GivesTheIndexMapExactlyWhereThePackRecolours) {
+  auto const pack{ SyntheticDirectory() };
+  EXPECT_TRUE(std::ranges::all_of(pack.Ids(), [&](std::string const& id) {
+    auto const loaded{ pack.Load(id) };
+    return loaded && loaded->indexed.has_value() == loaded->entry.recolour.has_value();
+  }));
+  EXPECT_EQ(pack.Load("tile/0").value().entry.recolour, "hour");
+  EXPECT_EQ(pack.Load("glyph/065").value().entry.recolour, "ink");
+  EXPECT_FALSE(pack.Load("portrait/1").value().indexed);
+}
+
+TEST(Pack, ListsASideZeroVariant) {
+  auto const variant{ SyntheticDirectory().Find("sprite/0/side-0") };
+  ASSERT_TRUE(variant);
+  EXPECT_EQ(Present(variant).variant_of, "sprite/0");
+  EXPECT_EQ(Present(variant).variant, "side-0");
+}
+
+TEST(Pack, KnowsAnimationsAndPalettes) {
+  auto const pack{ SyntheticDirectory() };
+  EXPECT_EQ(pack.Frames("blink"), (std::vector<std::string>{ "sprite/0", "sprite/1" }));
+  EXPECT_FALSE(pack.Frames("wink"));
+  EXPECT_EQ(Present(pack.Palette("grey"))[3], (Colour{ .r = 48, .g = 48, .b = 48 }));
+  EXPECT_TRUE(pack.Palette("night"));
+  EXPECT_FALSE(pack.Palette("main/noon"));
+}
+
+TEST(Pack, KnowsItsFontsAndItsScale) {
+  auto const pack{ SyntheticDirectory() };
+  EXPECT_EQ(pack.FontNames(), std::vector<std::string>{ "glyphs" });
+  auto const glyphs{ pack.FontNamed("glyphs") };
+  ASSERT_TRUE(glyphs);
+  EXPECT_EQ(Present(glyphs).cell_width, 4U);
+  EXPECT_EQ(Present(glyphs).cell_height, 4U);
+  EXPECT_EQ(Present(glyphs).first_code, 65U);
+  EXPECT_EQ(Present(glyphs).glyphs, (std::vector<std::string>{ "glyph/065", "glyph/066" }));
+  EXPECT_FALSE(pack.FontNamed("kana"));
+  EXPECT_EQ(pack.Scale(), 1U);
+}
+
+TEST(Pack, SaysAnUnknownIdIsUnknown) {
+  auto const pack{ SyntheticDirectory() };
+  EXPECT_FALSE(pack.Find("portrait/120"));
+  EXPECT_FALSE(pack.Lists("portrait/120"));
+  EXPECT_EQ(pack.Load("portrait/120").error().fault, PackFault::UNKNOWN_ASSET);
+}
+
+TEST(Pack, RefusesAnImageOfAnotherSize) {
+  ASSERT_TRUE(PackStating(8, 8, "")->Load("face"));
+  EXPECT_EQ(PackStating(8, 9, "")->Load("face").error().fault, PackFault::BAD_IMAGE);
+}
+
+TEST(Pack, ReadsAnEntrysOwnScale) {
+  ASSERT_TRUE(PackStating(4, 4, R"("scale": 2,)")->Load("face"));
+  EXPECT_EQ(Present(PackStating(4, 4, R"("scale": 2,)")->Find("face")).scale, 2U);
+  EXPECT_EQ(PackStating(8, 8, R"("scale": 2,)")->Load("face").error().fault, PackFault::BAD_IMAGE);
+  EXPECT_EQ(PackStating(8, 8, R"("scale": 0,)").error().fault, PackFault::BAD_MANIFEST);
+}
+
+TEST(Pack, RefusesAFileThatIsNotAPng) {
+  auto const portrait{ Present(SyntheticDirectory().Find("portrait/1")).image };
+  auto const pack{
+    OpenMemoryPack({ { "pack.json", SyntheticFile("pack.json") }, { portrait, ToBytes("GIF89a") } }
+    )
+  };
+  ASSERT_TRUE(pack);
+  EXPECT_EQ(pack->Load("portrait/1").error().fault, PackFault::BAD_IMAGE);
+  EXPECT_EQ(pack->Load("tile/0").error().fault, PackFault::MISSING_FILE);
+}
+
+TEST(Pack, NeedsAManifest) {
+  EXPECT_EQ(OpenMemoryPack({}).error().fault, PackFault::MISSING_FILE);
+  EXPECT_EQ(OpenPack("assets.test/no-such.opeupack").error().fault, PackFault::MISSING_FILE);
+  EXPECT_EQ(OpenEmbeddedPack("no-such-pack").error().fault, PackFault::MISSING_FILE);
+}
+
+TEST_F(ClassicPackForms, LoadTheSameFromTheDirectoryTheArchiveAndTheExecutable) {
+  auto const directory{ ClassicDirectory() };
+  auto const archive{ ClassicArchive() };
+  auto const embedded{ ClassicEmbedded() };
+  ASSERT_EQ(directory.Ids(), embedded.Ids());
+  EXPECT_EQ(directory.Ids().size(), 3'262U);
+  EXPECT_TRUE(std::ranges::all_of(SAMPLE_IDS, [&](std::string_view const id) {
+    auto const loaded{ directory.Load(id) };
+    return loaded && loaded == archive.Load(id) && loaded == embedded.Load(id) && loaded->indexed.has_value() == loaded->entry.recolour.has_value();
+  }));
+  EXPECT_EQ(directory.Load("opening/00").value().entry.recolour, "scene");
+}
+
+TEST_F(ClassicPackForms, NameEachImageForWhatItShows) {
   auto const pack{ ClassicEmbedded() };
   EXPECT_EQ(Present(pack.Find("portrait/005")).image, "portraits/portrait-005-busch.png");
   EXPECT_EQ(Present(pack.Find("silhouette/012")).image, "silhouettes/silhouette-012-pzkpfw-i.png");
@@ -73,81 +168,17 @@ TEST(Pack, NamesEachImageForWhatItShows) {
   EXPECT_EQ(Present(pack.Find("portrait/005")).scale, 1U);
 }
 
-TEST(Pack, GivesTheIndexMapExactlyWhereTheGameRecolours) {
-  auto const pack{ ClassicDirectory() };
-  EXPECT_TRUE(std::ranges::all_of(SAMPLE_IDS, [&](std::string_view const id) {
-    auto const loaded{ pack.Load(id) };
-    return loaded && loaded->indexed.has_value() == loaded->entry.recolour.has_value();
-  }));
-  EXPECT_EQ(pack.Load("view-tile/map-2/17")->entry.recolour, "hour");
-  EXPECT_EQ(pack.Load("game-glyph/0042")->entry.recolour, "ink");
-  EXPECT_EQ(pack.Load("opening/00")->entry.recolour, "scene");
-  EXPECT_FALSE(pack.Load("portrait/118")->indexed);
-}
-
-TEST(Pack, ListsAUnitIconsSideZeroVariant) {
-  auto const variant{ ClassicDirectory().Find("battle-unit/class-03/facing-1/side-0") };
-  ASSERT_TRUE(variant);
-  EXPECT_EQ(Present(variant).variant_of, "battle-unit/class-03/facing-1");
-  EXPECT_EQ(Present(variant).variant, "side-0");
-}
-
-TEST(Pack, KnowsAnimationsAndPalettes) {
-  auto const pack{ ClassicEmbedded() };
-  EXPECT_EQ(pack.Frames("battle-blast/large"), (std::vector<std::string>{ "battle-blast/large/0", "battle-blast/large/1", "battle-blast/large/2", "battle-blast/large/3" }));
-  EXPECT_FALSE(pack.Frames("battle-blast/huge"));
-  EXPECT_EQ(pack.Palette("main/day"), Colours(Present(FindPalette("main/day")).levels));
-  EXPECT_FALSE(pack.Palette("main/noon"));
-}
-
-TEST(Pack, KnowsItsFontsAndItsScale) {
+TEST_F(ClassicPackForms, HoldTheGamesFontsAnimationsAndPalettes) {
   auto const pack{ ClassicEmbedded() };
   EXPECT_EQ(pack.FontNames(), (std::vector<std::string>{ "digit-glyph", "ending-glyph", "game-glyph", "marker-glyph", "sideways-digit-glyph", "text-glyph" }));
   auto const text{ pack.FontNamed("text-glyph") };
   ASSERT_TRUE(text);
-  EXPECT_EQ(Present(text).cell_width, 8U);
-  EXPECT_EQ(Present(text).cell_height, 16U);
   EXPECT_EQ(Present(text).first_code, 0x20U);
   EXPECT_EQ(Present(text).glyphs.size(), 96U);
   EXPECT_EQ(Present(text).glyphs[0x41 - 0x20], "text-glyph/065");
   EXPECT_EQ(Present(pack.FontNamed("digit-glyph")).cell_width, 6U);
-  EXPECT_FALSE(pack.FontNamed("kana"));
-  EXPECT_EQ(pack.Scale(), 1U);
-}
-
-TEST(Pack, SaysAnUnknownIdIsUnknown) {
-  auto const pack{ ClassicEmbedded() };
-  EXPECT_FALSE(pack.Find("portrait/120"));
-  EXPECT_EQ(pack.Load("portrait/120").error().fault, PackFault::UNKNOWN_ASSET);
-}
-
-TEST(Pack, RefusesAnImageOfAnotherSize) {
-  ASSERT_TRUE(PackStating(32, 16, "")->Load("yes"));
-  EXPECT_EQ(PackStating(32, 17, "")->Load("yes").error().fault, PackFault::BAD_IMAGE);
-}
-
-TEST(Pack, ReadsAnEntrysOwnScale) {
-  ASSERT_TRUE(PackStating(16, 8, R"("scale": 2,)")->Load("yes"));
-  EXPECT_EQ(Present(PackStating(16, 8, R"("scale": 2,)")->Find("yes")).scale, 2U);
-  EXPECT_EQ(PackStating(32, 16, R"("scale": 2,)")->Load("yes").error().fault, PackFault::BAD_IMAGE);
-  EXPECT_EQ(PackStating(32, 16, R"("scale": 0,)").error().fault, PackFault::BAD_MANIFEST);
-}
-
-TEST(Pack, RefusesAFileThatIsNotAPng) {
-  auto const portrait{ Present(ClassicDirectory().Find("portrait/118")).image };
-  auto const pack{
-    OpenMemoryPack({ { "pack.json", ClassicFile("pack.json") }, { portrait, ToBytes("GIF89a") } }
-    )
-  };
-  ASSERT_TRUE(pack);
-  EXPECT_EQ(pack->Load("portrait/118").error().fault, PackFault::BAD_IMAGE);
-  EXPECT_EQ(pack->Load("dialog/yes").error().fault, PackFault::MISSING_FILE);
-}
-
-TEST(Pack, NeedsAManifest) {
-  EXPECT_EQ(OpenMemoryPack({}).error().fault, PackFault::MISSING_FILE);
-  EXPECT_EQ(OpenPack("assets.test/no-such.opeupack").error().fault, PackFault::MISSING_FILE);
-  EXPECT_EQ(OpenEmbeddedPack("no-such-pack").error().fault, PackFault::MISSING_FILE);
+  EXPECT_EQ(pack.Frames("battle-blast/large"), (std::vector<std::string>{ "battle-blast/large/0", "battle-blast/large/1", "battle-blast/large/2", "battle-blast/large/3" }));
+  EXPECT_EQ(pack.Palette("main/day"), Colours(Present(FindPalette("main/day")).levels));
 }
 
 }

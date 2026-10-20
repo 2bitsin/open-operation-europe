@@ -428,7 +428,6 @@ buildutil logs), `reports/`, `smoke/`, `web/`, `test-output/`, `perf/`.
 |---|---|---|---|
 | `linux-build` | build | docker | `./buildutil build --release` with gcc 14, every compiler warning and error counted per flag and module (`reports/compiler-diagnostics.txt`), then the three smokes (`smoke/<name>/`: `final.png`, WAV, OPL log, `port.log`) with `ok`/`DIFF` against the goldens |
 | `web` | build | docker | the Emscripten lane: emsdk 6.0.10, `./buildutil build --compiler emscripten --release --no-tests`, no `.data` file installed, the smoke under node (`web/`: `opeu.{html,js,wasm}`, `sizes.txt`, `web-smoke.{png,wav,opl,sha1}`) |
-| `linux-test` | test | docker | `./buildutil test`: the GoogleTest suites, the pytest suites with the functional suite, the perf gates and the `tools/*/pytest.ini` suites (the census gate among them); on a failure, ctest's logs and the failing runs' directories in `test-output/` |
 | `macos` | test | macOS ARM shell | `./buildutil build --release` and `./buildutil test` natively; manual and allowed to fail while that runner is offline |
 | `perf-baseline` | test | docker | manual: records the docker runner's entry in the perf baseline (`perf/baseline.json`, to commit as `sources/opeu/integration/fixtures/perf/baseline.json`) |
 

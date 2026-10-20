@@ -15,7 +15,10 @@ namespace {
 
 using test::Present;
 
+using test::CheckedInClassicTest;
 using test::ClassicFile;
+
+using ClassicManifest = CheckedInClassicTest;
 using test::ToBytes;
 
 constexpr auto TINY{ std::string_view{ R"({
@@ -90,7 +93,7 @@ TEST(Manifest, ListsItsFontsWithTheirFirstCode) {
   EXPECT_EQ(Present(manifest->FontNamed("plain")).first_code, 0U); // no "first": the glyph numbers are the codes
 }
 
-TEST(Manifest, KeepsTheClassicPacksFonts) {
+TEST_F(ClassicManifest, KeepsTheGamesFonts) {
   auto const manifest{ Manifest::Parse(ClassicFile("pack.json")) };
   ASSERT_TRUE(manifest);
   auto const font{ manifest->FontNamed("game-glyph") };

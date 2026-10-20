@@ -1,0 +1,13 @@
+{
+ "format": "opeu-pack/1",
+ "name": "remaster",
+ "scale": 4,
+ "classes": ["portraits", "sprites"],
+ "palettes": {},
+ "animations": {},
+ "fonts": {},
+ "assets": [
+  {"id": "portrait/1", "image": "portraits/portrait-1.png", "class": "portraits", "role": "portrait", "width": 8, "height": 8, "scale": 4, "palette": "grey", "palettes": ["grey"], "mask": false, "colours": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], "use": "a test image", "description": "portrait/1"},
+  {"id": "sprite/1", "image": "sprites/sprite-1.png", "class": "sprites", "role": "sprite", "width": 4, "height": 4, "scale": 2, "palette": "grey", "palettes": ["grey"], "mask": true, "colours": [2, 3, 4, 5], "use": "a test image", "description": "sprite/1", "animation": "blink", "frame": 1}
+ ]
+}

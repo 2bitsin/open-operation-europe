@@ -1,6 +1,6 @@
 // The game's data from a directory: found in any case, checked by size and fingerprint, refused with a report that names
 // what is wrong; and the compiled table of the 26 files against the shipped files.
-#include "shipped.hpp"
+#include "opeu/game-data.test.hpp"
 
 #include "opeu/assets/fingerprint.hpp"
 #include "opeu/assets/game-data.hpp"
@@ -152,10 +152,25 @@ TEST(GameData, WrapsATableWithoutCopying) {
   EXPECT_EQ(data.File("ONE.DAT").value().size(), bytes.size());
 }
 
-TEST(GameData, TheCompiledTableDescribesTheShippedFiles) {
-  auto const data{ GameData::FromDirectory(test::SHIPPED_DIRECTORY, DATA_FILES) };
-  ASSERT_TRUE(data.has_value()) << data.error().Text();
-  EXPECT_EQ(data->Names().size(), 26U);
+using ShippedData = ::opeu::test::GameDataTest;
+
+TEST_F(ShippedData, AreTheFilesTheCompiledTableDescribes) {
+  EXPECT_EQ(Data().Names().size(), DATA_FILES.size());
+  EXPECT_EQ(Data().File("FACE.DAT").value().size(), 230400U);
+}
+
+TEST(TestData, IsNothingWithoutADirectory) {
+  auto const found{ ::opeu::test::FindTestData(std::nullopt, "no-such-directory") };
+  ASSERT_TRUE(found.has_value());
+  EXPECT_FALSE(found->has_value());
+  EXPECT_TRUE(::opeu::test::NoGameData("the files").starts_with("no game data: "));
+}
+
+TEST(TestData, RefusesANamedDirectoryWithoutTheFiles) {
+  auto const empty{ Directory{ "named-empty" } };
+  auto const found{ ::opeu::test::FindTestData(empty.Path(), ::opeu::test::IN_TREE_DATA) };
+  ASSERT_FALSE(found.has_value());
+  EXPECT_TRUE(found.error().contains("ARMS.SIL")) << found.error();
 }
 
 }

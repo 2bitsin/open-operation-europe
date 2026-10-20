@@ -1,0 +1,382 @@
+{
+ "format": "opeu-pack/1",
+ "name": "synthetic",
+ "scale": 1,
+ "classes": [
+  "glyphs",
+  "portraits",
+  "sprites",
+  "tiles"
+ ],
+ "palettes": {
+  "grey": [
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    16,
+    16,
+    16
+   ],
+   [
+    32,
+    32,
+    32
+   ],
+   [
+    48,
+    48,
+    48
+   ],
+   [
+    64,
+    64,
+    64
+   ],
+   [
+    80,
+    80,
+    80
+   ],
+   [
+    96,
+    96,
+    96
+   ],
+   [
+    112,
+    112,
+    112
+   ],
+   [
+    128,
+    128,
+    128
+   ],
+   [
+    144,
+    144,
+    144
+   ],
+   [
+    160,
+    160,
+    160
+   ],
+   [
+    176,
+    176,
+    176
+   ],
+   [
+    192,
+    192,
+    192
+   ],
+   [
+    208,
+    208,
+    208
+   ],
+   [
+    224,
+    224,
+    224
+   ],
+   [
+    240,
+    240,
+    240
+   ]
+  ],
+  "night": [
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    4,
+    4,
+    8
+   ],
+   [
+    8,
+    8,
+    16
+   ],
+   [
+    12,
+    12,
+    24
+   ],
+   [
+    16,
+    16,
+    32
+   ],
+   [
+    20,
+    20,
+    40
+   ],
+   [
+    24,
+    24,
+    48
+   ],
+   [
+    28,
+    28,
+    56
+   ],
+   [
+    32,
+    32,
+    64
+   ],
+   [
+    36,
+    36,
+    72
+   ],
+   [
+    40,
+    40,
+    80
+   ],
+   [
+    44,
+    44,
+    88
+   ],
+   [
+    48,
+    48,
+    96
+   ],
+   [
+    52,
+    52,
+    104
+   ],
+   [
+    56,
+    56,
+    112
+   ],
+   [
+    60,
+    60,
+    120
+   ]
+  ]
+ },
+ "animations": {
+  "blink": [
+   "sprite/0",
+   "sprite/1"
+  ]
+ },
+ "fonts": {
+  "glyphs": {
+   "cell": [
+    4,
+    4
+   ],
+   "first": 65,
+   "glyphs": [
+    "glyph/065",
+    "glyph/066"
+   ]
+  }
+ },
+ "assets": [
+  {
+   "id": "glyph/065",
+   "image": "glyphs/glyph-065.png",
+   "class": "glyphs",
+   "role": "glyph",
+   "width": 4,
+   "height": 4,
+   "scale": 1,
+   "palette": "grey",
+   "palettes": [
+    "grey"
+   ],
+   "mask": true,
+   "colours": [
+    7
+   ],
+   "use": "a test image",
+   "description": "glyph/065",
+   "recolour": "ink",
+   "indexed": "glyphs/glyph-065.index.png"
+  },
+  {
+   "id": "glyph/066",
+   "image": "glyphs/glyph-066.png",
+   "class": "glyphs",
+   "role": "glyph",
+   "width": 4,
+   "height": 4,
+   "scale": 1,
+   "palette": "grey",
+   "palettes": [
+    "grey"
+   ],
+   "mask": true,
+   "colours": [
+    7
+   ],
+   "use": "a test image",
+   "description": "glyph/066",
+   "recolour": "ink",
+   "indexed": "glyphs/glyph-066.index.png"
+  },
+  {
+   "id": "portrait/1",
+   "image": "portraits/portrait-1.png",
+   "class": "portraits",
+   "role": "portrait",
+   "width": 8,
+   "height": 8,
+   "scale": 1,
+   "palette": "grey",
+   "palettes": [
+    "grey"
+   ],
+   "mask": false,
+   "colours": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "use": "a test image",
+   "description": "portrait/1"
+  },
+  {
+   "id": "sprite/0",
+   "image": "sprites/sprite-0.png",
+   "class": "sprites",
+   "role": "sprite",
+   "width": 4,
+   "height": 4,
+   "scale": 1,
+   "palette": "grey",
+   "palettes": [
+    "grey"
+   ],
+   "mask": true,
+   "colours": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "use": "a test image",
+   "description": "sprite/0",
+   "animation": "blink",
+   "frame": 0
+  },
+  {
+   "id": "sprite/0/side-0",
+   "image": "sprites/sprite-0-side-0.png",
+   "class": "sprites",
+   "role": "sprite",
+   "width": 4,
+   "height": 4,
+   "scale": 1,
+   "palette": "grey",
+   "palettes": [
+    "grey"
+   ],
+   "mask": true,
+   "colours": [
+    9,
+    10,
+    11,
+    12
+   ],
+   "use": "a test image",
+   "description": "sprite/0/side-0",
+   "variant_of": "sprite/0",
+   "variant": "side-0"
+  },
+  {
+   "id": "sprite/1",
+   "image": "sprites/sprite-1.png",
+   "class": "sprites",
+   "role": "sprite",
+   "width": 4,
+   "height": 4,
+   "scale": 1,
+   "palette": "grey",
+   "palettes": [
+    "grey"
+   ],
+   "mask": true,
+   "colours": [
+    2,
+    3,
+    4,
+    5
+   ],
+   "use": "a test image",
+   "description": "sprite/1",
+   "animation": "blink",
+   "frame": 1
+  },
+  {
+   "id": "tile/0",
+   "image": "tiles/tile-0.png",
+   "class": "tiles",
+   "role": "tile",
+   "width": 8,
+   "height": 8,
+   "scale": 1,
+   "palette": "grey",
+   "palettes": [
+    "grey",
+    "night"
+   ],
+   "mask": false,
+   "colours": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "use": "a test image",
+   "description": "tile/0",
+   "recolour": "hour",
+   "indexed": "tiles/tile-0.index.png"
+  }
+ ]
+}
