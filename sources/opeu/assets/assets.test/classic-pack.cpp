@@ -16,7 +16,8 @@
 #include <vector>
 
 namespace opeu::assets {
-
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 namespace {
 
 using test::ClassicArchive;

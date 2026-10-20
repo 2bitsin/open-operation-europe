@@ -13,9 +13,10 @@
 #include <vector>
 
 namespace opeu::assets::detail::map_tables {
-
-inline constexpr auto MAP_TABLE{ std::string_view{ "tables/maps.json" } };
-inline constexpr auto BATTLE_FIELD_TABLE{ std::string_view{ "tables/battle-fields.json" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+inline constexpr auto MAP_TABLE{ "tables/maps.json"sv };
+inline constexpr auto BATTLE_FIELD_TABLE{ "tables/battle-fields.json"sv };
 
 using CellGrids = std::array<CellGrid, MAP_COUNT>;
 

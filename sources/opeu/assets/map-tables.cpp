@@ -8,7 +8,8 @@
 #include <utility>
 
 namespace opeu::assets::detail::map_tables {
-
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 namespace {
 
 using namespace table_json;

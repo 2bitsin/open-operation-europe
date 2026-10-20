@@ -19,7 +19,7 @@ using namespace table_json;
 using Ordered = nlohmann::ordered_json; // written in the order a reader expects; read back as Json
 using Names   = std::map<std::string, std::size_t, std::less<>>;
 
-constexpr auto MUSIC_BANK{ std::string_view{ "music_bank" } };
+constexpr auto MUSIC_BANK{ "music_bank"sv };
 constexpr auto NOTE_NAMES{ std::to_array<std::string_view>({ "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" }) };
 constexpr auto LFO_SHAPES{ std::to_array<std::string_view>({ "sawtooth", "square", "triangle", "random", "ramp" }) };
 constexpr auto DRUM_NAMES{ std::to_array<std::string_view>({ "hi-hat", "cymbal", "tom", "snare", "bass-drum" }) }; // bits 0-4

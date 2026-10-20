@@ -41,6 +41,8 @@
 #include <vector>
 
 namespace opeu::platform::detail::backend {
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 namespace {
 // true: hide the host cursor while it is over the window (the game draws its own mouse pointer).
 constexpr auto HIDE_CURSOR{ true };
@@ -57,7 +59,7 @@ constexpr int         AUDIO_CHUNK_FRAMES{ 1024 };
 constexpr int         DEFAULT_WIDTH{ 640 };
 constexpr int         DEFAULT_HEIGHT{ 480 };
 constexpr int         DEFAULT_AUDIO_RATE{ 44100 };
-constexpr auto        DEFAULT_TITLE{ std::string_view{ "Operation Europe" } };
+constexpr auto        DEFAULT_TITLE{ "Operation Europe"sv };
 
 // Key kinds for the ASCII computation.
 enum class KeyKind : std::uint8_t {

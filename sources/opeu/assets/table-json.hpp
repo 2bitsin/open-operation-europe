@@ -22,9 +22,12 @@
 
 namespace opeu::assets::detail::table_json {
 
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+
 using Json = nlohmann::json;
 
-inline constexpr auto TABLE_FORMAT{ std::string_view{ "opeu-tables/1" } };
+inline constexpr auto TABLE_FORMAT{ "opeu-tables/1"sv };
 
 // A table file: the format and one member `name` holding the table, as compact JSON text.
 [[nodiscard]] inline auto TableText(std::string_view const name, Json value) -> std::string {
@@ -135,7 +138,7 @@ template <std::size_t SIDE>
 
 // The value of a hex digit.
 [[nodiscard]] inline auto HexDigit(char const digit) -> std::uint32_t {
-  constexpr auto DIGITS{ std::string_view{ "0123456789abcdef" } };
+  constexpr auto DIGITS{ "0123456789abcdef"sv };
   auto const     found{ DIGITS.find(digit) };
   if (found == std::string_view::npos) throw std::invalid_argument{ std::format("'{}' is no hex digit", digit) };
   return static_cast<std::uint32_t>(found);

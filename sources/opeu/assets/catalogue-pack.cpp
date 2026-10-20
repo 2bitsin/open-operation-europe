@@ -11,7 +11,8 @@
 #include <utility>
 
 namespace opeu::assets::detail::catalogue_pack {
-
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 namespace {
 
 constexpr auto HOURS{

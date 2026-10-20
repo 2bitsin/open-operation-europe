@@ -14,8 +14,9 @@
 #include <string_view>
 
 namespace opeu::assets::detail::messages {
-
-inline constexpr auto MESSAGES{ std::string_view{ "texts/messages.json" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+inline constexpr auto MESSAGES{ "texts/messages.json"sv };
 
 // Id -> text: UTF-8 in a message, KOEI's code in the texts a file holds.
 using Messages = std::map<std::string, std::string, std::less<>>;

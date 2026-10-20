@@ -11,8 +11,9 @@
 #include <string_view>
 
 namespace opeu::assets::detail::scenario_table {
-
-inline constexpr auto SCENARIO_TABLE{ std::string_view{ "tables/scenarios.json" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+inline constexpr auto SCENARIO_TABLE{ "tables/scenarios.json"sv };
 
 // The table file of a scenario file.
 [[nodiscard]] auto ScenarioTableText(ScenarioFile const& file, CodeTable const& table) -> std::string;

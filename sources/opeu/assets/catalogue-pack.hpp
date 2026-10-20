@@ -16,8 +16,9 @@
 #include <vector>
 
 namespace opeu::assets::detail::catalogue_pack {
-
-inline constexpr auto SIDE_ZERO{ std::string_view{ "side-0" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+inline constexpr auto SIDE_ZERO{ "side-0"sv };
 
 class CataloguePack final : public AssetPack {
 public:

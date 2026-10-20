@@ -11,13 +11,16 @@
 
 namespace opeu::assets::detail::code_table {
 
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+
 namespace {
 
 using namespace table_json;
 
-constexpr auto HEX_DIGITS{ std::string_view{ "0123456789ABCDEF" } };
-constexpr auto GLYPH_PREFIX{ std::string_view{ "glyph:" } };
-constexpr auto BYTE_PREFIX{ std::string_view{ "byte:" } };
+constexpr auto HEX_DIGITS{ "0123456789ABCDEF"sv };
+constexpr auto GLYPH_PREFIX{ "glyph:"sv };
+constexpr auto BYTE_PREFIX{ "byte:"sv };
 constexpr auto FIRST_LEAD{ std::uint8_t{ 0x80 } };
 constexpr auto FIRST_PRINTABLE{ std::uint8_t{ 0x20 } };
 constexpr auto LAST_PRINTABLE{ std::uint8_t{ 0x7E } };

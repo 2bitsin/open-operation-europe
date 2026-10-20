@@ -16,7 +16,10 @@
 
 namespace opeu::assets::detail::code_table {
 
-inline constexpr auto CODE_TABLE{ std::string_view{ "texts/code-table.json" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+
+inline constexpr auto CODE_TABLE{ "texts/code-table.json"sv };
 
 // A byte written as {name} in a message.
 struct NamedByte {

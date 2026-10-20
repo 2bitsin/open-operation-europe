@@ -5,6 +5,8 @@
 #include <gtest/gtest.h>
 
 namespace opeu::render::detail::texture_cache_test {
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 namespace {
 
 using test::ExpectGolden;
@@ -12,9 +14,9 @@ using test::OpenHeadless;
 using test::OpenSample;
 using test::PackUnderTest;
 
-constexpr auto TILE{ std::string_view{ "view-tile/map-2/17" } };
-constexpr auto PORTRAIT{ std::string_view{ "portrait/118" } };
-constexpr auto UNIT{ std::string_view{ "battle-unit/class-03/facing-1" } };
+constexpr auto TILE{ "view-tile/map-2/17"sv };
+constexpr auto PORTRAIT{ "portrait/118"sv };
+constexpr auto UNIT{ "battle-unit/class-03/facing-1"sv };
 
 [[nodiscard]] auto Key(std::string_view const asset, std::string_view const palette = {}) -> TextureKey {
   return TextureKey{ .asset = std::string{ asset }, .palette = std::string{ palette } };

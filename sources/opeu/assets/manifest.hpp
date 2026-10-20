@@ -18,8 +18,11 @@
 
 namespace opeu::assets::detail::manifest {
 
-inline constexpr auto PACK_FORMAT{ std::string_view{ "opeu-pack/1" } };
-inline constexpr auto MANIFEST_PATH{ std::string_view{ "pack.json" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+
+inline constexpr auto PACK_FORMAT{ "opeu-pack/1"sv };
+inline constexpr auto MANIFEST_PATH{ "pack.json"sv };
 
 using PaletteColours = std::array<Colour, 16>;
 

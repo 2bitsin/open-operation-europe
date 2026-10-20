@@ -23,8 +23,9 @@
 #include <nlohmann/json.hpp>
 
 namespace opeu::assets::test {
-
-inline constexpr auto CLASSIC_DIRECTORY{ std::string_view{ "packs.embed/classic" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+inline constexpr auto CLASSIC_DIRECTORY{ "packs.embed/classic"sv };
 
 // A few assets covering every layout, the hour, ink and scene recolouring, a side-0 variant, an animation and all six
 // fonts: what the tests load by id (the whole pack is tools/assets/pack.test's).

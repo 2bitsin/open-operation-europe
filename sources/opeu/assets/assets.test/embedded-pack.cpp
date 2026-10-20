@@ -12,12 +12,13 @@
 namespace opeu::assets {
 
 namespace {
-
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 using test::CLASSIC_DIRECTORY;
 using test::ClassicEmbedded;
 using test::ToBytes;
 
-constexpr auto REMASTER_SAMPLE{ std::string_view{ "assets.test/remaster-sample" } };
+constexpr auto REMASTER_SAMPLE{ "assets.test/remaster-sample"sv };
 
 auto Layered(std::unique_ptr<PackFiles const> remaster) -> Packed<std::unique_ptr<AssetPack const>> {
   return OpenLayered(std::make_unique<DirectoryPackFiles const>(CLASSIC_DIRECTORY), std::move(remaster));

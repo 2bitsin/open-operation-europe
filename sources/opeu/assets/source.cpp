@@ -8,12 +8,16 @@
 
 namespace opeu::assets::detail::source {
 
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+
 auto DirectorySource::Open(std::filesystem::path const& directory) -> std::expected<DirectorySource, std::string> {
-  auto       error{ std::error_code{} };
+  using SDI = std::filesystem::directory_iterator;
+  auto       errcode{ std::error_code{} };
   auto const entries{
-    std::filesystem::directory_iterator{ directory, error }
+    SDI{ directory, errcode }
   };
-  if (error) return std::unexpected{ std::format("assets: cannot list {}: {}", directory.string(), error.message()) };
+  if (errcode) return std::unexpected{ std::format("assets: cannot list {}: {}", directory.string(), errcode.message()) };
   auto contents{ Contents{} };
   for (auto const& entry : entries) {
     if (!entry.is_regular_file()) continue;

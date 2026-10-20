@@ -15,11 +15,13 @@
 #include <vector>
 
 namespace opeu::render::detail::pack_parity_test {
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 namespace {
 
 using test::OpenHeadless;
 
-constexpr auto SHIPPED{ std::string_view{ "../opeu/assets.embed" } };
+constexpr auto SHIPPED{ "../opeu/assets.embed"sv };
 
 [[nodiscard]] auto PackUnderTest() -> std::filesystem::path {
   return std::filesystem::path{ test::Environment("OPEU_CLASSIC_PACK").value_or(std::string{ test::CLASSIC.path }) };

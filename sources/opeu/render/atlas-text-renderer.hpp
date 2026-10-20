@@ -14,7 +14,8 @@
 #include <string_view>
 
 namespace opeu::render::detail::atlas_text_renderer {
-
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 class AtlasTextRenderer final : public TextRenderer {
 public:
   // An atlas for every font the pack lists.

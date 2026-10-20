@@ -13,6 +13,8 @@
 #include <vector>
 
 namespace opeu::render::detail::bounded_memory_test {
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 namespace {
 
 constexpr auto FRAMES{ 2000uz };

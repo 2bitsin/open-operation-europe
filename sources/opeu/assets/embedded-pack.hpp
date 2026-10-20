@@ -13,8 +13,11 @@
 
 namespace opeu::assets::detail::embedded_pack {
 
-inline constexpr auto CLASSIC_PACK{ std::string_view{ "classic" } };
-inline constexpr auto REMASTER_PACK{ std::string_view{ "remaster" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+
+inline constexpr auto CLASSIC_PACK{ "classic"sv };
+inline constexpr auto REMASTER_PACK{ "remaster"sv };
 
 // The files of one embedded pack: `directory` is the pack's directory under packs.embed/.
 class EmbeddedPackFiles final : public PackFiles {

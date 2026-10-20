@@ -12,7 +12,8 @@
 #include <vector>
 
 namespace opeu::assets::detail::scenario_table {
-
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 namespace {
 
 using namespace table_json;

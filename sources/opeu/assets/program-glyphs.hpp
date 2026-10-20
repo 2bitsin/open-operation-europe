@@ -12,10 +12,13 @@
 
 namespace opeu::assets::detail::program_glyphs {
 
-inline constexpr auto PROGRAM_TEXT_FONT{ std::string_view{ "program/text-font" } };
-inline constexpr auto PROGRAM_DIGITS{ std::string_view{ "program/digits" } };
-inline constexpr auto PROGRAM_SIDEWAYS_DIGITS{ std::string_view{ "program/sideways-digits" } };
-inline constexpr auto PROGRAM_MARKERS{ std::string_view{ "program/markers" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+
+inline constexpr auto PROGRAM_TEXT_FONT{ "program/text-font"sv };
+inline constexpr auto PROGRAM_DIGITS{ "program/digits"sv };
+inline constexpr auto PROGRAM_SIDEWAYS_DIGITS{ "program/sideways-digits"sv };
+inline constexpr auto PROGRAM_MARKERS{ "program/markers"sv };
 
 inline constexpr auto FIRST_TEXT_CODE{ std::size_t{ 0x20 } };
 inline constexpr auto TEXT_GLYPHS{ std::size_t{ 96 } }; // codes 0x20..0x7F

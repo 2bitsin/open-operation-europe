@@ -11,8 +11,9 @@
 #include <vector>
 
 namespace opeu::assets::detail::palette_table {
-
-inline constexpr auto PALETTE_TABLE{ std::string_view{ "tables/palettes.json" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+inline constexpr auto PALETTE_TABLE{ "tables/palettes.json"sv };
 
 // A palette read from the table: NamedPalette's fields, owning their text.
 struct PaletteRecord {

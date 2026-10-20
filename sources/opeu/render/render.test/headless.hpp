@@ -41,8 +41,9 @@
 #include <vector>
 
 namespace opeu::render::test {
-
-inline constexpr auto GOLDENS{ std::string_view{ "render.test/goldens" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+inline constexpr auto GOLDENS{ "render.test/goldens"sv };
 
 // A pack the tests draw with: its name, which names its goldens' directory, and its sample.
 struct PackUnderTest {

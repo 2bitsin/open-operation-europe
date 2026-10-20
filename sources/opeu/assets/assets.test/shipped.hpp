@@ -13,8 +13,9 @@
 #include <vector>
 
 namespace opeu::assets::test {
-
-inline constexpr auto SHIPPED_DIRECTORY{ std::string_view{ "../opeu/assets.embed" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+inline constexpr auto SHIPPED_DIRECTORY{ "../opeu/assets.embed"sv };
 
 [[nodiscard]] inline auto Embedded() -> DirectorySource {
   return DirectorySource::Open(SHIPPED_DIRECTORY).value();

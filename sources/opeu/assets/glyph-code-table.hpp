@@ -12,8 +12,9 @@
 #include <vector>
 
 namespace opeu::assets::detail::glyph_code_table {
-
-inline constexpr auto GLYPH_CODE_TABLE{ std::string_view{ "tables/glyph-codes.json" } };
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+inline constexpr auto GLYPH_CODE_TABLE{ "tables/glyph-codes.json"sv };
 
 [[nodiscard]] auto GlyphCodeTableText(std::span<std::uint32_t const> ending) -> std::string;
 

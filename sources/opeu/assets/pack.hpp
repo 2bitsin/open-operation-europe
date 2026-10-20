@@ -18,7 +18,8 @@
 #include <vector>
 
 namespace opeu::assets::detail::pack {
-
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 // An asset as loaded: its manifest entry, its RGBA image, and its index map when the game recolours it.
 struct LoadedAsset {
   PackedAsset          entry;

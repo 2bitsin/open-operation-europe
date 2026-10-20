@@ -16,14 +16,15 @@
 #include <vector>
 
 namespace opeu::render::detail::text_renderer {
-
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 // The classic pack's fonts (the manifest's `fonts`).
-inline constexpr auto TEXT_FONT{ std::string_view{ "text-glyph" } };                     // 8x16, codes 0x20..0x7F: the game's text
-inline constexpr auto DIGIT_FONT{ std::string_view{ "digit-glyph" } };                   // 6x6: 0..9 and the blank (10)
-inline constexpr auto SIDEWAYS_DIGIT_FONT{ std::string_view{ "sideways-digit-glyph" } }; // 8x5: the vertical scale's digits
-inline constexpr auto MARKER_FONT{ std::string_view{ "marker-glyph" } };                 // 8x8: the objective and the flashing cell
-inline constexpr auto ENDING_FONT{ std::string_view{ "ending-glyph" } };                 // 16x14: the ending's Chinese text
-inline constexpr auto GAME_FONT{ std::string_view{ "game-glyph" } };                     // 16x14: the Chinese edition's main font
+inline constexpr auto TEXT_FONT{ "text-glyph"sv };                     // 8x16, codes 0x20..0x7F: the game's text
+inline constexpr auto DIGIT_FONT{ "digit-glyph"sv };                   // 6x6: 0..9 and the blank (10)
+inline constexpr auto SIDEWAYS_DIGIT_FONT{ "sideways-digit-glyph"sv }; // 8x5: the vertical scale's digits
+inline constexpr auto MARKER_FONT{ "marker-glyph"sv };                 // 8x8: the objective and the flashing cell
+inline constexpr auto ENDING_FONT{ "ending-glyph"sv };                 // 16x14: the ending's Chinese text
+inline constexpr auto GAME_FONT{ "game-glyph"sv };                     // 16x14: the Chinese edition's main font
 
 struct TextRun {
   std::string             font{};          // a font of the pack (TEXT_FONT, ...)

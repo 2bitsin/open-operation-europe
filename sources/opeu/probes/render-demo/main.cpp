@@ -29,9 +29,11 @@
 #include <vector>
 
 namespace opeu::probes::render_demo {
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 namespace {
 
-constexpr auto DEFAULT_PACK{ std::string_view{ "sources/opeu/assets/packs.embed/classic" } }; // the checked-in classic pack
+constexpr auto DEFAULT_PACK{ "sources/opeu/assets/packs.embed/classic"sv }; // the checked-in classic pack
 constexpr auto CACHE_CAPACITY{ std::size_t{ 512 } };
 constexpr auto WINDOW_SCALE{ 2 };
 

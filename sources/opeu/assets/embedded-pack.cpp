@@ -9,6 +9,9 @@
 
 namespace opeu::assets::detail::embedded_pack {
 
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+
 auto EmbeddedPackFiles::Read(std::string_view const path) const -> Packed<std::vector<std::byte>> {
   auto const        name{ std::format("{}/{}", _directory, path) };
   auto const* const found{ resources::find(name) };
