@@ -430,6 +430,7 @@ buildutil logs), `reports/`, `smoke/`, `web/`, `test-output/`, `perf/`.
 | `linux-build` | build | docker | `./buildutil build --release` with gcc 14, every compiler warning and error counted per flag and module (`reports/compiler-diagnostics.txt`), then the three smokes (`smoke/<name>/`: `final.png`, WAV, OPL log, `port.log`) with `ok`/`DIFF` against the goldens |
 | `web` | build | docker | the Emscripten lane: emsdk 6.0.10, `./buildutil build --compiler emscripten --release --no-tests`, no `.data` file installed, the smoke under node (`web/`: `opeu.{html,js,wasm}`, `sizes.txt`, `web-smoke.{png,wav,opl,sha1}`) |
 | `macos` | test | macOS ARM shell | `./buildutil build --release` and `./buildutil test` natively; manual and allowed to fail while that runner is offline |
+| `mirror-shape` | test | docker | the public mirror's tree: deletes from its working copy every path `tools/release/strip-paths.txt` strips (refusing if the list keeps a file of the game's data), then `./buildutil build --release`, `./buildutil test` without the data (`skips.py --game-data`: only "no game data" skips), again with `OPEU_DATA_DIR` at a copy of the 26 files, and the three smokes with the data, which must equal the goldens |
 | `perf-baseline` | test | docker | manual: records the docker runner's entry in the perf baseline (`perf/baseline.json`, to commit as `sources/opeu/integration/fixtures/perf/baseline.json`) |
 
 The Linux jobs run in `ubuntu:24.04` on the docker runner (tag
@@ -477,6 +478,17 @@ mirror, GitHub for the emsdk, PyPI and the conan remote; a few GB of
 disk for `_conanhome/`). `macos` needs a shell runner tagged `macos` and
 `macbook-arm-shell` with Python 3, Xcode's command line tools, CMake 3.30
 or newer (else pip's goes into `_pyvenv/`) and Ninja.
+
+The public mirror carries `.github/workflows/build.yml` instead (GitLab
+ignores it): jobs `linux` (Ubuntu 24.04, gcc 14), `macos` (macOS 15, the
+runner's Xcode) and `web` (the pinned emsdk, build only), each one call of
+`python3 tools/github/ci.py <job>`. They build with conan from
+conancenter, run `./buildutil test` with only "no game data" skips allowed,
+check `opeu --dump-arena` against its hash, and run the benchmark gates at
+`OPEU_PERF_BUDGET=100`; no clang-tidy, census or perf baseline. That driver
+cannot import `tools/ci/` (the mirror strips it), so it holds a copy of the
+lanes' package lists and the emsdk pin, which `tools/ci/ci.test` keeps
+equal.
 
 A job locally: `python3 tools/ci/pipeline.py <job>` on a machine like the
 runner (it installs packages with apt, so on a workstation run it in a

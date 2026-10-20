@@ -1,4 +1,4 @@
-"""The tests' game-data helper (the skip rule that goes with it is tools/ci's: ci.test/test_skips.py)."""
+"""The tests' game-data helper (the skip rule that goes with it: test_skips.py)."""
 import sys
 from pathlib import Path
 

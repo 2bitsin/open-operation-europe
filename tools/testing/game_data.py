@@ -3,7 +3,7 @@
 The private repository holds the 26 data files, the classic pack and the goldens and fixtures made from them, so
 nothing skips there. A clone without them (the public mirror) skips exactly the tests that need them, each with
 "no game data: <what>", unless OPEU_DATA_DIR names a directory with the player's own 26 files; such a directory must
-hold every one of them, or the tests fail. No test skips any other way (tools/ci/skips.py checks the sources for it).
+hold every one of them, or the tests fail. No test skips any other way (tools/testing/skips.py checks the sources for it).
 
 A suite imports it after putting tools/testing on sys.path:
 
