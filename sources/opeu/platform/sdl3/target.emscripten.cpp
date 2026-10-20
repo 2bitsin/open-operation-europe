@@ -8,13 +8,15 @@
 
 namespace opeu::platform::detail::target {
 
-// The canvas gets CSS size x devicePixelRatio pixels. Without SDL_WINDOW_HIGH_PIXEL_DENSITY the backing store is CSS
-// pixels: on a 2x or 3x display the page's integer multiple of 640x480 device pixels is then a fraction of the frame,
-// and the integer-scale presentation crops it. The WebGL renderer needs an OpenGL window; given the flag up front, it
-// does not recreate the window, which would leave the canvas's CSS size at 1px (SDL's destroy) and make the new window
-// ignore the page's size.
+// The WebGL renderer needs an OpenGL window; given the flag up front, it does not recreate the window, which would leave
+// the canvas's CSS size at 1px (SDL's destroy) and make the new window ignore the page's size.
 auto ExtraWindowFlags() -> SDL_WindowFlags {
-  return SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL;
+  return SDL_WINDOW_OPENGL;
+}
+
+// The page sizes the canvas to the largest integer multiple of the frame in device pixels (web/shell.html).
+auto OwnsWindowSize() -> bool {
+  return false;
 }
 
 // Keys go to the canvas (focused by the page's click-to-start), and only this backend yields to the browser.

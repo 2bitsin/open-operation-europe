@@ -7,6 +7,7 @@
 
 #include "opeu/platform/platform.hpp"
 #include "opeu/platform/sdl3/handles.hpp"
+#include "opeu/platform/view-scale.hpp"
 
 #include <SDL3/SDL.h>
 
@@ -59,6 +60,11 @@ private:
   [[nodiscard]] auto        InitSubsystems() -> std::expected<void, std::string>;
   [[nodiscard]] auto        MakeWindow(PlatConfig const& config, std::string const& title) -> std::expected<void, std::string>;
   auto                      ClearWindow() const -> void;
+  [[nodiscard]] auto        CurrentView() const -> View;
+  auto                      LockAspect() const -> void;
+  auto                      OpenAtScale(int scale) const -> void;
+  auto                      NoteResize(SDL_Event const& sdl) -> void;
+  auto                      SnapWhenSettled() -> void;
   auto                      Redraw() const -> void;
   auto                      ReplaceTexture(int width, int height) -> void;
   auto                      Convert(Frame const& frame) -> void;
@@ -74,11 +80,13 @@ private:
   SDL_InitFlags _sdl_flags{ 0 };
   std::uint64_t _t0_ns{ 0 };
 
-  UniqueWindow   _window;
-  UniqueRenderer _renderer;
-  UniqueTexture  _texture;
-  int            _texture_width{ 0 };
-  int            _texture_height{ 0 };
+  UniqueWindow                 _window;
+  UniqueRenderer               _renderer;
+  UniqueTexture                _texture;
+  int                          _texture_width{ 0 };
+  int                          _texture_height{ 0 };
+  Size                         _shown;      // the frame size the window presents
+  std::optional<std::uint64_t> _resized_ns; // when the window was last resized, until it snaps
 
   std::vector<std::uint8_t>               _frame; // the last indexed frame
   int                                     _frame_width{ 0 };

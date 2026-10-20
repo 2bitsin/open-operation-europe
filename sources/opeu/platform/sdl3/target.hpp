@@ -10,9 +10,12 @@
 
 namespace opeu::platform::detail::target {
 
-// The window flags the target adds to a resizable window (the browser: an OpenGL window with the canvas's device
-// pixels).
+// The window flags the target adds to a resizable window with its display's device pixels (the browser: an OpenGL
+// window).
 [[nodiscard]] auto ExtraWindowFlags() -> SDL_WindowFlags;
+// Whether the backend sizes the window (native: it snaps to multiples of the frame and keeps its aspect ratio) or
+// leaves that to its host (the browser: the page sizes the canvas, web/shell.html).
+[[nodiscard]] auto OwnsWindowSize() -> bool;
 // SDL hints the target needs before SDL_Init (the browser: keys go to the canvas, no automatic yields).
 auto PrepareHints() -> void;
 // Paces the renderer's presents (native: vsync; the browser paces frames itself).

@@ -3,7 +3,9 @@
 //
 // The SDL3 implementation of platform.hpp, for macOS, Linux, Windows and the browser. Video is the indexed frame
 // converted through the palette into a streaming XRGB8888 texture, shown with SDL's logical presentation (integer
-// scaling and letterbox). Input becomes PC set-1 make codes with the BIOS INT 16h ASCII of a US keyboard. Save files
+// scaling and letterbox) on a window with its display's device pixels. Natively the window keeps the frame's aspect
+// ratio and, once a resize settles, snaps to the nearest integer multiple of the frame in device pixels
+// (view-scale.hpp; docs/port.md "Window"). Input becomes PC set-1 make codes with the BIOS INT 16h ASCII of a US keyboard. Save files
 // are streams on paths resolved case-insensitively inside the save directory. Audio is a pull callback on an
 // SDL_AudioStream.
 //
@@ -47,9 +49,14 @@ namespace {
 // true: hide the host cursor while it is over the window (the game draws its own mouse pointer).
 constexpr auto HIDE_CURSOR{ true };
 
-// The web shell sizes the canvas to an integer multiple of 640x480 (web/shell.html), so integer scaling applies there
-// too.
+// The window is an integer multiple of the frame after a snap (the web shell sizes the canvas to one, web/shell.html);
+// between snaps, maximised and in fullscreen the presentation still shows an integer multiple, centred.
 constexpr auto PRESENTATION{ SDL_LOGICAL_PRESENTATION_INTEGER_SCALE };
+// How long the window size must hold still before it snaps: a window manager that resizes live sends a stream of
+// resizes, and a snap in the middle of the drag would fight the user's hand.
+constexpr std::uint64_t SNAP_SETTLE_NS{ 200'000'000 };
+// Windows the snap leaves alone: the integer presentation letterboxes them.
+constexpr SDL_WindowFlags UNSNAPPED{ SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MAXIMIZED };
 
 // Longest save path, as the DOS-name resolution measures it.
 constexpr std::size_t PATH_MAX_LENGTH{ 1024 };
@@ -307,19 +314,17 @@ auto Backend::Init(PlatConfig const& config) -> std::expected<void, std::string>
 
 namespace {
 
-// The window's logical size and its integer scale on the desktop.
-struct WindowSize {
-  int width;
-  int height;
-  int scale;
-};
+// The frame's size the window opens for.
+[[nodiscard]] auto FrameOf(PlatConfig const& config) -> Size {
+  return { .width = config.width > 0 ? config.width : DEFAULT_WIDTH, .height = config.height > 0 ? config.height : DEFAULT_HEIGHT };
+}
 
-[[nodiscard]] auto SizeOf(PlatConfig const& config) -> WindowSize {
-  return {
-    .width  = config.width > 0 ? config.width : DEFAULT_WIDTH,
-    .height = config.height > 0 ? config.height : DEFAULT_HEIGHT,
-    .scale  = std::max(config.scale, 1),
-  };
+// A resizable window with its display's device pixels; natively hidden until it is sized for its display.
+[[nodiscard]] auto WindowFlags(PlatConfig const& config) -> SDL_WindowFlags {
+  SDL_WindowFlags flags{ SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | target::ExtraWindowFlags() };
+  if (config.fullscreen != 0) flags |= SDL_WINDOW_FULLSCREEN;
+  if (target::OwnsWindowSize()) flags |= SDL_WINDOW_HIDDEN;
+  return flags;
 }
 
 } // namespace
@@ -345,12 +350,10 @@ auto Backend::InitSubsystems() -> std::expected<void, std::string> {
 }
 
 auto Backend::MakeWindow(PlatConfig const& config, std::string const& title) -> std::expected<void, std::string> {
-  auto const      size{ SizeOf(config) };
-  SDL_WindowFlags window_flags{ SDL_WINDOW_RESIZABLE | target::ExtraWindowFlags() };
-  if (config.fullscreen != 0) window_flags |= SDL_WINDOW_FULLSCREEN;
+  _shown = FrameOf(config);
   SDL_Window*   window{ nullptr };
   SDL_Renderer* renderer{ nullptr };
-  auto const    created{ SDL_CreateWindowAndRenderer(title.c_str(), size.width * size.scale, size.height * size.scale, window_flags, &window, &renderer) };
+  auto const    created{ SDL_CreateWindowAndRenderer(title.c_str(), _shown.width, _shown.height, WindowFlags(config), &window, &renderer) };
   _window.reset(window);
   _renderer.reset(renderer);
   if (!created) {
@@ -361,8 +364,56 @@ auto Backend::MakeWindow(PlatConfig const& config, std::string const& title) -> 
     return failed;
   }
   target::PaceFrames(*_renderer);
-  SDL_SetRenderLogicalPresentation(_renderer.get(), size.width, size.height, PRESENTATION);
+  SDL_SetRenderLogicalPresentation(_renderer.get(), _shown.width, _shown.height, PRESENTATION);
+  if (target::OwnsWindowSize()) OpenAtScale(config.scale);
   return {};
+}
+
+// ---- window size --------------------------------------------------------------------------------------------------
+
+// The frame as the window shows it, on the display the window is on now.
+auto Backend::CurrentView() const -> View {
+  SDL_Rect usable{}; // stays empty, so the view holds 1x, when SDL cannot tell the display's bounds
+  SDL_GetDisplayUsableBounds(SDL_GetDisplayForWindow(_window.get()), &usable);
+  return ViewOn(_shown, Screen{
+                            .usable = Size{ .width = usable.w, .height = usable.h },
+                              .density = SDL_GetWindowPixelDensity(_window.get())
+  });
+}
+
+// The window keeps the frame's aspect ratio and never shrinks below one frame in device pixels.
+auto Backend::LockAspect() const -> void {
+  auto const aspect{ static_cast<float>(_shown.width) / static_cast<float>(_shown.height) };
+  auto const once{ WindowSize(CurrentView(), 1) };
+  SDL_SetWindowAspectRatio(_window.get(), aspect, aspect);
+  SDL_SetWindowMinimumSize(_window.get(), once.width, once.height);
+}
+
+// Shows the window at `scale` times the frame (0: the largest multiple the display's usable bounds hold), centred. A
+// larger scale than the display holds is cut to that: macOS clamps a window larger than the screen and then ignores
+// the aspect-locked window's later resizes.
+auto Backend::OpenAtScale(int const scale) const -> void {
+  auto const view{ CurrentView() };
+  auto const size{ WindowSize(view, scale > 0 ? std::min(scale, view.largest) : view.largest) };
+  LockAspect();
+  SDL_SetWindowSize(_window.get(), size.width, size.height);
+  SDL_SetWindowPosition(_window.get(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+  SDL_ShowWindow(_window.get());
+}
+
+// A resize starts (or restarts) the wait before the snap.
+auto Backend::NoteResize(SDL_Event const& sdl) -> void {
+  if (sdl.type == SDL_EVENT_WINDOW_RESIZED) _resized_ns = SDL_GetTicksNS();
+}
+
+// Once the window size has held still, it snaps to the nearest integer multiple of the frame.
+auto Backend::SnapWhenSettled() -> void {
+  if (!_resized_ns || SDL_GetTicksNS() - *_resized_ns < SNAP_SETTLE_NS) return;
+  _resized_ns.reset();
+  if (!target::OwnsWindowSize() || (SDL_GetWindowFlags(_window.get()) & UNSNAPPED) != 0) return;
+  Size pixels{};
+  SDL_GetWindowSizeInPixels(_window.get(), &pixels.width, &pixels.height);
+  if (auto const snapped{ Snapped(CurrentView(), pixels) }) SDL_SetWindowSize(_window.get(), snapped->width, snapped->height);
 }
 
 auto Backend::ClearWindow() const -> void {
@@ -405,6 +456,11 @@ auto Backend::ReplaceTexture(int const width, int const height) -> void {
   _texture_width  = width;
   _texture_height = height;
   SDL_SetRenderLogicalPresentation(_renderer.get(), width, height, PRESENTATION);
+  if (Size{ .width = width, .height = height } == _shown) return;
+  _shown = Size{ .width = width, .height = height };
+  if (!target::OwnsWindowSize()) return;
+  LockAspect();
+  _resized_ns = 0; // a frame of another size snaps the window at once
 }
 
 // The frame through the palette into the texture.
@@ -500,8 +556,10 @@ auto Backend::PollEvent() -> std::optional<InputEvent> {
   if (!_inited || _headless) return std::nullopt;
   SDL_Event sdl{};
   while (SDL_PollEvent(&sdl)) {
+    NoteResize(sdl);
     if (auto const event{ Translated(sdl) }) return event;
   }
+  SnapWhenSettled();
   return std::nullopt;
 }
 

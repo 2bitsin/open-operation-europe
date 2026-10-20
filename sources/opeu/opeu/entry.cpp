@@ -43,6 +43,7 @@ auto Usage(std::string_view argv0) -> void {
   std::print(stderr,
              "usage: {} [--saves DIR] [--scale N] [--headless] [--ms N] [--input FILE] [--png FILE] [--wav FILE]\n"
              "  --saves DIR   saved games (default: the per-user data directory)\n"
+             "  --scale N     open the window at N times 640x480 device pixels (default: the largest the screen holds)\n"
              "  --headless    no window; virtual time; use with --ms/--input/--png\n"
              "  --ms N        headless: stop after N ms of virtual time\n"
              "  --input FILE  scripted input log (see docs/port.md)\n"
@@ -176,7 +177,6 @@ auto RunGame() -> std::expected<void, std::string> {
 } // namespace
 
 auto Main(std::span<std::string_view const> const command_line) -> int {
-  port_options.scale = 2;
   auto const intro{ opeu::intro::IntroOptions(command_line) }; // --no-intro / --intro
   auto const options{ ParseOptions(intro.remaining) };
   if (!options) {
@@ -195,7 +195,7 @@ auto Main(std::span<std::string_view const> const command_line) -> int {
     .title      = "Operation Europe",
     .width      = 640,
     .height     = 480,
-    .scale      = port_options.scale > 0 ? port_options.scale : 2,
+    .scale      = port_options.scale,
     .headless   = port_options.headless,
     .fullscreen = 0,
   };

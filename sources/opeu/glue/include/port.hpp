@@ -126,7 +126,7 @@ struct PortOptions {
   const char* png_path;   /* write the last frame here when stopping */
   const char* input_path; /* scripted input log (see docs/port.md) */
   const char* save_dir;   /* saved games (NULL: the platform's default) */
-  int         scale;      /* initial window scale */
+  int         scale;      /* initial window scale (0: the largest the screen holds) */
   const char* shot_dir;   /* headless: write a frame every shot_every_ms here */
   uint32_t    shot_every_ms;
   const char* wav_path;     /* write the audio output (49716 Hz stereo) here */

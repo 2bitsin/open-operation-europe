@@ -20,7 +20,7 @@ struct PlatConfig {
   std::string_view title;      // the window title
   int              width{};    // the frame's size (640x480)
   int              height{};   //
-  int              scale{};    // the initial window scale (at least 1)
+  int              scale{};    // the initial window size in multiples of the frame in device pixels; 0: the largest that fits
   int              headless{}; // 1: no window, no audio device, no input
   int              fullscreen{};
 };

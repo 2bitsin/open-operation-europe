@@ -12,6 +12,10 @@ auto ExtraWindowFlags() -> SDL_WindowFlags {
   return 0;
 }
 
+auto OwnsWindowSize() -> bool {
+  return true;
+}
+
 auto PrepareHints() -> void { }
 
 auto PaceFrames(SDL_Renderer& renderer) -> void {
