@@ -16,14 +16,19 @@ import os
 import re
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[2]
 NO_GAME_DATA = 'no game data: '
 DATA_DIRECTORY_VARIABLE = 'OPEU_DATA_DIR'
 IN_TREE_DATA = ROOT / 'sources' / 'opeu' / 'opeu' / 'assets.embed'
 IN_TREE_CLASSIC_PACK = ROOT / 'sources' / 'opeu' / 'opeu' / 'packs.embed' / 'classic'
 DATA_FILES_HEADER = ROOT / 'sources' / 'opeu' / 'assets' / 'data-files.hpp'
+
+
+def pytest():
+    """pytest, imported when a test needs it: play.py imports this module outside a test run too (the CI driver's
+    smokes, with a Python that has no pytest)."""
+    import pytest as module  # noqa: PLC0415
+    return module
 
 
 def data_file_names() -> list[str]:
@@ -44,7 +49,7 @@ def data_directory() -> Path | None:
     if named:
         missing = missing_files(Path(named))
         if missing:
-            pytest.fail(f'{DATA_DIRECTORY_VARIABLE}={named} lacks {", ".join(missing)}')
+            pytest().fail(f'{DATA_DIRECTORY_VARIABLE}={named} lacks {", ".join(missing)}')
         return Path(named)
     return IN_TREE_DATA if IN_TREE_DATA.is_dir() else None
 
@@ -54,7 +59,7 @@ def require_data() -> Path:
     repository's build embeds the files, and a build without them finds OPEU_DATA_DIR's, which the game inherits."""
     directory = data_directory()
     if directory is None:
-        pytest.skip(no_game_data(f'the 26 data files (set {DATA_DIRECTORY_VARIABLE} to a directory holding them)'))
+        pytest().skip(no_game_data(f'the 26 data files (set {DATA_DIRECTORY_VARIABLE} to a directory holding them)'))
     return directory
 
 
@@ -62,7 +67,7 @@ def require_file(path: Path, what: str) -> Path:
     """A file of the private repository made from the game's data (a golden, a fixture, the classic pack), or the
     test skips."""
     if not path.exists():
-        pytest.skip(no_game_data(what))
+        pytest().skip(no_game_data(what))
     return path
 
 
