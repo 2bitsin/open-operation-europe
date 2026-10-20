@@ -106,6 +106,7 @@ using detail::game_data_test::FindTestData;
 using detail::game_data_test::GameDataTest;
 using detail::game_data_test::IN_TREE_CLASSIC_PACK;
 using detail::game_data_test::IN_TREE_DATA;
+using detail::game_data_test::NamedDataDirectory;
 using detail::game_data_test::NO_GAME_DATA;
 using detail::game_data_test::NoGameData;
 using detail::game_data_test::TestFile;

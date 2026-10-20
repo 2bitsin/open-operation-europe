@@ -15,17 +15,21 @@ namespace opeu::assets {
 
 namespace {
 
-using test::Shipped;
+using ShippedBattleFields    = test::ShippedTest;
+using ShippedBattleSelectors = test::ShippedTest;
+using ShippedMapCells        = test::ShippedTest;
+using ShippedMapTiles        = test::ShippedTest;
+using ShippedScenarios       = test::ShippedTest;
 
-auto Grids(std::string_view const file) -> std::array<CellGrid, MAP_COUNT> {
-  auto const grids{ DecodeCellGrids(Shipped(file)) };
+auto Grids(Source const& data, std::string_view const file) -> std::array<CellGrid, MAP_COUNT> {
+  auto const grids{ DecodeCellGrids(test::Shipped(data, file)) };
   EXPECT_TRUE(grids) << file;
   return grids.value_or(std::array<CellGrid, MAP_COUNT>{});
 }
 
 }
 
-TEST(ShippedScenarios, HoldTextsConditionsAndSevenSetups) {
+TEST_F(ShippedScenarios, HoldTextsConditionsAndSevenSetups) {
   auto const file{ DecodeScenarioFile(Shipped("SCEDATA")) };
   ASSERT_TRUE(file);
   EXPECT_TRUE(file->Description(0).starts_with("  The Russo-German Non-aggression Pact"));
@@ -52,8 +56,8 @@ TEST(ShippedScenarios, HoldTextsConditionsAndSevenSetups) {
   EXPECT_FALSE(DecodeScenarioFile(Bytes{ Shipped("SCEDATA") }.first(100)));
 }
 
-TEST(ShippedMapCells, HoldSixFortyByFortyMaps) {
-  auto const cells{ Grids("MAPINF.DAT") };
+TEST_F(ShippedMapCells, HoldSixFortyByFortyMaps) {
+  auto const cells{ Grids(Data(), "MAPINF.DAT") };
   auto       histogram{ std::map<int, int>{} };
   std::ranges::for_each(cells[0], [&histogram](std::uint8_t const cell) { ++histogram[cell & 0x0F]; });
   EXPECT_EQ(histogram, (std::map<int, int>{
@@ -69,8 +73,8 @@ TEST(ShippedMapCells, HoldSixFortyByFortyMaps) {
   EXPECT_TRUE(std::ranges::contains(cells[1], std::uint8_t{ 0x80 | 2 }) || std::ranges::contains(cells[1], std::uint8_t{ 130 }));
 }
 
-TEST(ShippedMapTiles, NameATileOfTheMapsSetPerCell) {
-  auto const     tiles{ Grids("MAPPNO.DAT") };
+TEST_F(ShippedMapTiles, NameATileOfTheMapsSetPerCell) {
+  auto const     tiles{ Grids(Data(), "MAPPNO.DAT") };
   constexpr auto HIGHEST{
     std::array<std::uint8_t, MAP_COUNT>{ 79, 41, 33, 70, 70, 79 }
   };
@@ -80,8 +84,8 @@ TEST(ShippedMapTiles, NameATileOfTheMapsSetPerCell) {
   }
 }
 
-TEST(ShippedBattleSelectors, NameEveryFieldOfTheirMap) {
-  auto const     selectors{ Grids("HEXDISP.DAT") };
+TEST_F(ShippedBattleSelectors, NameEveryFieldOfTheirMap) {
+  auto const     selectors{ Grids(Data(), "HEXDISP.DAT") };
   constexpr auto FIELDS{
     std::array<std::uint8_t, MAP_COUNT>{ 93, 88, 61, 85, 121, 89 }
   };
@@ -91,7 +95,7 @@ TEST(ShippedBattleSelectors, NameEveryFieldOfTheirMap) {
   }
 }
 
-TEST(ShippedBattleFields, Hold537FieldsOfKnownTerrain) {
+TEST_F(ShippedBattleFields, Hold537FieldsOfKnownTerrain) {
   auto const fields{ DecodeBattleFields(Shipped("HEXMAP.DAT")) };
   ASSERT_TRUE(fields);
   EXPECT_EQ(fields->size(), FIELD_COUNT);

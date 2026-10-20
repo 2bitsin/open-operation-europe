@@ -1,10 +1,10 @@
 // The program's own glyph tables: the text font, the digits, the sideways digits and the markers, decoded through
-// the catalogue like the shipped bitmaps.
+// the catalogue like the shipped bitmaps, without any of the game's files.
 #include "present.hpp"
-#include "shipped.hpp"
 
 #include "opeu/assets/catalogue.hpp"
 #include "opeu/assets/program-glyphs.hpp"
+#include "opeu/assets/source.hpp"
 
 #include <gtest/gtest.h>
 
@@ -24,9 +24,9 @@ namespace {
 using test::Present;
 
 auto GlyphImage(std::string_view const id) -> Image {
-  auto const  shipped{ test::ShippedCatalogue{} };
-  auto const& catalogue{ shipped.Catalogued() };
-  auto const  asset{ catalogue.Find(id) };
+  auto const nothing{ TableSource{ {} } }; // the program's tables need none of the game's files
+  auto const catalogue{ Catalogue{ nothing } };
+  auto const asset{ catalogue.Find(id) };
   if (!asset) {
     ADD_FAILURE() << "no asset " << id;
     return Image{};
@@ -85,9 +85,9 @@ TEST(ProgramGlyphs, DrawTheTwoMarkersEightByEight) {
 }
 
 TEST(ProgramGlyphs, AreCataloguedAsGlyphsInInk) {
-  auto const  shipped{ test::ShippedCatalogue{} };
-  auto const& catalogue{ shipped.Catalogued() };
-  auto const  program{ catalogue.Assets() | std::views::filter([](Asset const& asset) { return asset.file.starts_with("program/"); }) | std::ranges::to<std::vector>() };
+  auto const nothing{ TableSource{ {} } }; // the program's tables need none of the game's files
+  auto const catalogue{ Catalogue{ nothing } };
+  auto const program{ catalogue.Assets() | std::views::filter([](Asset const& asset) { return asset.file.starts_with("program/"); }) | std::ranges::to<std::vector>() };
   EXPECT_EQ(program.size(), TEXT_GLYPHS + DIGIT_GLYPHS + DIGIT_GLYPHS + MARKERS);
   EXPECT_TRUE(std::ranges::all_of(program, [](Asset const& asset) { return asset.role == Role::GLYPH && asset.layout == Layout::BITMAP && asset.group == "glyphs"; }));
 }

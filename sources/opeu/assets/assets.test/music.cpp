@@ -1,6 +1,7 @@
 // The FM banks as JSON (packs.embed/classic/music/): each table reads back into a bank whose bytes are the bank the
 // recovered program holds (its size and fingerprint; the extract-assets probe compares the bytes and the FM driver's
-// register stream themselves), decodes back into the same parts, and a malformed table or bank is refused.
+// register stream themselves), decodes back into the same parts, and a malformed table or bank is refused. The
+// tables are the checked-in pack's: a clone without it skips.
 #include "packs.hpp"
 
 #include "opeu/assets/fingerprint.hpp"
@@ -21,6 +22,9 @@ namespace {
 
 using test::ClassicFile;
 using test::ToBytes;
+
+using MusicTables = test::CheckedInClassicTest;
+using MusicBanks  = test::CheckedInClassicTest;
 
 // What a table's bank is: the bank's size and FNV-1a fingerprint, and how many parts of each kind it holds.
 struct Expected {
@@ -63,7 +67,7 @@ auto Edited(std::size_t const n, std::string_view const from, std::string_view c
 
 }
 
-TEST(MusicTables, EncodeIntoTheBanksTheProgramsHold) {
+TEST_F(MusicTables, EncodeIntoTheBanksTheProgramsHold) {
   std::ranges::for_each(std::views::zip(Indices(MUSIC_TABLES.size()), EXPECTED), [](auto const n_expected) {
     auto const [n, expected]{ n_expected };
     auto const bytes{ EncodeMusicBank(PackedBank(n)) };
@@ -72,7 +76,7 @@ TEST(MusicTables, EncodeIntoTheBanksTheProgramsHold) {
   });
 }
 
-TEST(MusicTables, HoldTheBanksParts) {
+TEST_F(MusicTables, HoldTheBanksParts) {
   std::ranges::for_each(std::views::zip(Indices(MUSIC_TABLES.size()), EXPECTED), [](auto const n_expected) {
     auto const [n, expected]{ n_expected };
     auto const bank{ PackedBank(n) };
@@ -83,19 +87,19 @@ TEST(MusicTables, HoldTheBanksParts) {
   });
 }
 
-TEST(MusicTables, DecodeBackIntoTheSameParts) {
+TEST_F(MusicTables, DecodeBackIntoTheSameParts) {
   std::ranges::for_each(Indices(MUSIC_TABLES.size()), [](std::size_t const n) {
     auto const bank{ PackedBank(n) };
     EXPECT_EQ(DecodeMusicBank(EncodeMusicBank(bank), MUSIC_TABLES.at(n).layout), bank) << MUSIC_TABLES.at(n).path;
   });
 }
 
-TEST(MusicTables, ReadBackWhatTheyWrite) {
+TEST_F(MusicTables, ReadBackWhatTheyWrite) {
   auto const bank{ PackedBank(0) };
   EXPECT_EQ(ReadMusicBank(ToBytes(MusicBankText(bank))), bank);
 }
 
-TEST(MusicTables, NameNotesInstrumentsAndDrums) {
+TEST_F(MusicTables, NameNotesInstrumentsAndDrums) {
   auto const bank{ PackedBank(0) };
   auto const text{ MusicBankText(bank) };
   EXPECT_TRUE(text.contains(R"({"op":"instrument","name":"instrument-00"})"));
@@ -104,29 +108,29 @@ TEST(MusicTables, NameNotesInstrumentsAndDrums) {
   EXPECT_FALSE(text.contains(R"("op":"ignored")"));
 }
 
-TEST(MusicTables, RefuseAnUnknownInstrument) {
+TEST_F(MusicTables, RefuseAnUnknownInstrument) {
   EXPECT_EQ(ReadMusicBank(Edited(0, R"("name":"instrument-00"})", R"("name":"instrument-99"})")).error().fault, PackFault::BAD_TABLE);
 }
 
-TEST(MusicTables, RefuseANoteAboveTheTop) {
+TEST_F(MusicTables, RefuseANoteAboveTheTop) {
   EXPECT_EQ(ReadMusicBank(Edited(0, R"("note":"C3","length")", R"("note":"C8","length")")).error().fault, PackFault::BAD_TABLE);
 }
 
-TEST(MusicTables, RefuseARhythmSlotPlayingAMelody) {
+TEST_F(MusicTables, RefuseARhythmSlotPlayingAMelody) {
   EXPECT_EQ(ReadMusicBank(Edited(0, R"("rhythm":"song-01/rhythm")", R"("rhythm":"song-01/voice-0")")).error().fault, PackFault::BAD_TABLE);
 }
 
-TEST(MusicTables, RefuseATrackWithoutItsEnd) {
+TEST_F(MusicTables, RefuseATrackWithoutItsEnd) {
   EXPECT_EQ(ReadMusicBank(Edited(2, R"({"op":"end"}])", "]")).error().fault, PackFault::BAD_TABLE);
 }
 
-TEST(MusicBanks, RefuseBytesTheirPartsDoNotTile) {
+TEST_F(MusicBanks, RefuseBytesTheirPartsDoNotTile) {
   auto bytes{ EncodeMusicBank(PackedBank(1)) };
   bytes.push_back(std::byte{ 0 });
   EXPECT_EQ(DecodeMusicBank(bytes, MUSIC_TABLES.at(1).layout).error(), DecodeError::BAD_LAYOUT);
 }
 
-TEST(MusicBanks, RefuseATrackRunningPastTheEnd) {
+TEST_F(MusicBanks, RefuseATrackRunningPastTheEnd) {
   auto bytes{ EncodeMusicBank(PackedBank(1)) };
   bytes.pop_back();
   EXPECT_EQ(DecodeMusicBank(bytes, MUSIC_TABLES.at(1).layout).error(), DecodeError::TRUNCATED);

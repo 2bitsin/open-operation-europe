@@ -19,7 +19,12 @@ namespace opeu::assets {
 
 namespace {
 
-using test::Shipped;
+using ShippedEpilogue  = test::ShippedTest;
+using ShippedEvent     = test::ShippedTest;
+using ShippedFrame     = test::ShippedTest;
+using ShippedOpening   = test::ShippedTest;
+using ShippedOutcome   = test::ShippedTest;
+using ShippedSelection = test::ShippedTest;
 
 struct Size {
   std::size_t width;
@@ -28,17 +33,14 @@ struct Size {
 };
 
 // The assets of one file in catalogue order.
-auto AssetsOf(std::string_view const file) -> std::vector<Asset> {
-  auto const  shipped{ test::ShippedCatalogue{} };
-  auto const& catalogue{ shipped.Catalogued() };
+auto AssetsOf(Catalogue const& catalogue, std::string_view const file) -> std::vector<Asset> {
   return catalogue.Assets() | std::views::filter([file](Asset const& asset) { return asset.file == file; }) | std::ranges::to<std::vector>();
 }
 
 // Each picture of a file decoded, with its offset and stream length.
-auto PicturesOf(std::string_view const file) -> std::vector<std::pair<Asset, Picture>> {
-  auto const contents{ Shipped(file) };
-  auto const bytes{ Bytes{ contents } };
-  return AssetsOf(file) | std::views::transform([bytes](Asset const& asset) {
+auto PicturesOf(Source const& data, std::string_view const file) -> std::vector<std::pair<Asset, Picture>> {
+  auto const bytes{ test::Shipped(data, file) };
+  return AssetsOf(Catalogue{ data }, file) | std::views::transform([bytes](Asset const& asset) {
            auto const colours{ asset.layout == Layout::STREAM_8 ? Colours::EIGHT : Colours::SIXTEEN };
            auto const picture{ DecodePicture(bytes.subspan(asset.at), colours) };
            EXPECT_TRUE(picture) << asset.id;
@@ -85,16 +87,16 @@ auto ExpectBlocksDoNotOverlap(std::vector<std::pair<Asset, Picture>> pictures) -
 
 }
 
-TEST(ShippedEvent, HoldsThirtyTwoEventPictures) {
-  auto const pictures{ PicturesOf("EVENT.DAT") };
+TEST_F(ShippedEvent, HoldsThirtyTwoEventPictures) {
+  auto const pictures{ PicturesOf(Data(), "EVENT.DAT") };
   ASSERT_EQ(pictures.size(), 32U);
   ExpectAllOfSize(pictures, Size{ 256, 168 });
   ExpectBlocksDoNotOverlap(pictures);
   EXPECT_EQ(Shipped("EVENT.DAT").size(), 510U * 512U);
 }
 
-TEST(ShippedSelection, HoldsTheTitleAndSixScenarioPictures) {
-  auto const pictures{ PicturesOf("SCESEL.DAT") };
+TEST_F(ShippedSelection, HoldsTheTitleAndSixScenarioPictures) {
+  auto const pictures{ PicturesOf(Data(), "SCESEL.DAT") };
   ASSERT_EQ(pictures.size(), 7U);
   EXPECT_EQ(SizeOf(pictures[0].second), (Size{ 640, 400 }));
   EXPECT_EQ(pictures[0].second.length, 14'844U);
@@ -107,8 +109,8 @@ TEST(ShippedSelection, HoldsTheTitleAndSixScenarioPictures) {
   ExpectBlocksDoNotOverlap(pictures);
 }
 
-TEST(ShippedOutcome, HoldsFourOutcomesAndSixMedals) {
-  auto const pictures{ PicturesOf("SCEEND.DAT") };
+TEST_F(ShippedOutcome, HoldsFourOutcomesAndSixMedals) {
+  auto const pictures{ PicturesOf(Data(), "SCEEND.DAT") };
   ASSERT_EQ(pictures.size(), 10U);
   auto const outcomes{ std::ranges::count_if(pictures, [](auto const& entry) { return SizeOf(entry.second) == Size{ 480, 240 }; }) };
   auto const medals{ std::ranges::count_if(pictures, [](auto const& entry) { return SizeOf(entry.second) == Size{ 96, 144 }; }) };
@@ -117,8 +119,8 @@ TEST(ShippedOutcome, HoldsFourOutcomesAndSixMedals) {
   ExpectBlocksDoNotOverlap(pictures);
 }
 
-TEST(ShippedFrame, HoldsTheMainScreensPieces) {
-  auto const pictures{ PicturesOf("MGAMEN.DAT") };
+TEST_F(ShippedFrame, HoldsTheMainScreensPieces) {
+  auto const pictures{ PicturesOf(Data(), "MGAMEN.DAT") };
   ASSERT_EQ(pictures.size(), 9U);
   EXPECT_EQ(SizeOf(pictures[0].second), (Size{ 640, 24 }));
   EXPECT_EQ(SizeOf(pictures[1].second), (Size{ 352, 344 }));
@@ -128,8 +130,8 @@ TEST(ShippedFrame, HoldsTheMainScreensPieces) {
   ExpectInside(bars, Shipped("MGAMEN.DAT").size());
 }
 
-TEST(ShippedEpilogue, HoldsSevenPicturesBackToBackAndABlankToken) {
-  auto const pictures{ PicturesOf("ENDGRP.NPK") };
+TEST_F(ShippedEpilogue, HoldsSevenPicturesBackToBackAndABlankToken) {
+  auto const pictures{ PicturesOf(Data(), "ENDGRP.NPK") };
   ASSERT_EQ(pictures.size(), 7U);
   constexpr auto SIZES{ std::array<Size, 7>{ { { 640, 160 }, { 640, 224 }, { 320, 224 }, { 320, 224 }, { 640, 184 }, { 640, 368 }, { 384, 160 } } } };
   ExpectSizes(pictures, SIZES);
@@ -141,8 +143,8 @@ TEST(ShippedEpilogue, HoldsSevenPicturesBackToBackAndABlankToken) {
   EXPECT_TRUE(std::ranges::all_of(bytes.subspan(EPILOGUE_TOKEN_AT), [](std::byte const b) { return b == std::byte{ ' ' }; }));
 }
 
-TEST(ShippedOpening, HoldsThirtyPicturesThatFillTheFile) {
-  auto const pictures{ PicturesOf("OPENGRP.NPK") };
+TEST_F(ShippedOpening, HoldsThirtyPicturesThatFillTheFile) {
+  auto const pictures{ PicturesOf(Data(), "OPENGRP.NPK") };
   ASSERT_EQ(pictures.size(), 30U);
   ExpectBackToBack(pictures);
   EXPECT_EQ(pictures.back().first.at + pictures.back().second.length, Shipped("OPENGRP.NPK").size());

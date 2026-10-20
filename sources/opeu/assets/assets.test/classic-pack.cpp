@@ -1,6 +1,7 @@
 // The classic pack against the decoders: every entry and image of the checked-in pack, as a directory and embedded,
 // is what the decoders' pack (CataloguePack) draws from the shipped files, pixel for pixel, and the pack holds every
-// id, animation and font the decoders know; an archive made of the sample's files reads the same.
+// id, animation and font the decoders know; an archive made of the sample's files reads the same. The private
+// repository's only: a clone without the pack and the files skips them.
 #include "packs.hpp"
 #include "shipped.hpp"
 
@@ -25,6 +26,9 @@ using test::ClassicDirectory;
 
 using test::SAMPLE_IDS;
 
+using ClassicPack        = test::ClassicAgainstShippedTest;
+using ClassicPackAsBuilt = test::CheckedInClassicTest;
+
 // What the decoders cannot know: the readable file names and descriptions pack.py gives the images.
 auto WithoutNaming(LoadedAsset loaded) -> LoadedAsset {
   loaded.entry.image.clear();
@@ -41,9 +45,7 @@ auto WholePacks() -> std::vector<Pack> {
 }
 
 // Each image of `ids` loads from `pack` as the decoders draw it.
-auto ExpectDrawnAsTheDecoders(Pack const& pack, std::span<std::string const> const ids) -> void {
-  auto const  shipped{ test::ShippedPack{} };
-  auto const& decoders{ shipped.Decoders() };
+auto ExpectDrawnAsTheDecoders(AssetPack const& decoders, Pack const& pack, std::span<std::string const> const ids) -> void {
   std::ranges::for_each(ids, [&](std::string const& id) {
     auto const loaded{ pack.Load(id) };
     ASSERT_TRUE(loaded) << id << ": " << Describe(loaded.error());
@@ -65,20 +67,19 @@ auto ExpectComplete(AssetPack const& pack, AssetPack const& decoders) -> void {
 
 }
 
-TEST(ClassicPack, HoldsEveryImageAsTheDecodersDrawIt) {
-  std::ranges::for_each(WholePacks(), [](Pack const& pack) { ExpectDrawnAsTheDecoders(pack, pack.Ids()); });
+TEST_F(ClassicPack, HoldsEveryImageAsTheDecodersDrawIt) {
+  std::ranges::for_each(WholePacks(), [this](Pack const& pack) { ExpectDrawnAsTheDecoders(Decoders(), pack, pack.Ids()); });
 }
 
-TEST(ClassicPack, ListsEveryIdAnimationAndFontTheDecodersKnow) {
-  auto const shipped{ test::ShippedPack{} };
-  std::ranges::for_each(WholePacks(), [&shipped](Pack const& pack) { ExpectComplete(pack, shipped.Decoders()); });
+TEST_F(ClassicPack, ListsEveryIdAnimationAndFontTheDecodersKnow) {
+  std::ranges::for_each(WholePacks(), [this](Pack const& pack) { ExpectComplete(pack, Decoders()); });
 }
 
-TEST(ClassicPack, ReadsTheSampleFromAnArchive) {
-  ExpectDrawnAsTheDecoders(ClassicArchive(), SAMPLE_IDS | std::ranges::to<std::vector<std::string>>());
+TEST_F(ClassicPack, ReadsTheSampleFromAnArchive) {
+  ExpectDrawnAsTheDecoders(Decoders(), ClassicArchive(), SAMPLE_IDS | std::ranges::to<std::vector<std::string>>());
 }
 
-TEST(ClassicPack, HoldsTheGamesPalettes) {
+TEST_F(ClassicPackAsBuilt, HoldsTheGamesPalettes) {
   auto packs{ WholePacks() };
   packs.push_back(ClassicArchive());
   std::ranges::for_each(

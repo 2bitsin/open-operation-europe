@@ -61,18 +61,19 @@ TEST(Fingerprints, AreFnv1a) {
   EXPECT_EQ(FingerprintOf(a), 0xAF63DC4C8601EC8CULL);
 }
 
-class ShippedContent : public ::testing::Test {
+class ShippedContent : public test::ShippedTest {
 protected:
-  [[nodiscard]] auto Index() const -> ContentIndex const& {
-    return _index;
+  auto SetUp() -> void override {
+    ShippedTest::SetUp();
+    if (IsSkipped() || HasFailure()) return;
+    _index = std::make_unique<ContentIndex const>(Catalogued());
   }
-  [[nodiscard]] auto Catalogued() const -> Catalogue const& {
-    return _shipped.Catalogued();
+  [[nodiscard]] auto Index() const -> ContentIndex const& {
+    return *_index;
   }
 
 private:
-  test::ShippedCatalogue _shipped;
-  ContentIndex           _index{ _shipped.Catalogued() };
+  std::unique_ptr<ContentIndex const> _index; // set by SetUp, or the test skipped
 };
 
 TEST_F(ShippedContent, RecognisesATileFromItsBytes) {
