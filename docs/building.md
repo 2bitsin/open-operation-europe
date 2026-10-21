@@ -226,8 +226,7 @@ libgl-dev libegl-dev libudev-dev xkb-data
 ```
 
 Alternatively, pass `-c tools.system.package_manager:mode=install` with sudo
-rights and let conan install them. `tools/github/ci.py` installs the same
-list on the CI runners.
+rights and let conan install them.
 
 gcc gives about 25 warnings that clang does not, all in recovered code and in
 ymfm. None of them is an error.
@@ -241,7 +240,7 @@ python3 tools/web/serve.py --dir _install/opeu
 
 buildutil offers the `emscripten` compiler only on Linux hosts. The SDK is
 `$EMSDK/upstream/emscripten/em++`, else `em++` on `PATH` (`EMSDK` can be set
-in `.env`); the CI builds with emsdk 6.0.10. The output is
+in `.env`); the build is tested with emsdk 6.0.10. The output is
 `_install/opeu/opeu.html`, `opeu.js` and `opeu.wasm`. The test suites are
 native-only, hence `--no-tests`. `tools/web/serve.py` serves the build with
 `.wasm` as `application/wasm`; open `http://localhost:8765/opeu.html` (add
@@ -267,23 +266,3 @@ writes host files:
 node _install/opeu/opeu.js --data /host/$HOME/games/OPEUROPE --headless --ms 15000 \
   --input /host/$PWD/sources/opeu/integration/fixtures/smoke-input.txt --png /host/tmp/web.png
 ```
-
-## Continuous integration
-
-`.github/workflows/build.yml` runs on every push to `main`, on tags `v*`,
-on pull requests and by hand. Each job is one call of
-`python3 tools/github/ci.py <job>`, which prints each step as a group of the
-log and on a failure names the step and what to look at; the buildutil logs
-are the job's artifact.
-
-| Job | Runner | What it does |
-|---|---|---|
-| `linux` | ubuntu-24.04 | the packages of "Linux" above with gcc 14 as the default, `./buildutil build --release`, `opeu --dump-arena` against its hash, `./buildutil test` (only `no game data` skips allowed, the benchmark gates at `OPEU_PERF_BUDGET=100`) |
-| `macos` | macos-15 | the same with the runner's Xcode |
-| `web` | ubuntu-24.04 | the pinned emsdk, `./buildutil build --compiler emscripten --release --no-tests` |
-
-Conan resolves every package from conancenter; `_conanhome/`, `_pyvenv/`
-and the emsdk are cached, keyed on the files that decide them. A job runs
-the same way on a machine like the runner (`python3 tools/github/ci.py
-linux` installs packages with sudo, so use a throwaway machine or
-container).
