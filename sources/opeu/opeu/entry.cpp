@@ -54,7 +54,7 @@ auto Usage(std::string_view argv0) -> void {
   std::print(stderr,
              "usage: {} [--data DIR] [--check-data [DIR]] [--remaster PATH] [--saves DIR] [--scale N] [--headless] [--ms N]\n"
              "          [--input FILE] [--png FILE] [--wav FILE]\n"
-             "  --data DIR    the game's 26 data files are in DIR (default: compiled in, else searched; docs/port.md)\n"
+             "  --data DIR    the game's 26 data files are in DIR (default: compiled in, else searched; docs/building.md)\n"
              "  --check-data [DIR]  say whether DIR (default: where the run would look) holds the data files, and stop\n"
              "  --remaster PATH  draw with the remaster pack at PATH, a directory or .opeupack (default: $OPEU_REMASTER)\n"
              "  --saves DIR   saved games (default: the per-user data directory)\n"
@@ -256,7 +256,7 @@ auto ReportData(DataCheck const& check) -> int {
 // browser the page's file picker).
 auto ReportMissingData(opeu::assets::DataReport const& report) -> int {
   auto const text{ std::format("opeu: cannot find the game's data files.\n{}Copy the 26 files of your copy of the game into one of these "
-                               "directories, or start opeu with --data DIR (docs/port.md, \"The game's data\").\n",
+                               "directories, or start opeu with --data DIR (docs/building.md, \"The game's data\").\n",
                                report.Text()) };
   std::print(stderr, "{}", text);
   if (port_options.headless == 0) opeu::platform::ShowMissingData(text);

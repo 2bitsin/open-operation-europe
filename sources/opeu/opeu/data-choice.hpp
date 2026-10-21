@@ -1,4 +1,4 @@
-// Where the run's 26 data files come from (docs/port.md "The game's data"): the directory --data names and nothing
+// Where the run's 26 data files come from (docs/building.md "The game's data"): the directory --data names and nothing
 // else; else the files compiled into the executable; else the first directory of the search that holds them all
 // ($OPEU_DATA_DIR, the host's places, the current directory). A directory counts only when every file has the release's
 // size and fingerprint (assets/data-files.hpp).

@@ -1,6 +1,6 @@
 #pragma once
 // What the host tells the entry about the game's data before the game runs: the directories it may lie in (after
-// --data and the files compiled in, docs/port.md "The game's data") and how the player is told it is missing.
+// --data and the files compiled in, docs/building.md "The game's data") and how the player is told it is missing.
 
 #include <filesystem>
 #include <string_view>
