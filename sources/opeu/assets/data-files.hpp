@@ -20,7 +20,7 @@ struct DataFile {
 };
 
 // The release the files must come from, as a player knows it.
-inline constexpr auto RELEASE{ "Operation Europe: Path to Victory 1938-45 (KOEI, 1994), the English DOS release"sv };
+inline constexpr auto RELEASE{ "Operation Europe: Path to Victory 1939-45 (KOEI, 1994), the English DOS release"sv };
 
 // clang-format off
 inline constexpr auto DATA_FILES{ std::to_array<DataFile>({

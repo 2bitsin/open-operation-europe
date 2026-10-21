@@ -22,7 +22,7 @@ From then on every command is `./buildutil <verb>`.
   cmake` into `_pyvenv/` is enough.
 - Network access to conancenter on the first build (see Dependencies).
 - To play: your own copy of the 1994 DOS release of *Operation Europe: Path
-  to Victory 1938-45*. The repository holds no game files.
+  to Victory 1939-45*. The repository holds no game files.
 
 ## Getting started
 
